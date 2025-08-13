@@ -1,0 +1,93 @@
+--Ikram
+/****** Object:  StoredProcedure [dbo].[spDoc_GetResBatchDet]    Script Date: 11-08-2025 23:27:50 ******/
+IF  EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[spDoc_GetResBatchDet]') AND type in (N'P', N'PC'))
+DROP PROCEDURE [dbo].[spDoc_GetResBatchDet]
+GO
+/****** Object:  StoredProcedure [dbo].[spDoc_GetResBatchDet]    Script Date: 11-08-2025 23:27:50 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[spDoc_GetResBatchDet]') AND type in (N'P', N'PC'))
+BEGIN
+EXEC dbo.sp_executesql @statement = N'--exec spDoc_GetResBatchDet ''266239'',40213,1,1
+CREATE PROCEDURE [dbo].[spDoc_GetResBatchDet]
+	@InvIDs nvarchar(max),
+	@CCID INT,	
+	@UserID INT,
+	@LangID	INT
+AS
+BEGIN
+	
+	declare @DeleteDocID INT,@DELETECCID INT,@return_value int,@sql nvarchar(max),@isloop BIT,@tempinvid int
+	declare @cnt int,@hold bit,@res bit,@bid int,@invid int,@acc int,@accids nvarchar(max)
+	
+	declare  @tblRows TABLE (ID int)
+	insert into @tblRows
+	EXEC SPSplitString @InvIDs,'',''
+
+	select @invid=id from INV_DocDetails a with(nolock)
+	join @tblRows b on a.LinkedInvDocDetailsID=b.ID
+
+
+	set @sql=''declare  @tblRows TABLE (ID int)
+	insert into @tblRows
+	EXEC SPSplitString @InvIDs,'''',''''
+
+	select t.id,a.batchid,a.RefInvDocDetailsID,a.InvDocDetailsID,a.Quantity-isnull(sum(b.UOMConvertedQty),0) QTY
+	from INV_DocDetails a with(nolock) ''
+	set @cnt=0
+	set @isloop=1
+
+	while(@isloop=1)
+	BEGIN
+		set @tempinvid=0
+		select @tempinvid=InvDocDetailsID from INV_DocDetails a with(nolock) 
+		where a.RefCCID=300 and a.costcenterid=@CCID and a.LinkedInvDocDetailsID=@invid
+		set @cnt=@cnt+1
+		if(@tempinvid>0)
+		BEGIN
+			set @isloop=0
+			if(@cnt=1)
+				set @sql=@sql+'' join @tblRows t on a.LinkedInvDocDetailsID=t.id''
+			ELSE
+				set @sql=@sql+'' join @tblRows t on t''+convert(nvarchar,(@cnt-1))+''.InvDocDetailsID=t.id''
+		END
+		ELSE
+		BEGIN
+			set @tempinvid=@invid
+			set @invid=0
+			select @invid=LinkedInvDocDetailsID from INV_DocDetails a with(nolock)
+			where a.InvDocDetailsID=@tempinvid
+			if(@invid=0)
+			BEGIN
+				set @isloop=0
+				set @sql=''''
+			END
+			ELSE
+			BEGIN
+				if(@cnt=1)
+					set @sql=@sql+'' join INV_DocDetails t''+convert(nvarchar,@cnt)+'' WITH(NOLOCK) on t''+convert(nvarchar,@cnt)+''.LinkedInvDocDetailsID=a.LinkedInvDocDetailsID''
+				ELSE
+					set @sql=@sql+'' join INV_DocDetails t''+convert(nvarchar,@cnt)+'' WITH(NOLOCK) on t''+convert(nvarchar,@cnt)+''.LinkedInvDocDetailsID=t''+convert(nvarchar,(@cnt-1))+''.LinkedInvDocDetailsID''
+			END
+		END
+		
+
+	END
+
+	if(@sql<>'''')
+	BEGIN
+		set @sql=@sql+''
+		left join INV_DocDetails b with(nolock) on a.InvDocDetailsID=b.LinkedInvDocDetailsID 
+		where a.RefCCID=300 and a.costcenterid=''+convert(nvarchar,@CCID)+''
+		group by a.InvDocDetailsID,a.Quantity,t.id,a.batchid,a.RefInvDocDetailsID	''
+		print @sql
+		exec sp_executeSQL @sql,N''@InvIDs nvarchar(max)'',@InvIDs
+	END
+END 
+
+
+' 
+END
+GO

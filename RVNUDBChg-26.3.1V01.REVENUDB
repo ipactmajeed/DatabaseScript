@@ -1,0 +1,14 @@
+--CHARY
+
+declare @RId BIGINT
+SELECT @RId=MAX([ResourceID])+1 FROM [Com_LanguageResources] WITH(NOLOCK)
+
+INSERT INTO [com_languageresources] ([ResourceID],[ResourceName],[LanguageID],[LanguageName],[ResourceData],[GUID],[Description],[CreatedBy],[CreatedDate],[ModifiedBy],[ModifiedDate],[FEATURE])
+VALUES(@RId,'SkipDefaultCloseReport',1,'English','Skip default Close Report','A18AA097-DF5D-41CD-9AFF-22C66D20097A',NULL,'ADMIN',4.072966253163580e+004,NULL,NULL,'')
+
+INSERT INTO [com_languageresources] ([ResourceID],[ResourceName],[LanguageID],[LanguageName],[ResourceData],[GUID],[Description],[CreatedBy],[CreatedDate],[ModifiedBy],[ModifiedDate],[FEATURE])
+VALUES(@RId,'SkipDefaultCloseReport',2,'Arabic','Skip default Close Report-AR','A18AA097-DF5D-41CD-9AFF-22C66D20097A',NULL,'ADMIN',4.072966253163580e+004,NULL,NULL,'')
+
+Insert into ADM_GlobalPreferences(ResourceID, Name, Value, DefaultValue, GUID, Description, CreatedBy, CreatedDate, ModifiedBy, ModifiedDate, PreferenceTypeName, PrefRowOrder, PrefColOrder, PrefValueType, Version)
+SELECT @RID,'SkipDefaultCloseReport','False','False','GUID','DESC','ADMIN',45039,'ADMIN',45039,'POS',25,0,'CheckBox',NULL
+
