@@ -1,0 +1,6 @@
+--ikram
+alter table REN_Particulars alter column RecurInvoice int
+alter table REN_QuotationParticulars alter column RecurInvoice int
+alter table REN_QuotationParticulars_History alter column RecurInvoice int
+alter table REN_ContractParticulars_History alter column RecurInvoice int
+alter table REN_ContractParticulars alter column RecurInvoice int

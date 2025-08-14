@@ -1,0 +1,22 @@
+--Sajid
+declare @Rid int
+select @Rid=MAX(ResourceID) from COM_LanguageResources 
+
+set @Rid=@Rid+1
+
+INSERT INTO [com_languageresources] ([ResourceID],[ResourceName],[LanguageID],[LanguageName],[ResourceData],[GUID],[Description],[CreatedBy],[CreatedDate],[ModifiedBy],[ModifiedDate],[FEATURE])
+VALUES(@Rid,'ShowKitPopup',1,'English','Show Kit Popup','A18AA097-DF5D-41CD-9AFF-22C66D20097A',NULL,'ADMIN',convert(float,getdate()),NULL,NULL,'')
+
+INSERT INTO [com_languageresources] ([ResourceID],[ResourceName],[LanguageID],[LanguageName],[ResourceData],[GUID],[Description],[CreatedBy],[CreatedDate],[ModifiedBy],[ModifiedDate],[FEATURE])
+VALUES(@Rid,'ShowKitPopup',2,'Arabic','Show Kit Popup-AR','A18AA097-DF5D-41CD-9AFF-22C66D20097A',NULL,'ADMIN',convert(float,getdate()),NULL,NULL,'')
+
+INSERT INTO [com_documentpreferences] ([CostCenterID],[DocumentTypeID],[DocumentType],[ResourceID],[PreferenceTypeID],[PreferenceTypeName],[PrefValueType],[PrefName],[PrefValue],[PrefDefalutValue],[IsPrefValid],[PrefColOrder],[PrefRowOrder],[UnderGroupBox],[CompanyGUID],[GUID],[Description],[CreatedBy],[CreatedDate],[ModifiedBy],[ModifiedDate])
+select 0,0,0,@RID,1,'General','CheckBox','ShowKitPopup','False','False',1,0,90,NULL,'guid','guid',NULL,'admin',convert(float,getdate()),'admin',convert(float,getdate())
+
+
+
+
+--KHASIM
+
+
+Update Adm_Costcenterdef set UserColumnType='DATE',ColumnDataType = 'DATE' where SysColumnName = 'CutOffDate' and CostCenterID = 95

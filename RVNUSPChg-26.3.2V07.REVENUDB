@@ -1,0 +1,97 @@
+--Khaja
+GO
+/****** Object:  StoredProcedure [dbo].[fnGet_GetAssignedDims]    Script Date: 14-08-2025 09:45:43 ******/
+IF  EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[fnGet_GetAssignedDims]') AND type in (N'P', N'PC'))
+DROP PROCEDURE [dbo].[fnGet_GetAssignedDims]
+GO
+/****** Object:  StoredProcedure [dbo].[fnGet_GetAssignedDims]    Script Date: 14-08-2025 09:45:43 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[fnGet_GetAssignedDims]') AND type in (N'P', N'PC'))
+BEGIN
+EXEC dbo.sp_executesql @statement = N' 
+CREATE proc [dbo].[fnGet_GetAssignedDims]
+	@UserID int,
+	@RoleID int,
+	@where nvarchar(max) output 
+AS
+BEGIN
+	set @where=''''
+	if(@UserID!=1 and @RoleID!=1)
+	begin
+		create table #TblUserDims(id int identity(1,1),CCID int,NodeIDs NVARCHAR(MAX))
+		create table #TblUserDimslist (id int identity(1,1),PCCID INT,CCID INT)
+		create table #TblUserCC (id int identity(1,1),CostCenterID INT,NodeID INT)
+		-----------------------------------------------------
+		SELECT @where=isnull(VALUE,0) FROM ADM_GLOBALPREFERENCES with (nolock) WHERE NAME=''Dimension List''  
+		INSERT INTO #TblUserDims (CCID)  
+		exec spsplitstring @where,'',''  
+		INSERT INTO #TblUserDimslist    
+		SELECT 7,CCID FROM #TblUserDims WITH(NOLOCK)
+		TRUNCATE TABLE #TblUserDims
+		----------------------------------------------------
+		SELECT @where=isnull(VALUE,0) FROM ADM_GLOBALPREFERENCES with (nolock) WHERE NAME=''RoleDimension List''  
+		INSERT INTO #TblUserDims (CCID)     
+		exec spsplitstring @where,'',''  
+		INSERT INTO #TblUserDimslist    
+		SELECT 6,CCID FROM #TblUserDims WITH(NOLOCK)
+		TRUNCATE TABLE #TblUserDims
+		----------------------------------------------------
+
+		DELETE FROM #TblUserDimslist WHERE CCID<50000
+
+		INSERT INTO #TblUserCC
+		SELECT CC.CostCenterID,CC.NodeID from COM_CostCenterCostCenterMap CC with(nolock) 
+		JOIN #TblUserDimslist T with(nolock) ON CC.ParentCostCenterID=T.PCCID AND CC.CostCenterID=T.CCID
+		where CC.ParentNodeID=@UserID
+		UNION
+		SELECT CC.ParentCostCenterID,CC.ParentNodeID from COM_CostCenterCostCenterMap CC with(nolock) 
+		JOIN #TblUserDimslist T with(nolock) ON CC.ParentCostCenterID=T.CCID AND CC.CostCenterID=T.PCCID
+		where CC.NodeID=@UserID
+		UNION
+		SELECT CC.CostCenterID,CC.NodeID from COM_CostCenterCostCenterMap CC with(nolock) 
+		JOIN #TblUserDimslist T with(nolock) ON CC.ParentCostCenterID=T.PCCID AND CC.CostCenterID=T.CCID
+		where CC.ParentNodeID=@RoleID
+		UNION
+		SELECT CC.ParentCostCenterID,CC.ParentNodeID from COM_CostCenterCostCenterMap CC with(nolock) 
+		JOIN #TblUserDimslist T with(nolock) ON CC.ParentCostCenterID=T.CCID AND CC.CostCenterID=T.PCCID
+		
+
+		INSERT INTO #TblUserDims
+		SELECT TT.CostCenterID, STUFF((SELECT '',''+CONVERT(NVARCHAR,T.NodeID) FROM #TblUserCC T WITH(NOLOCK) WHERE T.CostCenterID=TT.CostCenterID FOR XML PATH('''')),1,1,'''')
+		FROM #TblUserCC TT WITH(NOLOCK)
+		GROUP BY TT.CostCenterID
+		TRUNCATE TABLE #TblUserCC
+
+		SET @where=''''
+		SELECT @where=@where+'' INSERT INTO #TblUserCC SELECT ''+CONVERT(NVARCHAR,F.FeatureID)+'',CA.''+F.PrimaryKey+'' FROM ''+F.TableName+'' CAA WITH(NOLOCK)
+JOIN ''+TableName+'' CA WITH(NOLOCK) ON CA.LFT BETWEEN CAA.LFT AND CAA.RGT
+WHERE CAA.''+F.PrimaryKey+ '' IN (''+T.NodeIDs+'')'' FROM #TblUserDims T WITH(NOLOCK)
+		JOIN ADM_Features F WITH(NOLOCK) ON F.FeatureID=T.CCID
+		EXEC (@where)
+
+		TRUNCATE TABLE #TblUserDims
+		INSERT INTO #TblUserDims
+		SELECT TT.CostCenterID, STUFF((SELECT '',''+CONVERT(NVARCHAR,T.NodeID) FROM #TblUserCC T WITH(NOLOCK) WHERE T.CostCenterID=TT.CostCenterID FOR XML PATH('''')),1,1,'''')
+		FROM #TblUserCC TT WITH(NOLOCK)
+		GROUP BY TT.CostCenterID
+
+		SET @where=''''
+		SELECT @where=@where+'' and DcCCNID''+convert(nvarchar,(CCID-50000))+'' in (''+NodeIDs+'')'' 
+		FROM #TblUserDims WITH(NOLOCK)
+
+		TRUNCATE TABLE #TblUserCC
+		TRUNCATE TABLE #TblUserDims
+		TRUNCATE TABLE #TblUserDimslist
+	end
+END
+
+
+
+
+
+ 	 ' 
+END
+GO

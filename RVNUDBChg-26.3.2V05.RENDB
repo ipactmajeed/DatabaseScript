@@ -1,0 +1,29 @@
+--Sajid
+DECLARE @CostCenterID INT,@ResID INT
+--Sales Contract
+SELECT @ResID=MAX([ResourceID])+1 from [com_languageresources] with(nolock)
+SET @CostCenterID=95
+
+INSERT INTO COM_LanguageResources (ResourceID, ResourceName, LanguageID, LanguageName, ResourceData,FEATURE)
+VALUES (@ResID, 'SuspendRemarks',1,'English','Suspend Remarks' ,'REN_Contract')
+INSERT INTO COM_LanguageResources (ResourceID, ResourceName, LanguageID, LanguageName, ResourceData,FEATURE)
+VALUES (@ResID, 'SuspendRemarks',2,'Arabic','Suspend Remarks' ,'REN_Contract')
+
+INSERT INTO ADM_CostCenterDef (CostCenterID,ResourceID,CostCenterName,SysTableName,UserColumnName,SysColumnName,ColumnTypeSeqNumber,UserColumnType,ColumnDataType,UserDefaultValue,UserProbableValues,ColumnOrder,IsMandatory,IsEditable,IsVisible,IsCostCenterUserDefined,IsColumnUserDefined,IsCCDeleted,IsColumnDeleted,ColumnCostCenterID,ColumnCCListViewTypeID,FetchMaxRows,IsColumnGroup,ColumnGroupNumber,SectionSeqNumber,SectionID,SectionName,RowNo,ColumnNo,ColumnSpan,IsColumnInUse,UIWidth,CompanyGUID,GUID,Description,CreatedBy,CreatedDate,ModifiedBy,ModifiedDate,
+							   [IsForeignKey],[ParentCostCenterID],[ParentCostCenterColID],[IsValidReportBuilderCol],[ParentCostCenterSysName],[ParentCostCenterColSysName],[ParentCCDefaultColID])
+SELECT @CostCenterID,@ResID,'Contract','REN_Contract','Suspend Remarks','SuspendRemarks',NULL,'TEXT','String','','',0,0,1,0,0,0,0,0,0,0,NULL,0,NULL,0,NULL,NULL,NULL,NULL,NULL,1,NULL,'COMPANYGUID','GUID',NULL,'ADMIN',convert(float,getdate()),NULL,NULL,1,0,0,1,'','',0
+
+--Unit Reservation
+SET @ResID=@ResID+1 
+SET @CostCenterID=129
+
+
+INSERT INTO COM_LanguageResources (ResourceID, ResourceName, LanguageID, LanguageName, ResourceData,FEATURE)
+VALUES (@ResID, 'SuspendRemarks',1,'English','Suspend Remarks' ,'REN_Quotation')
+INSERT INTO COM_LanguageResources (ResourceID, ResourceName, LanguageID, LanguageName, ResourceData,FEATURE)
+VALUES (@ResID, 'SuspendRemarks',2,'Arabic','Suspend Remarks' ,'REN_Quotation')
+
+INSERT INTO ADM_CostCenterDef (CostCenterID,ResourceID,CostCenterName,SysTableName,UserColumnName,SysColumnName,ColumnTypeSeqNumber,UserColumnType,ColumnDataType,UserDefaultValue,UserProbableValues,ColumnOrder,IsMandatory,IsEditable,IsVisible,IsCostCenterUserDefined,IsColumnUserDefined,IsCCDeleted,IsColumnDeleted,ColumnCostCenterID,ColumnCCListViewTypeID,FetchMaxRows,IsColumnGroup,ColumnGroupNumber,SectionSeqNumber,SectionID,SectionName,RowNo,ColumnNo,ColumnSpan,IsColumnInUse,UIWidth,CompanyGUID,GUID,Description,CreatedBy,CreatedDate,ModifiedBy,ModifiedDate,
+							   [IsForeignKey],[ParentCostCenterID],[ParentCostCenterColID],[IsValidReportBuilderCol],[ParentCostCenterSysName],[ParentCostCenterColSysName],[ParentCCDefaultColID])
+SELECT @CostCenterID,@ResID,'Unit Reservation','REN_Quotation','Suspend Remarks','SuspendRemarks',NULL,'TEXT','String','','',0,0,1,0,0,0,0,0,0,0,NULL,0,NULL,0,NULL,NULL,NULL,NULL,NULL,1,NULL,'COMPANYGUID','GUID',NULL,'ADMIN',convert(float,getdate()),NULL,NULL,1,0,0,1,'','',0
+

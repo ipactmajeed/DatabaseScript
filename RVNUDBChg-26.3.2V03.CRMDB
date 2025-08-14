@@ -1,0 +1,3 @@
+--Subhani
+
+update adm_costcenterdef set ColumnCostCenterID=2  where costcenterid=83 and SysColumnName='AccountID' and SysTableName='CRM_Customer'

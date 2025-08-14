@@ -1,0 +1,18 @@
+--Subhani
+
+DECLARE @Rid INT
+SELECT @Rid=MAX(ResourceID) from COM_LanguageResources WITH(NOLOCK)
+set @Rid=@Rid+1
+
+IF NOT EXISTS(SELECT Name FROM [COM_CostCenterPreferences] WITH(NOLOCK) WHERE CostCenterID=1000 and Name='IgnoreUserList')
+BEGIN
+
+INSERT INTO [com_languageresources] ([ResourceID],[ResourceName],[LanguageID],[LanguageName],[ResourceData],[GUID],[Description],[CreatedBy],[CreatedDate],[ModifiedBy],[ModifiedDate],[FEATURE])
+VALUES(@Rid,'IgnoreUserList',1,'English','Ignore Users','A18AA097-DF5D-41CD-9AFF-22C66D20097A',NULL,'ADMIN',4.072966253163580e+004,NULL,NULL,'')
+
+INSERT INTO [com_languageresources] ([ResourceID],[ResourceName],[LanguageID],[LanguageName],[ResourceData],[GUID],[Description],[CreatedBy],[CreatedDate],[ModifiedBy],[ModifiedDate],[FEATURE])
+VALUES(@Rid,'IgnoreUserList',2,'Arabic','Ignore Users-AR','A18AA097-DF5D-41CD-9AFF-22C66D20097A',NULL,'ADMIN',4.072966253163580e+004,NULL,NULL,'')
+	
+insert into COM_CostCenterPreferences(CostCenterID,FeatureID,ResourceID,Name,Value,GUID,CreatedBy,CreatedDate,DefaultValue)
+values(1000,1000,@Rid,'IgnoreUserList','','guid','admin',22,'false')
+END
