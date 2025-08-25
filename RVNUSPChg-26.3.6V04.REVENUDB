@@ -1,814 +1,331 @@
 --KHASIM
-/****** Object:  StoredProcedure [dbo].[spDOC_GetLinkReferenceData]    Script Date: 13-08-2025 16:51:31 ******/
+/****** Object:  StoredProcedure [dbo].[spDOC_GetLinkReferenceData]    Script Date: 21-08-2025 18:11:33 ******/
 IF  EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[spDOC_GetLinkReferenceData]') AND type in (N'P', N'PC'))
 DROP PROCEDURE [dbo].[spDOC_GetLinkReferenceData]
 GO
-/****** Object:  StoredProcedure [dbo].[spDOC_GetDocumentDefinition]    Script Date: 13-08-2025 16:51:31 ******/
-IF  EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[spDOC_GetDocumentDefinition]') AND type in (N'P', N'PC'))
-DROP PROCEDURE [dbo].[spDOC_GetDocumentDefinition]
+/****** Object:  StoredProcedure [dbo].[spCOM_SetCCCCMap]    Script Date: 21-08-2025 18:11:33 ******/
+IF  EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[spCOM_SetCCCCMap]') AND type in (N'P', N'PC'))
+DROP PROCEDURE [dbo].[spCOM_SetCCCCMap]
 GO
-/****** Object:  StoredProcedure [dbo].[spDOC_GetDocumentDefinition]    Script Date: 13-08-2025 16:51:31 ******/
+/****** Object:  StoredProcedure [dbo].[spCOM_GetCCCCMapDetails]    Script Date: 21-08-2025 18:11:33 ******/
+IF  EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[spCOM_GetCCCCMapDetails]') AND type in (N'P', N'PC'))
+DROP PROCEDURE [dbo].[spCOM_GetCCCCMapDetails]
+GO
+/****** Object:  StoredProcedure [dbo].[spCOM_GetCCCCMapDetails]    Script Date: 21-08-2025 18:11:33 ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
-IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[spDOC_GetDocumentDefinition]') AND type in (N'P', N'PC'))
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[spCOM_GetCCCCMapDetails]') AND type in (N'P', N'PC'))
 BEGIN
-EXEC dbo.sp_executesql @statement = N'--select * from COM_DocumentPreferences where PrefName=''DefaultProfileID''
--- =============================================      
--- Author:  Adil      
--- Create date: 1 Aug 2011      
--- Description: Provide all the info related to document [main and extended]    
--- Example :        
--- spDOC_GetDocumentDefinition 40001,'''','''','''','''',1,1,1    
--- =============================================      
-CREATE procedure [dbo].[spDOC_GetDocumentDefinition]    
-  @CostCenterID INT,     
-  @Locations nvarchar(500)=NULL,    
-  @Divisions nvarchar(500)=NULL, 
-  @Lic nvarchar(500)=NULL, 
-  @Viewfor int,
-  @UserName nvarchar(500), 
-  @UserID INT,  
-  @RoleID INT,  
-  @LangID INT=1   
-	   
-AS    
-BEGIN TRY      
-SET NOCOUNT ON;    
-    --Declaration Section    
-  DECLARE @HasAccess BIT,@Sql nvarchar(max),@DocViewID INT,@Series INT,@ConCCID INT,@DType INT,@Day FLOAT,@IsLineWise BIT,@getregis bit
-  DECLARE @DefXml nvarchar(max),@profileID  nvarchar(max),@FRGN BIT,@RegNodeID INT,@ShiftID INT,@tableName nvarchar(200),@OnReject bit,@UserWise bit
-  declare @i int, @cnt int,@Value nvarchar(50),@shiftTabName nvarchar(100),@isDayClose bit,@isUserClose int,@isShiftClose bit,@Reg int,@FieldWidth INT,@DimensionList nvarchar(max)
-  declare @cctable table(ID INT IDENTITY(1,1),CCID nvarchar(50)) 
-  --SP Required Parameters Check    
-  IF @CostCenterID=0    
-  BEGIN    
-   RAISERROR(''-100'',16,1)    
-  END    
-
-	select @DType=DocumentType FROM  ADM_DocumentTypes  WITH(NOLOCK)  where CostCenterID=@CostCenterID       
-
-  if exists(select b.DocumentViewID 
-	  from ADM_DocViewUserRoleMap a WITH(NOLOCK) 
-	  join [ADM_DocumentViewDef] b WITH(NOLOCK) on a.DocumentViewID=b.DocumentViewID
-	  where b.CostCenterID=@CostCenterID and a.UserID=@UserID and b.ViewFor IN (0,@Viewfor))	 
-  begin  
-	set @DocViewID=(select  top 1 b.DocumentViewID from ADM_DocViewUserRoleMap a WITH(NOLOCK) 
-				  join [ADM_DocumentViewDef] b WITH(NOLOCK) on a.DocumentViewID=b.DocumentViewID
-				  where b.CostCenterID=@CostCenterID and a.UserID=@UserID and b.ViewFor IN (0,@Viewfor))
-  end    
-  else  if exists(select b.DocumentViewID 
-	  from ADM_DocViewUserRoleMap a WITH(NOLOCK) 
-	  join [ADM_DocumentViewDef] b WITH(NOLOCK) on a.DocumentViewID=b.DocumentViewID
-	  where b.CostCenterID=@CostCenterID and a.RoleID=@RoleID and b.ViewFor IN (0,@Viewfor))	 
-  begin  
-	set @DocViewID=(select  top 1 b.DocumentViewID from ADM_DocViewUserRoleMap a WITH(NOLOCK) 
-				  join [ADM_DocumentViewDef] b WITH(NOLOCK) on a.DocumentViewID=b.DocumentViewID
-				  where b.CostCenterID=@CostCenterID and a.RoleID=@RoleID and b.ViewFor IN (0,@Viewfor))
-  end      
-  else  if exists(select b.DocumentViewID 
-	  from ADM_DocViewUserRoleMap a WITH(NOLOCK) 
-	  join [ADM_DocumentViewDef] b WITH(NOLOCK) on a.DocumentViewID=b.DocumentViewID
-	  where b.CostCenterID=@CostCenterID and a.GroupID in (select GroupID from   COM_Groups WITH(NOLOCK) where UserID=@UserID or RoleID=@RoleID) and b.ViewFor IN (0,@Viewfor))	 
-  begin  
-	set @DocViewID=(select  top 1 b.DocumentViewID from ADM_DocViewUserRoleMap a WITH(NOLOCK) 
-				  join [ADM_DocumentViewDef] b WITH(NOLOCK) on a.DocumentViewID=b.DocumentViewID
-				  where b.CostCenterID=@CostCenterID and a.GroupID in (select GroupID from   COM_Groups WITH(NOLOCK) where UserID=@UserID or RoleID=@RoleID) and b.ViewFor IN (0,@Viewfor))
-  end    
-  else
-  begin
-		if (@DType >= 51 AND @DType <= 199 AND @DType != 64) --IS PAYROLL DOCUMENT
-		BEGIN
-			declare @cnt1 INT
-			SET @cnt1=0
-			IF EXISTS (SELECT * FROM SYS.TABLES WITH(NOLOCK) WHERE NAME=''COM_CC50051'')
-			BEGIN
-				set @Sql='' select @cnt1=COUNT(*) FROM COM_CC50051 WITH(NOLOCK) WHERE RptManager=(Select NodeID FROM COM_CC50051 WITH(NOLOCK) WHERE IsGroup=0 AND LoginUserID=''''''+@UserName+'''''') ''
-				EXEC sp_executesql @Sql,N''@cnt1 int output'',@cnt1 output
-			END	
-			IF (@cnt1>0)
-			BEGIN
-				if exists(select DocumentViewID from ADM_DocViewUserRoleMap WITH(NOLOCK) where CostCenterID=@CostCenterID and RoleID=-1)  
-				  and exists (select DocumentViewID  FROM [ADM_DocumentViewDef] WITH(NOLOCK) where DocumentViewID in(select DocumentViewID from ADM_DocViewUserRoleMap WITH(NOLOCK) where CostCenterID=@CostCenterID and RoleID=-1)  )
-				  begin  
-					set @DocViewID=(select  top 1 DocumentViewID from ADM_DocViewUserRoleMap WITH(NOLOCK) where CostCenterID=@CostCenterID and  RoleID=-1)  
-				  end 
-			END
-		END
-  end  
-    --User access check    
-    --select @RoleID ,@CostCenterID
-  SET @HasAccess=dbo.fnCOM_HasAccess(@RoleID,@CostCenterID,2)   
-  
-  if( @CostCenterID=40079) --Attendance Dimension Wise --Worksheet
-	SET @HasAccess=1
-  
-  IF @HasAccess=0    
-  BEGIN    
-   RAISERROR(''-105'',16,1)    
-  END 
-  
-  
-   SELECT @IsLineWise=IsLineWise,@OnReject=OnReject,@UserWise=UserWise,@FieldWidth=FieldWidth FROM [COM_WorkFlowDef]  a   WITH(NOLOCK)      
-   where [CostCenterID]=@CostCenterID and IsEnabled=1
-  
-   SELECT @Series=Series,@ConCCID=ConvertAs,@DType=DocumentType FROM  ADM_DocumentTypes  WITH(NOLOCK)  where CostCenterID=@CostCenterID    
-   
- 
-	SET @FRGN = 0  
-	SELECT   @FRGN = Value  FROM ADM_GlobalPreferences WITH(NOLOCK) WHERE (Name LIKE ''use foreign currency'')  
+EXEC dbo.sp_executesql @statement = N'-- =============================================    
+-- Author:  hafeez    
+-- Create date: 08 dec 2011    
+-- Description:    
+--EXAMPLE:  
+-- [spCOM_GetCCCCMapDetails] 7,581,1   
+-- =============================================    
+CREATE procedure [dbo].[spCOM_GetCCCCMapDetails]    
+ @PARENTFEATUREID INT,  
+ @PNodeID INT = 0 ,   
     
-  if(@FRGN = 1 )  
+ @LangID int=1   
+AS    
+BEGIN TRANSACTION  
+BEGIN TRY    
+SET NOCOUNT ON;    
+  --Declaration Section  
+  DECLARE @HasAccess bit  
+  
+  --SP Required Parameters Check  
+  IF @PARENTFEATUREID =0  
   BEGIN  
-  --Getting Costcenter Fields      
-	  SELECT  C.CostCenterColID,R.ResourceData,C.UserColumnName,C.ResourceID,C.SysColumnName,C.UserColumnType,C.ColumnDataType,C.RowNo,C.ColumnNo,C.ColumnSpan,    
-		C.UserDefaultValue,C.UserProbableValues,C.IsMandatory,C.IsEditable,C.IsVisible,C.ColumnCCListViewTypeID,    
-		C.IsCostCenterUserDefined,isnull(C.UIwidth,100) UIWidth,C.IsColumnUserDefined,C.ColumnCostCenterID
-		,case when c.ColumnCostCenterID>50000 and (C.FetchMaxRows is null or C.FetchMaxRows<1) then (select top 1 GridViewID from [ADM_GridView] WITH(NOLOCK) where FeatureID=C.ColumnCostCenterID and CostCenterID=98 and IsUserDefined=0)
-		else C.FetchMaxRows end FetchMaxRows,C.SectionID,C.SectionName,C.SectionSeqNumber,    
-		DD.DebitAccount,DD.CreditAccount,DD.Formula,DD.PostingType,DD.RoundOff,DD.DistributionColID,C.IsReEvaluate,RoundOffLineWise,  
-		DD.IsRoundOffEnabled,DD.IsDrAccountDisplayed,DD.IsCrAccountDisplayed,DD.IsDistributionEnabled,DD.Distributeon ,C.Copybasedon,LR.SysColumnName as ReservedWordType,   
-		DD.IsCalculate,C.IsUnique,C.LinkData,C.LocalReference,CASE WHEN (CDF.COLUMNCOSTCENTERID=7 AND c.dependanton=-7) THEN c.dependanton ELSE CDF.COLUMNCOSTCENTERID END LocalCCID,D.SysColumnName DistCol
-		,DD.CrRefID,DD.CrRefColID,CR.SysColumnName as CRSysColumnName,CR.sectionid CRSection,DD.DrRefID,DD.DrRefColID,DR.SysColumnName as DRSysColumnName,DR.sectionid DrSection,C.Decimal
-		,C.TextFormat,C.Filter,DD.ShowbodyTotal,C.IsRepeat,c.isnotab,c.lastvaluevouchers,c.dependancy,CASE WHEN c.dependanton=-7 THEN NULL ELSE c.dependanton END dependanton,c.IsTransfer 
-		,(select isnull(IsColumnInUse,0) FROM ADM_CostCenterDef with(nolock) where costcenterid=C.ColumnCostCenterID and  syscolumnname=''ccnid''+convert(nvarchar,(c.dependanton-50000))) as filterinuse
-		,(select isnull(IsColumnInUse,0) FROM ADM_CostCenterDef with(nolock) where costcenterid=3 and  syscolumnname=''ccnid''+convert(nvarchar,(C.ColumnCostCenterID-50000))) as Productfilterinuse
-		,(select isnull(IsColumnInUse,0) FROM ADM_CostCenterDef with(nolock) where costcenterid=2 and  syscolumnname=''ccnid''+convert(nvarchar,(C.ColumnCostCenterID-50000))) as Accountfilterinuse
-		, DBACC.ACCOUNTNAME DebitAccountName ,  CRACC.ACCOUNTNAME CreditAccountName,C.CrFilter,C.DbFilter,C.Calculate,DD.ShowinCalc
-		,DF.Mode,DF.SpName,DF.Shortcut,DF.IpParams,DF.OpParams,DF.Expression,EvaluateAfter,Posting,c.parentccdefaultcolid,
-	   case when C.UserColumnType=''Attachment'' then C.LastValueVouchers else DD.BasedOnXml end BasedOnXml
-	   ,case when LRef.UserProbableValues=''h'' then 1 else 0 end IsHistory,IGC.[Name] IgnoreChars,c.WaterMark,dd.FixedAcc,c.Cformula,IsPartialLinking,DD.Distxml,C.MinChar,C.MaxChar
-	  FROM ADM_CostCenterDef C WITH(NOLOCK)    
-	  LEFT JOIN COM_LanguageResources R WITH(NOLOCK) ON R.ResourceID=C.ResourceID AND R.LanguageID=@LangID    
-	  LEFT JOIN ADM_DocumentDef DD WITH(NOLOCK) ON DD.CostCenterColID=C.CostCenterColID AND DD.CostCenterID=c.CostCenterID
-	  LEFT JOIN ADM_CostCenterDef LR WITH(NOLOCK) ON LR.CostCenterID=79 AND LR.CostCenterColID=C.LinkData       
-	  LEFT JOIN ADM_COSTCENTERDEF CDF WITH(NOLOCK) ON C.LOCALREFERENCE = CDF.COSTCENTERCOLID  AND C.LOCALREFERENCE IS NOT NULL
-	  LEFT JOIN ADM_COSTCENTERDEF LRef WITH(NOLOCK) ON LRef.CostCenterID = CDF.COLUMNCOSTCENTERID  AND LRef.syscolumnname=replace(c.syscolumnname,''dc'','''')
-	  LEFT JOIN ADM_CostCenterDef DR WITH(NOLOCK) ON (DR.CostCenterColID = DD.DrRefID or DR.CostCenterColID = -DD.DrRefID) and  DD.DrRefID IS NOT NULL
-	  LEFT JOIN ADM_CostCenterDef CR WITH(NOLOCK) ON (CR.CostCenterColID = DD.CrRefID or CR.CostCenterColID = -DD.CrRefID)  and  DD.CrRefID IS NOT NULL
-	  LEFT JOIN ADM_CostCenterDef D WITH(NOLOCK) ON D.CostCenterColID = DD.DistributionColID  and  DD.DistributionColID IS NOT NULL
-	  LEFT JOIN ACC_ACCOUNTS DBACC WITH(NOLOCK)  ON  DD.DebitAccount =  DBACC.ACCOUNTID
-	  LEFT JOIN ACC_ACCOUNTS CRACC WITH(NOLOCK) ON  DD.CreditAccount =  CRACC.ACCOUNTID
-	  LEFT JOIN ADM_DocFunctions DF WITH(NOLOCK) ON  DF.CostCenterColID=  C.CostCenterColID AND DF.CostCenterID=c.CostCenterID
-	  LEFT JOIN [COM_Lookup] IGC WITH(NOLOCK) ON  IGC.[NodeID]=  C.IgnoreChar
-	  WHERE C.CostCenterID = @CostCenterID     
-	  AND ((C.IsColumnUserDefined=1 AND C.IsColumnInUse=1) OR C.IsColumnUserDefined=0)  AND   
-	   (C.SysColumnName NOT LIKE ''%dcCalcNum%'')AND (C.SysColumnName NOT LIKE ''dcPOSRemarksNum%'') AND (C.SysColumnName <> ''UOMConversion'')   AND (C.SysColumnName <> ''UOMConvertedQty'')          
-	  ORDER BY C.RowNo,C.ColumnNo, C.IsColumnInUse    
+   RAISERROR(''-100'',16,1)  
   END  
-  ELSE    
+   
+          
+  -- GET CCCCC MAP DATA  
+  CREATE TABLE #TBLTEMP(ID INT IDENTITY(1,1),COSTCENTERID INT,NODEID INT,IsDefault BIT)  
+  CREATE TABLE #TBLTEMP1 (CostCenterId INT,CostCenterName nvarchar(max),NodeID INT,[Value] NVARCHAR(max),[Code] NVARCHAR(max),IsDefault BIT)  
+  INSERT INTO #TBLTEMP  
+  SELECT CostCenterID,NODEID,IsDefault FROM COM_CostCenterCostCenterMap WHERE ParentCostCenterID=@PARENTFEATUREID AND ParentNodeID=@PNodeID  
+  DECLARE @COUNT INT,@I INT,@TABLENAME NVARCHAR(300),@SQL NVARCHAR(MAX),@CCID INT,@NODEID INT,@IsDefault Bit,@FEATURENAME NVARCHAR(300)  
+  SELECT @I=1,@COUNT=COUNT(*) FROM #TBLTEMP  
+  WHILE @I<=@COUNT  
   BEGIN  
-	  SELECT  C.CostCenterColID,R.ResourceData,C.UserColumnName,C.ResourceID,C.SysColumnName,C.UserColumnType,C.ColumnDataType,C.RowNo,C.ColumnNo,C.ColumnSpan,    
-		C.UserDefaultValue,C.UserProbableValues,C.IsMandatory,C.IsEditable,C.IsVisible,C.ColumnCCListViewTypeID,    
-		C.IsCostCenterUserDefined,isnull(C.UIwidth,100) UIWidth,C.IsColumnUserDefined,C.ColumnCostCenterID,
-		case when c.ColumnCostCenterID>50000 and (C.FetchMaxRows is null or C.FetchMaxRows<1) then (select top 1 GridViewID from [ADM_GridView] WITH(NOLOCK) where FeatureID=C.ColumnCostCenterID and CostCenterID=98 and IsUserDefined=0)
-		else C.FetchMaxRows end FetchMaxRows,C.SectionID,C.SectionName,C.SectionSeqNumber,    
-		DD.DebitAccount,DD.CreditAccount,DD.Formula,DD.PostingType,DD.RoundOff,  DD.DistributionColID,C.IsReEvaluate, RoundOffLineWise, 
-		DD.IsRoundOffEnabled,DD.IsDrAccountDisplayed,DD.IsCrAccountDisplayed,DD.IsDistributionEnabled,DD.Distributeon ,C.Copybasedon,LR.SysColumnName as ReservedWordType,    
-		DD.IsCalculate,C.IsUnique,C.LinkData,C.LocalReference,CASE WHEN (CDF.COLUMNCOSTCENTERID=7 AND c.dependanton=-7) THEN c.dependanton ELSE CDF.COLUMNCOSTCENTERID END LocalCCID,D.SysColumnName DistCol
-		,DD.CrRefID,DD.CrRefColID,CR.SysColumnName as CRSysColumnName,CR.sectionid CRSection,DD.DrRefID,DD.DrRefColID,DR.SysColumnName as DRSysColumnName,DR.sectionid DrSection,C.Decimal
-		 ,C.TextFormat,C.Filter,DD.ShowbodyTotal,C.IsRepeat,c.isnotab,c.lastvaluevouchers,c.dependancy,CASE WHEN c.dependanton=-7 THEN NULL ELSE c.dependanton END dependanton,c.IsTransfer 
-		,(select isnull(IsColumnInUse,0) FROM ADM_CostCenterDef with(nolock) where costcenterid=C.ColumnCostCenterID and  syscolumnname=''ccnid''+convert(nvarchar,(c.dependanton-50000))) as filterinuse
-		,(select isnull(IsColumnInUse,0) FROM ADM_CostCenterDef with(nolock) where costcenterid=3 and  syscolumnname=''ccnid''+convert(nvarchar,(C.ColumnCostCenterID-50000))) as Productfilterinuse
-		,(select isnull(IsColumnInUse,0) FROM ADM_CostCenterDef with(nolock) where costcenterid=2 and  syscolumnname=''ccnid''+convert(nvarchar,(C.ColumnCostCenterID-50000))) as Accountfilterinuse
-		, DBACC.ACCOUNTNAME DebitAccountName ,  CRACC.ACCOUNTNAME CreditAccountName,C.CrFilter,C.DbFilter,C.Calculate,DD.ShowinCalc
-		,DF.Mode,DF.SpName,DF.Shortcut,DF.IpParams,DF.OpParams,DF.Expression,EvaluateAfter,Posting,c.parentccdefaultcolid,
-	   case when C.UserColumnType=''Attachment'' then C.LastValueVouchers else DD.BasedOnXml end BasedOnXml
-	   ,case when LRef.UserProbableValues=''h'' then 1 else 0 end IsHistory,c.WaterMark,dd.FixedAcc,c.Cformula,IsPartialLinking,DD.Distxml,C.MinChar,C.MaxChar
-	  FROM ADM_CostCenterDef C WITH(NOLOCK)    
-	  LEFT JOIN COM_LanguageResources R WITH(NOLOCK) ON R.ResourceID=C.ResourceID AND R.LanguageID=@LangID    
-	  LEFT JOIN ADM_DocumentDef DD WITH(NOLOCK) ON DD.CostCenterColID=C.CostCenterColID AND DD.CostCenterID=c.CostCenterID
-	  LEFT JOIN ADM_CostCenterDef LR WITH(NOLOCK) ON LR.CostCenterID=79 AND LR.CostCenterColID=C.LinkData       
-	  LEFT JOIN ADM_COSTCENTERDEF CDF WITH(NOLOCK) ON C.LOCALREFERENCE = CDF.COSTCENTERCOLID  AND C.LOCALREFERENCE IS NOT NULL  
-  	  LEFT JOIN ADM_COSTCENTERDEF LRef WITH(NOLOCK) ON LRef.CostCenterID = CDF.COLUMNCOSTCENTERID  AND LRef.syscolumnname=replace(c.syscolumnname,''dc'','''')
-	  LEFT JOIN ADM_CostCenterDef DR WITH(NOLOCK) ON (DR.CostCenterColID = DD.DrRefID or DR.CostCenterColID = -DD.DrRefID) and  DD.DrRefID IS NOT NULL
-	  LEFT JOIN ADM_CostCenterDef CR WITH(NOLOCK) ON (CR.CostCenterColID = DD.CrRefID or CR.CostCenterColID = -DD.CrRefID)  and  DD.CrRefID IS NOT NULL
-	  LEFT JOIN ADM_CostCenterDef D WITH(NOLOCK) ON D.CostCenterColID = DD.DistributionColID  and  DD.DistributionColID IS NOT NULL
-	  LEFT JOIN ACC_ACCOUNTS DBACC WITH(NOLOCK) ON  DD.DebitAccount =  DBACC.ACCOUNTID
-	  LEFT JOIN ACC_ACCOUNTS CRACC WITH(NOLOCK) ON  DD.CreditAccount =  CRACC.ACCOUNTID
-	  LEFT JOIN ADM_DocFunctions DF WITH(NOLOCK) ON  DF.CostCenterColID=  C.CostCenterColID AND DF.CostCenterID=c.CostCenterID
-	  WHERE C.CostCenterID = @CostCenterID     
-	  AND ((C.IsColumnUserDefined=1 AND C.IsColumnInUse=1) OR C.IsColumnUserDefined=0)  AND   
-	  (C.SysColumnName NOT LIKE ''%dcCalcNum%'')  AND (C.SysColumnName NOT LIKE ''%dcExchRT%'') AND (C.SysColumnName NOT LIKE ''%dcCurrID%'') AND (C.SysColumnName NOT LIKE ''dcPOSRemarksNum%'')  AND (C.SysColumnName <> ''UOMConversion'')   AND (C.SysColumnName <> ''UOMConvertedQty'')          
-	  ORDER BY C.RowNo,C.ColumnNo    
+   SELECT @NODEID=NODEID,@CCID=CostCenterId,@IsDefault=IsDefault FROM #TBLTEMP WHERE ID=@I  
+   
+   if(@CCID<0)
+		SELECT @FEATURENAME=NAME,@TABLENAME=TABLENAME FROM ADM_FEATURES 
+		WHERE FEATUREID =-@CCID  
+   else
+	   SELECT @FEATURENAME=NAME,@TABLENAME=TABLENAME FROM ADM_FEATURES 
+	   WHERE FEATUREID =@CCID  
+      
+    --IF @CCID>50000  
+    IF @CCID in(7,-7)
+       SET @SQL=''INSERT INTO #TBLTEMP1 
+       SELECT ''+CONVERT(VARCHAR,@CCID)+'',''''''+@FEATURENAME+'''''',UserID ,USERNAME,UserName ,''+ Convert(Nvarchar,@IsDefault)+'' IsDefault  FROM ''+@TABLENAME +'' WITH(NOLOCK)   
+          WHERE UserID=''+CONVERT(VARCHAR,@NODEID)  
+    ELSE IF @CCID in(6,-6)
+       SET @SQL=''INSERT INTO #TBLTEMP1 
+       SELECT ''+CONVERT(VARCHAR,@CCID)+'',''''''+@FEATURENAME+'''''',RoleID ,Name,Name,''+ Convert(Nvarchar,@IsDefault)+'' IsDefault FROM ''+@TABLENAME +'' WITH(NOLOCK)   
+          WHERE RoleID=''+CONVERT(VARCHAR,@NODEID)
+    ELSE IF @CCID in(8,-8)
+		SET @SQL=''INSERT INTO #TBLTEMP1 
+			SELECT Top 1 ''+CONVERT(VARCHAR,@CCID)+'',''''''+@FEATURENAME+'''''',CostCenterID NODEID,CostCenterName NAME,CostCenterName as Code,''+ Convert(Nvarchar,@IsDefault)+'' IsDefault FROM ''+@TABLENAME +'' WITH(NOLOCK)     
+			WHERE CostCenterID=''+CONVERT(VARCHAR,@NODEID)           
+    ELSE IF @CCID in(300,-300)
+		SET @SQL=''INSERT INTO #TBLTEMP1 
+    SELECT ''+CONVERT(VARCHAR,@CCID)+'',''''''+@FEATURENAME+'''''',CostCenterID NODEID,DOCUMENTNAME NAME,DOCUMENTABBR Code,''+ Convert(Nvarchar,@IsDefault)+'' IsDefault FROM ''+@TABLENAME +'' WITH(NOLOCK)     
+          WHERE CostCenterID=''+CONVERT(VARCHAR,@NODEID) 
+     ELSE
+    SET @SQL=''INSERT INTO #TBLTEMP1 
+    SELECT ''+CONVERT(VARCHAR,@CCID)+'',''''''+@FEATURENAME+'''''',NODEID,NAME,Code,''+ Convert(Nvarchar,@IsDefault)+'' IsDefault FROM ''+@TABLENAME +'' WITH(NOLOCK)     
+          WHERE NODEID=''+CONVERT(VARCHAR,@NODEID)  
+    --ELSE IF @CCID=2  
+    --SET @SQL=''INSERT INTO #TBLTEMP1 SELECT ''+CONVERT(VARCHAR,@CCID)+'',''''''+@FEATURENAME+'''''',AccountID,AccountName FROM ''+@TABLENAME +''   
+    --      WHERE AccountID=''+CONVERT(VARCHAR,@NODEID)  
+    --ELSE IF @CCID=3  
+    --SET @SQL=''INSERT INTO #TBLTEMP1 SELECT ''+CONVERT(VARCHAR,@CCID)+'',''''''+@FEATURENAME+'''''',ProductId,ProductName FROM ''+@TABLENAME +''   
+    --      WHERE ProductId=''+CONVERT(VARCHAR,@NODEID)        
+    PRINT @SQL
+    EXEC (@SQL)  
+   SET @I=@I+1  
   END  
-	
-	set @getregis=0
-	if(@DType=38 or @DType=39 or @DType=50)
-		set @getregis=1
-	
-	if(@DType=18 and exists(Select PrefValue from COM_DocumentPreferences WITH(NOLOCK) 
-	where CostCenterID=@CostCenterID and PrefName=''UseasPosReciept'' and prefvalue=''true''))
-		set @getregis=1
+  SELECT * FROM #TBLTEMP1  
+  DROP TABLE #TBLTEMP1  
+COMMIT TRANSACTION  
+SET NOCOUNT OFF;    
+RETURN 1  
+END TRY  
+BEGIN CATCH    
+ --Return exception info [Message,Number,ProcedureName,LineNumber]    
+ IF ERROR_NUMBER()=50000  
+ BEGIN  
+  SELECT ErrorMessage,ErrorNumber FROM COM_ErrorMessages WITH(nolock) WHERE ErrorNumber=ERROR_MESSAGE() AND LanguageID=@LangID  
+ END  
+ ELSE  
+ BEGIN  
+  SELECT ErrorMessage, ERROR_MESSAGE() AS ServerMessage,ERROR_NUMBER() as ErrorNumber, ERROR_PROCEDURE()as ProcedureName, ERROR_LINE() AS ErrorLine  
+  FROM COM_ErrorMessages WITH(nolock) WHERE ErrorNumber=-999 AND LanguageID=@LangID  
+ END  
+ROLLBACK TRANSACTION  
+SET NOCOUNT OFF    
+RETURN -999     
+END CATCH
+' 
+END
+GO
+/****** Object:  StoredProcedure [dbo].[spCOM_SetCCCCMap]    Script Date: 21-08-2025 18:11:33 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[spCOM_SetCCCCMap]') AND type in (N'P', N'PC'))
+BEGIN
+EXEC dbo.sp_executesql @statement = N'-- =============================================  
+-- Author:  hafeeZ  
+-- Create date: 21 Jun 2011  
+-- Modified Date : 12 July 2011
+-- Description: set cc map 
+-- Example : [spCOM_SetCCCCMap]
+-- =============================================  
+CREATE procedure [dbo].[spCOM_SetCCCCMap]
+	@PARENTFEATUREID INT,
+	@PNodeID INT,  
+	@DATA XML,    
+	@UserName NVARCHAR(50), 
+	@LangID INT=1
+AS  
+--BEGIN TRANSACTION  
+--BEGIN TRY  
+--SET NOCOUNT ON;
 		
-		print @getregis
-		print @DType
-	if(@getregis=1)
+	--Declaration Section 
+	DECLARE @Dt FLOAT,@DefCCID INT,@Action NVARCHAR(30)
+	DECLARE @TempGuid NVARCHAR(50) 
+	DECLARE @HasAccess BIT
+	SET @Dt=CONVERT(FLOAT,GETDATE())--Setting Current Date   
+	
+	--User acces check 
+	IF @PARENTFEATUREID=0
 	BEGIN
-		set @Reg=0
-		Select @Reg=Value from ADM_GlobalPreferences WITH(NOLOCK)    
-		where Name=''Registers''
-		and Value is not null and ISNUMERIC(Value)=1
-		if(@Reg>50000)
-		BEGIN
-			select @tableName=TableName from ADM_Features WITH(NOLOCK)
-			where FeatureID=@Reg
-			set @RegNodeID=0
-			set @Sql=''SELECT @RegNodeID=NOdeID from ''+@tableName+'' WITH(NOLOCK) where AliasName=''''''+@Lic+''''''''			
-			exec sp_executesql @Sql,N''@RegNodeID INT OUTPUT'' ,@RegNodeID OUTPUT
-			
-			if(@RegNodeID=0)
-			BEGIN
-				declare @ind int
-				set @ind=Charindex(''~'',@Lic,0)
-				set @Lic=Substring(@Lic,0,@ind) 
- 
-				set @Sql=''SELECT @RegNodeID=NOdeID from ''+@tableName+'' WITH(NOLOCK) where AliasName=''''''+@Lic+''''''''			
-				exec sp_executesql @Sql,N''@RegNodeID INT OUTPUT'' ,@RegNodeID OUTPUT
-			END
-			
-			set @Sql=''''
-			select @Sql=Value from ADM_GlobalPreferences with(nolock) where Name =''Dimension List''
-   	
-			declare  @TblList TABLE (Dimensions int)    
-			INSERT INTO @TblList    
-			exec spsplitstring @Sql,'',''  
-			
-			if(@UserID<>1 and EXISTS(SELECT Dimensions FROM @TblList WHERE Dimensions=@Reg))
-			BEGIN
-			
-			--select @UserID,@Reg,@RegNodeID
-				if not exists(select * from COM_CostCenterCostCenterMap WITH(NOLOCK)
-					where ParentCostCenterID=7 and ParentNodeID=@UserID and CostCenterID=@Reg and NodeID=@RegNodeID)
-					set @RegNodeID=0
-			END
-			--select @RegNodeID
-			if(@RegNodeID>0)
-			BEGIN
-				declare @StartTime time,@EndTime time--,@PosSessionID INT
-				
-				--select @PosSessionID=POSLoginHistoryID,@Day=[Day] from POS_loginHistory WITH(NOLOCK) 
-				--where RegisterNodeID=@RegNodeID
-				--order by POSLoginHistoryID
-				
-				--if(@Day is not null and @Day < Floor(convert(float,getdate())))
-				--begin
-				--	if not exists (select DocNo from com_docid with(nolock) where PosSessionID= @PosSessionID)
-				--	begin
-				--		update POS_loginHistory set [IsDayClose]=1,isShiftClose=1,IsUserClose=1 where POSLoginHistoryID=@PosSessionID
-				--	end
-				--end
-				
-				select @Day=[Day],@isDayClose=[IsDayClose],@isShiftClose=isShiftClose,@ShiftID=ShiftNodeID,@isUserClose=IsUserClose
-				from POS_loginHistory WITH(NOLOCK) 
-				where RegisterNodeID=@RegNodeID
-				order by POSLoginHistoryID
-				
-			    if(@Day is null)
-					set @Day=Floor(convert(float,getdate()))
-				else if (@isDayClose=1)
-				begin
-					
-					if exists (Select PrefValue from COM_DocumentPreferences WITH(NOLOCK)    
-					where CostCenterID=@CostCenterID and PrefName=''LogInasSystemDate'' and PrefValue=''true'')
-						set @Day=Floor(convert(float,getdate()))
-					else
-						set @Day=@Day+1
-				end
-					
-				set @i=0
-				Select @i=Value from ADM_GlobalPreferences WITH(NOLOCK)    
-				where Name=''PosShifts'' and Value is not null and ISNUMERIC(Value)=1
-				
-				if((@isShiftClose is null or @isShiftClose=1) and @i>50000)
-				begin
-					set @ShiftID=0
-					select @shiftTabName=TableName from ADM_Features WITH(NOLOCK)
-					where FeatureID=@i
-				
-					set @Sql=''declare @stat int
-                       select @stat=statusid from com_status WITH(NOLOCK)
-                       where costcenterid=''+convert(nvarchar(max),@i)+'' and status=''''In Active''''
-                       
-                       SELECT @ShiftID=SH.NodeID,@StartTime=SH.ccalpha49,@EndTime=SH.ccAlpha50 from ''+@shiftTabName+'' SH WITH(NOLOCK)''
-					
-					if (@UserID<>1 AND EXISTS (SELECT Dimensions FROM @TblList WHERE Dimensions=@i))
-					BEGIN
-						set @Sql=@Sql+'' JOIN COM_CostCenterCostCenterMap CCM WITH(NOLOCK) ON CCM.ParentCostCenterID=7 AND CCM.ParentNodeID=''+CONVERT(NVARCHAR,@UserID)
-						set @Sql=@Sql+'' AND CCM.NodeID=SH.NodeID AND CCM.CostCenterID=''+CONVERT(NVARCHAR,@i)
-					END
-					
-					
-					set @Sql=@Sql+'' where ISDATE(SH.ccalpha49)=1 and ISDATE(SH.ccAlpha50)=1 and SH.statusid<>@stat
-					and convert(time,getdate()) between CONVERT(time,SH.ccalpha49) and  CONVERT(time,SH.ccAlpha50)''
-					
-					Select @DimensionList=Value from ADM_GlobalPreferences WITH(NOLOCK) where Name=''UserWiseRegisters'' and Value is not null
-					if (@DimensionList is not null AND @DimensionList<>'''' AND CONVERT(INT,@DimensionList) >0 )
-					begin
-						DECLARE @TEMPSql NVARCHAR(MAX),@ShiftIDS NVARCHAR(MAX)
-						SET @TEMPSql=''SELECT @ShiftIDS=STUFF((SELECT DISTINCT '''',''''+CONVERT(NVARCHAR,CCD.dcCCNID''+CONVERT(NVARCHAR,(@i-50000))+'') 
-								FROM INV_DocDetails IDD WITH(NOLOCK) 
-								JOIN COM_DocCCData CCD WITH(NOLOCK) ON CCD.InvDocDetailsID=IDD.InvDocDetailsID
-								WHERE IDD.DocDate=FLOOR(CONVERT(FLOAT,GETDATE())) AND IDD.CostCenterID=''+@DimensionList+'' 
-								AND CCD.UserID =''+CONVERT(NVARCHAR,@UserID)+''
-								ORDER BY 1 FOR XML PATH ('''''''')),1,1,'''''''')''
-						
-						exec sp_executesql @TEMPSql,N''@ShiftIDS NVARCHAR(MAX) OUTPUT'',@ShiftIDS OUTPUT		
-						
-						IF(@ShiftIDS is null OR  @ShiftIDS='''')
-							SET @ShiftIDS=''0''
-						set @Sql=@Sql+'' AND SH.NodeID IN(''+@ShiftIDS+'')''
-					END
-							print @Sql
-					exec sp_executesql @Sql,N''@ShiftID INT OUTPUT,@StartTime  nvarchar(50) OUTPUT,@EndTime  nvarchar(50) OUTPUT'' ,@ShiftID OUTPUT,@StartTime OUTPUT,@EndTime OUTPUT
-				end
-				
-				if(@ShiftID is null or @i=0)
-					set @ShiftID=0
-					
-				if(@i>50000)
-				begin
-				    select @shiftTabName=TableName from ADM_Features WITH(NOLOCK)
-					where FeatureID=@i
-					
-					set @Sql=''SELECT @StartTime=convert(time,isnull(ccalpha49,GETDATE())),@EndTime=convert(time,isnull(ccAlpha50,GETDATE())) from ''+@shiftTabName+'' WITH(NOLOCK) 
-						where NodeID=''+convert(nvarchar,@ShiftID)	
-						print @Sql		
-					exec sp_executesql @Sql,N''@StartTime time OUTPUT,@EndTime time OUTPUT'',@StartTime OUTPUT,@EndTime OUTPUT
-				end
-				
-				if @StartTime is null
-					set @StartTime=convert(time,getdate())
-				if @EndTime is null	
-					set @EndTime=convert(time,getdate())
-				
-				if(@isDayClose=0 and @isShiftClose=0)
-					set @Sql=''SELECT a.NOdeID,COde,Name,0 IsShiftStart,r.PaymentModes,''+convert(nvarchar,@ShiftID)+'' ShiftID,convert(datetime,''+CONVERT(nvarchar,@day)+'') Day,RightPanelWidth,ButtonsPanelWidth,RowSize,TouchScreen,''''''+convert(nvarchar,@StartTime)+'''''' StartTime,''''''+convert(nvarchar,@EndTime)+'''''' EndTime,b.*,r.ActionHeight,r.ActionWidth,r.CNValidDays,r.CNAllowPartial,r.FontSize from ''+@tableName+'' a WITH(NOLOCK) 
-					join com_ccccdata b WITH(NOLOCK) on a.NOdeID=b.NOdeID
-					left join ADM_RegisterPreferences r WITH(NOLOCK) on  a.NOdeID=r.RegisterID
-					where b.costcenterid=''+CONVERT(nvarchar,@Reg)+'' and a.NOdeID=''+convert(nvarchar(max),@RegNodeID)
-				ELSE
-					set @Sql=''SELECT a.NOdeID,COde,Name,1 IsShiftStart,r.PaymentModes,''+convert(nvarchar,@ShiftID)+'' ShiftID,convert(datetime,''+CONVERT(nvarchar,@day)+'') Day,RightPanelWidth,ButtonsPanelWidth,RowSize,TouchScreen,''''''+convert(nvarchar,@StartTime)+'''''' StartTime,''''''+convert(nvarchar,@EndTime)+'''''' EndTime,b.*,r.ActionHeight,r.ActionWidth,r.CNValidDays,r.CNAllowPartial,r.FontSize from ''+@tableName+'' a WITH(NOLOCK) 
-					join com_ccccdata b WITH(NOLOCK) on a.NOdeID=b.NOdeID 
-					left join ADM_RegisterPreferences r WITH(NOLOCK) on  a.NOdeID=r.RegisterID
-					where b.costcenterid=''+CONVERT(nvarchar,@Reg)+'' and a.NOdeID=''+convert(nvarchar(max),@RegNodeID)
-					print @Sql
-				exec(@Sql)
-			END
-			ELSE
-				SELECT 1 WHERE 1<>1						
-		END
-		ELSE
-			SELECT 1 WHERE 1<>1		
-	END	
-	ELSE if(@DType in(15,18,22,23))
+		 RAISERROR(''-100'',16,1)  
+	END
+	
+	--unique check
+	IF @PARENTFEATUREID=3
 	BEGIN
-		set @i=0
-		Select @i=PrefValue from COM_DocumentPreferences WITH(NOLOCK)    
-		where CostCenterID=@CostCenterID and PrefName=''CrossDimDocument''
-		and PrefValue is not null and ISNUMERIC(PrefValue)=1
+		DECLARE @AssignUniqueDimension NVARCHAR(MAX),@AssignUniqueXML XML,@I INT, @COUNT INT,@FeatureID INT,
+		@Unique INT,@Level INT,@SQL NVARCHAR(MAX),@VAR NVARCHAR(MAX),@RESULT INT ,@NodeFilter NVARCHAR(MAX)
 		
-		if(@i>40000)
+		SELECT @AssignUniqueDimension=Value FROM COM_CostCenterPreferences WITH(NOLOCK) 
+		WHERE CostCenterID=@PARENTFEATUREID AND Name=''AssignUniqueDimension''
+		
+		SET @AssignUniqueXML=@AssignUniqueDimension
+		
+		DECLARE @TAB TABLE([ID] INT IDENTITY(1,1),[FeatureID] INT,[Unique] INT, [Level] INT)
+		INSERT INTO @TAB
+		SELECT A.value(''@FeatureID'',''INT''),A.value(''@Unique'',''INT''),A.value(''@Level'',''INT'')
+		from @AssignUniqueXML.nodes(''/XML/Row'') as DATA(A)  
+		
+		DECLARE @TABASSIGN TABLE([ID] INT IDENTITY(1,1),CostCenterId INT,NodeID INT)
+		INSERT INTO @TABASSIGN
+		SELECT A.value(''@CCID'',''INT''),A.value(''@ID'',''INT'')
+		from @DATA.nodes(''/ASSIGNMAPXML/ASSIGN/R'') as DATA(A)  
+		INSERT INTO @TABASSIGN
+		SELECT A.value(''@CCID'',''INT''),A.value(''@ID'',''INT'')
+		from @DATA.nodes(''/ASSIGNMAPXML/MAP/R'') as DATA(A)
+		INSERT INTO @TABASSIGN  
+		SELECT A.value(''@CostCenterId'',''INT''),A.value(''@NodeID'',''INT'')
+		from @DATA.nodes(''/XML/Row'') as DATA(A)
+		
+		SELECT @I=1,@COUNT=COUNT(*) FROM @TAB
+		IF(@COUNT>0)
 		BEGIN
-			SELECT distinct [WorkFlowDefID],[CostCenterID],[Action],[Expression],a.WorkFlowID,a.LevelID ,IsLineWise,IsExpressionLineWise,CONVERT(DATETIME,a.WEFDate) WEFDate,CONVERT(DATETIME,a.TILLDate) TILLDate
-			FROM [COM_WorkFlowDef]  a   WITH(NOLOCK)
-			join COM_WorkFlow b WITH(NOLOCK) on a.WorkFlowID=b.WorkFlowID  and a.LevelID=b.LevelID
-			LEFT JOIN COM_Groups G with(nolock) on b.GroupID=G.GID
-			where [CostCenterID]=@i and IsEnabled=1  
-			and (b.UserID =@UserID or b.RoleID=@RoleID or G.UserID=@UserID or G.RoleID=@RoleID OR b.RoleID=-1)
+			WHILE(@I<=@COUNT)
+			BEGIN
+				SELECT @FeatureID=[FeatureID],@Unique=[Unique],@Level=[Level] FROM @TAB WHERE [ID]=@I
+				
+				select @NodeFilter=STUFF((SELECT '',''+CONVERT(NVARCHAR,NodeID) FROM  @TABASSIGN WHERE CostCenterId=@FeatureID FOR XML PATH('''') ),1,1,'''')
+				
+				IF @NodeFilter IS NOT NULL
+				BEGIN
+					SET @VAR=''@RESULT INT OUTPUT''
+					SET @SQL=''SET @RESULT = (SELECT COUNT(CCM.NodeID) FROM COM_CostCenterCostCenterMap CCM WITH(NOLOCK) 
+					LEFT JOIN INV_Product P WITH(NOLOCK) ON P.ProductID=CCM.ParentNodeID
+					WHERE CCM.ParentCostCenterID=''+CONVERT(NVARCHAR,@PARENTFEATUREID)+'' 
+					AND CCM.CostCenterID=''+CONVERT(NVARCHAR,@FeatureID)+'' 
+					AND CCM.ParentNodeID<>''+CONVERT(NVARCHAR,@PNodeID)+''
+					AND CCM.NodeID IN (''+ @NodeFilter +'')''
+					IF @Unique=1
+						SET @SQL=@SQL+'' AND CCM.ParentNodeID IN (SELECT DISTINCT PN.ProductID FROM INV_Product PN WITH(NOLOCK) 
+						LEFT JOIN INV_Product PG WITH(NOLOCK) ON PN.LFT BETWEEN PG.LFT AND PG.RGT
+						LEFT JOIN INV_Product PA WITH(NOLOCK) ON PG.ProductID=PA.ParentID AND PN.ProductID<>PA.ParentID
+						WHERE PA.ProductID=''+CONVERT(NVARCHAR,@PNodeID)+'' )''
+					IF @Level<>2
+						SET @SQL=@SQL+'' AND P.IsGroup=''+CONVERT(NVARCHAR,@Level)
+					SET @SQL=@SQL+'')''
+					EXEC sp_executesql @SQL,@VAR,@RESULT OUTPUT 	
+					IF(@RESULT>0)
+						RAISERROR(''-149'',16,1)
+				END	  
+				SET @I=@I+1
+			END
 		END
-		ELSE
-			SELECT 1 WHERE 1<>1		
+	END
+
+	IF exists (select @DATA from @DATA.nodes(''/ASSIGNMAPXML'') as DATA(A) )
+	BEGIN
+		select @DefCCID=A.value(''@Dimension'',''INT''),@Action=A.value(''@Action'',''NVARCHAR(30)'') from @DATA.nodes(''/ASSIGNMAPXML'') as DATA(A)
+
+		if @DefCCID IS NULL OR @DefCCID=0
+		begin
+			IF @Action=''ASSIGN'' OR @Action=''ASSIGN/MAP''
+				DELETE FROM COM_CostCenterCostCenterMap WHERE ParentCostCenterID=@PARENTFEATUREID AND ParentNodeID=@PNodeID
+			IF @Action=''MAP'' OR @Action=''ASSIGN/MAP''
+				DELETE FROM COM_CostCenterCostCenterMap WHERE CostCenterID=@PARENTFEATUREID AND NodeID=@PNodeID
+		end
+		else
+		begin
+			IF @Action=''ASSIGN'' OR @Action=''ASSIGN/MAP''
+				DELETE FROM COM_CostCenterCostCenterMap WHERE ParentCostCenterID=@PARENTFEATUREID AND ParentNodeID=@PNodeID AND CostCenterID=@DefCCID
+			IF @Action=''MAP'' OR @Action=''ASSIGN/MAP''
+				DELETE FROM COM_CostCenterCostCenterMap WHERE CostCenterID=@PARENTFEATUREID AND NodeID=@PNodeID AND ParentCostCenterID=@DefCCID
+		end
+		
+		INSERT INTO  COM_CostCenterCostCenterMap (ParentCostCenterID,ParentNodeID,CostCenterID,NodeID,IsDefault,GUID,CreatedBy,CreatedDate)
+		SELECT @PARENTFEATUREID,@PNodeID,A.value(''@CCID'',''INT''),A.value(''@ID'',''INT''),A.value(''@IsDefault'',''BIT''),NEWID(),@UserName,
+		 @Dt from @DATA.nodes(''/ASSIGNMAPXML/ASSIGN/R'') as DATA(A)  
+		 
+		INSERT INTO  COM_CostCenterCostCenterMap (CostCenterID,NodeID,ParentCostCenterID,ParentNodeID,IsDefault,GUID,CreatedBy,CreatedDate)
+		SELECT @PARENTFEATUREID,@PNodeID,A.value(''@CCID'',''INT''),A.value(''@ID'',''INT''),A.value(''@IsDefault'',''BIT''),NEWID(),@UserName,
+		 @Dt from @DATA.nodes(''/ASSIGNMAPXML/MAP/R'') as DATA(A)   
 	END
 	ELSE
-		SELECT 1 WHERE 1<>1		
-	
-	
-      
-   SELECT [CostCenterID],[DefType],isgroupExists FROM COM_CCPriceTaxCCDefn a WITH(NOLOCK)
-   where ProfileID=0 and [DefType] in(1,3)
-   union 
-   SELECT distinct [CostCenterID],2,isgroupExists  FROM COM_CCPriceTaxCCDefn a WITH(NOLOCK) 
-   join COM_CCTaxes b WITH(NOLOCK) on a.ProfileID=b.ProfileID
-   where b.docid=@CostCenterID and [DefType]=2
-
-   set @shiftTabName=''''
-   	select @shiftTabName=GUID+''.''+FileExtension from com_files  WITH(NOLOCK)
-	where FeatureID=400 and FeaturePK=@COSTCENTERID
- 
-  --GETTING DOCUMENT INFO    
-   SELECT @shiftTabName attachfile,@OnReject OnReject,@IsLineWise IsLineWise,isnull(@UserWise,0) UserWise,a.DocumentTypeID,a.DocumentType,a.DocumentAbbr
-   ,case when DR.ResourceData is not null then DR.ResourceData else a.DocumentName end DocumentName,a.IsInventory,a.StatusID,R.ResourceData ''status''  , a.Bounce Bounce,a.[GUID],ISNULL(@FieldWidth,0) FieldWidth  FROM     
-   ADM_DocumentTypes a   WITH(NOLOCK)
-    JOIN ADM_RIBBONVIEW V WITH(NOLOCK)  ON A.COSTCENTERID=V.FEATUREID
-   LEFT JOIN COM_LanguageResources DR WITH(NOLOCK) ON V.ScreenResourceID=DR.ResourceID AND DR.LanguageID=@LangID
-   left join COM_Status S WITH(NOLOCK)  on a.StatusID=s.StatusID  
-   LEFT JOIN COM_LanguageResources R WITH(NOLOCK) ON S.ResourceID=R.ResourceID AND R.LanguageID=@LangID   
-    WHERE a.CostCenterID=@CostCenterID   
-      
-   --GETTING DOCUMENT PREFIX      
-   set @Sql=''SELECT CodePrefix,CodeNumberLength,CurrentCodeNumber+CodeNumberInc,isnull(CurrentCodeNumber,0)+1    
-   FROM COM_CostCenterCodeDef WITH(NOLOCK) WHERE CostCenterID=''    
-  
-	if((@DType=14 or @DType=19) and @Series=1 and @ConCCID is not null and  @ConCCID>0)--alternate series     
-	begin 
-		 set @Sql=@Sql+convert(nvarchar,@ConCCID)
-	end  
-	else     
-	begin 
-		set @Sql=@Sql+convert(nvarchar,@CostCenterID) 
-	end  
-   
-	if(@Locations is not null and @Locations<>'''')    
-		set @Sql=@Sql+'' and Location in (''+@Locations+'')''    
-	if(@Divisions is not null and @Divisions<>'''')    
-		set @Sql=@Sql+'' and Division in (''+@Divisions+'')''    
-      
-  exec(@Sql)
-    
-	select b.BudgetDefID,QtyBudget,QtyType,bd.CostCenterID,convert(datetime,a.FromDate)FromDate,convert(datetime,ToDate)ToDate from ADM_DocumentBudgets a WITH(NOLOCK)
-	join COM_BudgetDef b  WITH(NOLOCK) on a.BudgetID=b.BudgetDefID
-	join COM_BudgetDefDims bd WITH(NOLOCK) on a.BudgetID=bd.BudgetDefID
-	WHERE a.costcenterid=@CostCenterID
-
-  select DocumentLinkDefID,case when DocumentName is null then f.name when DR.ResourceData is not null then DR.ResourceData else DocumentName end DocumentName,CostCenterIDBase,[CostCenterColIDBase]    
-      ,[CostCenterIDLinked],[CostCenterColIDLinked],[IsDefault],ViewID ,AutoSelect ,c.syscolumnname
-      ,DocumentType  
- from COM_DocumentLinkDef a   WITH(NOLOCK)   
- left  join adm_documenttypes  b  WITH(NOLOCK) on a.[CostCenterIDLinked]=b.CostCenterID 
-   left  JOIN ADM_RIBBONVIEW V WITH(NOLOCK)  ON b.COSTCENTERID=V.FEATUREID
-   LEFT JOIN COM_LanguageResources DR WITH(NOLOCK) ON V.ScreenResourceID=DR.ResourceID AND DR.LanguageID=@LangID
-
-    left  join adm_features  f  WITH(NOLOCK) on a.[CostCenterIDLinked]=f.Featureid
- left  join ADM_Costcenterdef  c  WITH(NOLOCK) on a.[CostCenterColIDLinked]=c.CostCenterColID
-  where CostCenterIDBase=@CostCenterID    
-  
-  DECLARE @DocumentType INT
-  SELECT  @DocumentType=DocumentType FROM ADM_DocumentTypes WITH(NOLOCK)
-  WHERE CostCenterID = @CostCenterID   
-	
-	--Getting DOCUMENT Preferences    
-	IF(@DocumentType=39 OR @DocumentType=50)
-		Select PrefName,PrefValue,PrefValueType from COM_DocumentPreferences WITH(NOLOCK)    
-		where CostCenterID=@CostCenterID OR PreferenceTypeName=''POS''
-		order by   PreferenceTypeName
-	ELSE
-		Select PrefName,PrefValue,PrefValueType from COM_DocumentPreferences WITH(NOLOCK)    
-		where CostCenterID=@CostCenterID 
-    
-  --Getting DocPrefix   
-  SELECT     a.DocPrefixID, a.DocumentTypeID, ISNULL(C.CostCenterID,a.CCID) AS CCID, a.CCID AS ColID, C.SysColumnName, b.Name, a.Length, a.Delimiter, a.PrefixOrder,SeriesNo,Isdefault
-FROM         COM_DocPrefix AS a WITH(NOLOCK) LEFT OUTER JOIN
-                      ADM_CostCenterDef AS C WITH(NOLOCK) ON a.CCID = C.CostCenterColID LEFT OUTER JOIN
-                      ADM_Features AS b WITH (NOLOCK) ON C.CostCenterID = b.FeatureID AND C.CostCenterID > 50000
-WHERE     (a.DocumentTypeID =
-                          (SELECT     DocumentTypeID
-                            FROM          ADM_DocumentTypes WITH(NOLOCK)
-                            WHERE      (CostCenterID = @CostCenterID)))
-ORDER BY a.SeriesNo,a.PrefixOrder
-      /*if((@DType=14 or @DType=19) and @Series=1 and @ConCCID is not null and  @ConCCID>0)--alternate series     
-    SELECT [DocPrefixID],[DocumentTypeID],[CCID],Name,[Length],[Delimiter],[PrefixOrder]    
-     FROM [COM_DocPrefix] a    
-     left join   ADM_FEATURES b WITH(NOLOCK)   on a.CCID=b.FEATUREID and a.CCID>50000    
-      where DocumentTypeID=(SELECT DocumentTypeID FROM     
-     ADM_DocumentTypes WHERE CostCenterID=@ConCCID)    
-     order by PrefixOrder       
-    else     
-    SELECT [DocPrefixID],[DocumentTypeID],[CCID],Name,[Length],[Delimiter],[PrefixOrder]    
-     FROM [COM_DocPrefix] a    
-     left join   ADM_FEATURES b WITH(NOLOCK)   on a.CCID=b.FEATUREID and a.CCID>50000    
-      where DocumentTypeID=(SELECT DocumentTypeID FROM     
-     ADM_DocumentTypes WHERE CostCenterID=@CostCenterID)    
-     order by PrefixOrder      */
-    
-  --Getting Workflows  
-   SELECT distinct [WorkFlowDefID],[CostCenterID],[Action],[Expression],a.WorkFlowID,a.LevelID,IsLineWise,IsExpressionLineWise,CONVERT(DATETIME,a.WEFDate) WEFDate,CONVERT(DATETIME,a.TILLDate) TILLDate
-   FROM [COM_WorkFlowDef]  a   WITH(NOLOCK)
-   join COM_WorkFlow b WITH(NOLOCK) on a.WorkFlowID=b.WorkFlowID  and a.LevelID=b.LevelID
-   LEFT JOIN COM_Groups G with(nolock) on b.GroupID=G.GID
-   where [CostCenterID]=@CostCenterID and IsEnabled=1  
-   and (b.UserID =@UserID or b.RoleID=@RoleID or G.UserID=@UserID or G.RoleID=@RoleID OR b.RoleID=-1 )  
-    
-   if(@DocViewID is not null and @DocViewID>0)  
-   begin  
-    SELECT [DocumentViewDefID],c.SysColumnName  
-     ,[DocumentViewID]  
-     ,[DocumentTypeID]  
-     ,d.[CostCenterID]  
-     ,d.[CostCenterColID]  
-     ,[ViewName]  
-     ,d.[IsEditable]  
-     ,[IsReadonly]  
-     ,[NumFieldEditOptionID]  
-     ,d.[IsVisible]  
-     ,[TabOptionID]  
-     ,[CompoundRuleID]  
-     ,[FailureMessage]  
-     ,[ActionOptionID]  
-     ,[Mode]  
-     ,[Expression],d.IsMandatory ,viewfor,d.description 
-    FROM [ADM_DocumentViewDef] d WITH(NOLOCK)  
-    left join ADM_CostCenterDef c WITH(NOLOCK) on c.CostCenterColID=d.CostCenterColID where DocumentViewID=@DocViewID  
-   end  
-   else  
-   begin  
-   SELECT [DocumentViewDefID],c.SysColumnName  
-     ,[DocumentViewID]  
-     ,[DocumentTypeID]  
-     ,d.[CostCenterID]  
-     ,d.[CostCenterColID]  
-     ,[ViewName]  
-     ,d.[IsEditable]  
-     ,[IsReadonly]  
-     ,[NumFieldEditOptionID]  
-     ,d.[IsVisible]  
-     ,[TabOptionID]  
-     ,[CompoundRuleID]  
-     ,[FailureMessage]  
-     ,[ActionOptionID]  
-     ,[Mode]  
-     ,[Expression]  ,d.IsMandatory ,viewfor ,d.description 
-    FROM [ADM_DocumentViewDef] d  WITH(NOLOCK) 
-    join ADM_CostCenterDef c WITH(NOLOCK) on c.CostCenterColID=d.CostCenterColID where 1=2 --not to return any row just structure  
-   end  
-  
-  
-  
-  if (@RegNodeID is null or @RegNodeID=0) and exists(Select PrefValue from COM_DocumentPreferences WITH(NOLOCK)
-	where PrefName=''EnableTouch'' and CostCenterID=@CostCenterID and prefvalue=''true'')
-  BEGIN	
-		set @Reg=0
-		Select @Reg=Value from ADM_GlobalPreferences WITH(NOLOCK) where Name=''Registers''
-		and Value is not null and ISNUMERIC(Value)=1
-		if(@Reg>50000)
-		BEGIN
-			select @tableName=TableName from ADM_Features WITH(NOLOCK)
-			where FeatureID=@Reg
-			set @RegNodeID=0
-			set @Sql=''SELECT @RegNodeID=NOdeID from ''+@tableName+'' WITH(NOLOCK) where AliasName=''''''+@Lic+''''''''			
-			exec sp_executesql @Sql,N''@RegNodeID INT OUTPUT'' ,@RegNodeID OUTPUT
-		END	
-	END	
-	
-    if(@RegNodeID is not null and @RegNodeID>0)	
-    begin
-		select a.CCID,a.Filter,a.[Level],a.Map,a.ParentCCID,case when f.Name is null then ''Product'' else f.Name end Name,r.ButtonHeight,r.ButtonWidth,
-		isnull((select IsColumnInUse FROM ADM_CostCenterDef with(nolock)
-		where costcenterid=(case when a.CCID<0 then 3 else a.CCID end) and  syscolumnname=''ccnid'' + convert(nvarchar,(a.ParentCCID - 50000))),0) ColumnInUse
-		,r.ActionHeight,r.ActionWidth,r.CNValidDays,r.CNAllowPartial,r.FontSize 
-		into #RegTouch
-		from ADM_POSLevelsProfiles a WITH(NOLOCK)
-		left join ADM_Features f WITH(NOLOCK) on a.CCID=f.FeatureID
-		join ADM_RegisterPreferences r with(nolock) on a.ProfileID=r.LevelProfile
-		where  r.RegisterID=@RegNodeID
-		order by Level	
+	BEGIN
+		declare @IsImport int,@IsAppend int=0,@IsUpdate int=0
+		select @IsImport=ISNULL(X.value(''@IsImport'',''int''),0),@IsUpdate=ISNULL(X.value(''@IsUpdate'',''int''),0),@IsAppend=ISNULL(X.value(''@IsAppend'',''int''),0) 
+		from @DATA.nodes(''/XML'')  as Data(X)
+		--select X.value(''@IsImport'',''int'')	from @DATA.nodes(''/XML'')  as Data(X)
+		if @IsImport is not null and @IsImport=1 and @IsUpdate is not null and @IsUpdate=1 and @IsAppend is not null and @IsAppend=1
+		begin
+			INSERT INTO  COM_CostCenterCostCenterMap (ParentCostCenterID,ParentNodeID,CostCenterID,
+			NodeID,IsDefault,GUID,CreatedBy,CreatedDate)
+			SELECT @PARENTFEATUREID,@PNodeID,A.value(''@CostCenterId'',''INT''),A.value(''@NodeID'',''INT''),A.value(''@IsDefault'',''BIT''),NEWID(),@UserName,
+			 @Dt from @DATA.nodes(''/XML/Row'') as DATA(A)  
+			 LEFT JOIN COM_CostCenterCostCenterMap CCM WITH(NOLOCK) ON CCM.ParentCostCenterID=@PARENTFEATUREID AND CCM.ParentNodeID=@PNodeID
+			 AND A.value(''@CostCenterId'',''INT'')=CCM.CostCenterID AND A.value(''@NodeID'',''INT'')=CCM.NodeID 
+			 WHERE CCM.NodeID IS NULL
+		end
+		else if @IsImport is not null and @IsImport=1
+		begin
+			DELETE FROM COM_CostCenterCostCenterMap WHERE ParentCostCenterID=@PARENTFEATUREID AND ParentNodeID=@PNodeID 
+			and CostCenterID IN (SELECT distinct A.value(''@CostCenterId'',''INT'') from @DATA.nodes(''/XML/Row'')  as DATA(A) )
+		end
+		else
+		begin
+			DELETE FROM COM_CostCenterCostCenterMap WHERE ParentCostCenterID=@PARENTFEATUREID AND ParentNodeID=@PNodeID 
+		end
 		
-		if not exists (select * from #RegTouch WITH(NOLOCK) where CCID=3 and [Level]=(select max([Level]) from #RegTouch))
-			insert into #RegTouch
-			select 3,null Filter,1000,0 Map,null ParentCCID,''Product'' Name
-			,isnull((select max(ButtonHeight) from ADM_RegisterPreferences with(nolock) where RegisterID=@RegNodeID ),50) ButtonHeight
-			,isnull((select max(ButtonWidth) from ADM_RegisterPreferences with(nolock) where RegisterID=@RegNodeID ),50) ButtonWidth,
-			isnull((select top 1 IsColumnInUse FROM ADM_CostCenterDef with(nolock)
-			where costcenterid=3 and  ColumnCostCenterID=((select CCID from ADM_POSLevelsProfiles a WITH(NOLOCK) where PosLevelsProfileID=(select max(a.PosLevelsProfileID)
-			from ADM_POSLevelsProfiles a WITH(NOLOCK)
-			join ADM_Features f WITH(NOLOCK) on a.CCID=f.FeatureID
-			join ADM_RegisterPreferences r with(nolock) on a.ProfileID=r.LevelProfile
-			where  r.RegisterID=@RegNodeID))) order by IsColumnInUse desc),0) ColumnInUse,0 ActionHeight,0 ActionWidth,0 CNValidDays,0 CNAllowPartial, 11 as FontSize 
+		if @IsAppend is not null and @IsAppend<>1
+		begin
+			INSERT INTO  COM_CostCenterCostCenterMap (ParentCostCenterID,ParentNodeID,CostCenterID,
+			NodeID,IsDefault,GUID,CreatedBy,CreatedDate)
+			SELECT @PARENTFEATUREID,@PNodeID,A.value(''@CostCenterId'',''INT''),A.value(''@NodeID'',''INT''),A.value(''@IsDefault'',''BIT''),NEWID(),@UserName,
+			 @Dt from @DATA.nodes(''/XML/Row'') as DATA(A)  
+		end
+	END
 		
-		select * from #RegTouch WITH(NOLOCK)
-		order by Level
+	IF @PARENTFEATUREID=2
+	BEGIN
 		
-		DROP TABLE #RegTouch
-	end
-	else	
-		select 1 
-  
-	select 1 
-  
-   SELECT CostCenterID, DocumentName    FROM              -- for list of documents
-  ADM_DocumentTypes WITH(NOLOCK) WHERE  DocumentType=26   
-  
-  select CurrencyID,Name , Symbol from COM_Currency With(nolock)
-  where StatusID=1
-  
-  SELECT [DocumentDynamicMappingID],[DocumentTypeID],[CostCenterColIDField],[CostCenterColIDMapping]
-      ,[ClubFields],c.SysColumnName ,m.SysColumnName MapSysColumnName,c.ColumnDataType,m.UserColumnType MapColumnDataType
-      ,delimiter,Show,a.ListTypeID,a.IgnoreKit,a.DistributOn
-  FROM [COM_DocumentDynamicMapping] a WITH(NOLOCK)
-  JOIN ADM_COSTCENTERDEF c  WITH(NOLOCK)ON a.[CostCenterColIDField] = c.COSTCENTERCOLID 
-  left JOIN ADM_COSTCENTERDEF m WITH(NOLOCK) ON a.[CostCenterColIDMapping] = m.COSTCENTERCOLID   
-  where a.DocumentTypeID =(select DocumentTypeID from ADM_DocumentTypes with(nolock) where CostCenterID=@CostCenterID)
-  
-  select name,value from com_costcenterpreferences WITH(NOLOCK) where (costcenterid=3 
-  and (name=''TempPartProduct'' or name=''BinFilterinPopup'' or name=''DefaultDelimiter'' or name=''IgnoreFirstDelimiter'' or name=''ScanMultiple'' or name=''BinFilterDim'' or name=''BarcodeDimension'' or name=''Waistage'' or name=''NoOfBins'' or name=''ExcludeHoldBins'' or name=''BinsDimension'' or name=''ConsolidatedBins'' or name=''ProductWiseBins'' or name=''bincapacityonVolume'' or name=''AutoSelectBins'' or name=''DonotExceedCapacity''))
-  or (costcenterid=16 and name in(''AllowNegativebatches'',''BatchFilterDim'',''ExcludeHold'',''ExcludeReserve''))
-  or (costcenterid=76 and (name=''JobDimension'' or name=''JobFilterDim'' or name=''JobRemainingQty'' or name=''BomDimension'' or name=''StageDimension'')
-  or (costcenterid=101 and (name=''DueDateCheck'' or name=''BudgetDateField'' or name=''BudgetAccountField'' ))
-  )
-  
-  declare @tab table(id INT identity(1,1),COlID INT)
-   declare @DefCost table(ccid INT,NodeID INT,Name nvarchar(500))
-  Declare @Table nvarchar(50),@ColumnName varchar(50),@ListViewID int,@ColumnCostCenterID int,@ListViewTypeID int
-
-  insert into @tab
-   SELECT  C.CostCenterColID
-   FROM ADM_CostCenterDef C WITH(NOLOCK)    
-   WHERE C.CostCenterID = @CostCenterID   
-   AND  C.IsColumnInUse=1  and 
-   (((C.SysColumnName like ''dcccnid%'' or(c.UserColumnType=''LISTBOX'' and C.SysColumnName like ''dcalpha%'') or C.SysColumnName =''DebitAccount'' or  C.SysColumnName =''CreditAccount'' or C.SysColumnName =''productid'')
-   and sectionid=3 and UserDefaultValue is not null and UserDefaultValue<>'''') or ( C.SysColumnName like ''dcnum%'' and sectionid=4 and   UserDefaultValue is not null and UserDefaultValue >0))
-  select @cnt=COUNT(id) from @tab
-  set @i=0
-  while(@i<@cnt)
-  begin
-	set @i=@i+1
-	select @Value=UserDefaultValue,@ListViewTypeID=ColumnCCListViewTypeID,@ColumnCostCenterID=ColumnCostCenterID
-	from ADM_CostCenterDef WITH(NOLOCK) where CostCenterColID=(select COlID from @tab where id=@i)
-	if(@Value is null or @Value='''' or (@ColumnCostCenterID =3 and exists(select ccid from @DefCost where ccid=@ColumnCostCenterID)))
-		continue
-	 
-	 if(@ColumnCostCenterID=11 or @ColumnCostCenterID=0)
-		SET @SQL=''select ''''11'''',CurrencyID NodeID ,Name from  COM_Currency  WITH(NOLOCK) where CurrencyID =  ''+@Value
-	  ELSE if(@ColumnCostCenterID=3)
-				SET @SQL=''select 3,ProductID AS NodeID ,ProductName+''''''''+ProductCode from Inv_product  WITH(NOLOCK) where ProductID=''+@Value
-	  ELSE if(@ColumnCostCenterID=2)
-				SET @SQL=''select 2,AccountID AS NodeID ,AccountName+''''''''+AccountCode from Acc_Accounts  WITH(NOLOCK) where AccountID=''+@Value			
-	ELSE if(@ColumnCostCenterID=44)
-				SET @SQL=''select 44,NodeID,Name from COM_Lookup WITH(NOLOCK) where NodeID=''+@Value
-	ELSE			
-	BEGIN			
-			SELECT @Table=TableName FROM ADM_Features  WITH(NOLOCK) WHERE FeatureID=@ColumnCostCenterID
-					 
-			IF(@ListViewTypeID = 0)
-			BEGIN	
-				SELECT @ListViewID=[ListViewID] from ADM_ListView WITH(NOLOCK) 
-				where CostCenterID=@ColumnCostCenterID and UserID=@UserID and IsUserDefined=1 and ListViewTypeID is null
-						
-
-				IF(@ListViewID IS NULL)
-					SELECT @ListViewID=[ListViewID] from ADM_ListView WITH(NOLOCK) 
-					where CostCenterID=@ColumnCostCenterID and IsUserDefined=0 and ListViewTypeID is null
-			END
-			ELSE
-			BEGIN	
-		 
-				SELECT @ListViewID=[ListViewID] from ADM_ListView WITH(NOLOCK) 
-				where CostCenterID=@ColumnCostCenterID and ListViewTypeID =@ListViewTypeID
-					
- 			END
-
-
-					--Getting FIRST COLUMN IN LIST
-					SET @ColumnName=(SELECT Top 1 SysColumnName FROM ADM_CostCenterDef A WITH(NOLOCK)
-									JOIN ADM_ListViewColumns B WITH(NOLOCK) ON A.CostCenterColID=B.CostCenterColID 
-									WHERE B.ListViewID= @ListViewID
-									ORDER BY B.ColumnOrder)
-									
-					 
-					--Prepare query	
-					SET @SQL=''select ''''''+convert(nvarchar,@ColumnCostCenterID)+'''''', NodeID ,''+@ColumnName+'' from ''+@Table +''  WITH(NOLOCK) where NodeID =  ''+@Value
-		END
 		
+		if exists (select Value from adm_Globalpreferences with(nolock) where name=''EnableLocationWise'' and Value=''True'')
+		and exists (select Value from adm_Globalpreferences with(nolock) where name=''LW Accounts'' and Value=''True'')
+		begin
+			declare @Vno nvarchar(max)
+			set @Vno=''''
+			select distinct @Vno=@Vno+'',''+l.Name from ACC_DocDetails d with(nolock) 
+			join com_docccdata cc with(nolock) on d.AccDocDetailsID=cc.AccDocDetailsID
+			join com_location l with(nolock) on l.NodeID=cc.dcCCNID2
+			where (debitaccount =@PNodeID or CreditAccount=@PNodeID) 
+			and cc.dcCCNID2 not in (select l.NodeID from COM_CostCenterCostCenterMap M with(nolock) 
+				join COM_Location g with(nolock) on g.NodeID=M.NodeID
+				join COM_Location l with(nolock) on l.lft between g.lft and g.rgt
+				where M.ParentCostCenterID=2 and M.ParentNodeID=@PNodeID and M.CostCenterID=50002)
+			and d.CostCenterID not in (select CostCenterID from com_documentpreferences with(nolock) 
+					where prefname=''Donotuselocation'' and prefvalue=''true'')
 			
-	print @SQL
-	insert into @DefCost
-	exec(@SQL)
-  end
-  
-  select * from @DefCost
-  
-	if((@DType=38 or @DType=39 or @DType=50) and @RegNodeID>0)	
-		select CashDrawerCommand,CashDrawerName,PortName,NodeID,NoOfLines,CharactersPerLine,IdleMessageXML,ProductScanXML,BillPayXML,OnExitXML,CashDrawPrintID
-		from ADM_PoleDisplay a  WITH(NOLOCK) 
-		left join ADM_PoleDisplayRegisters b  WITH(NOLOCK)  on a.poleid=b.poleid
-		where DocumentID=@CostCenterID and NodeID=@RegNodeID
-	ElSE
-		select CashDrawerCommand,CashDrawerName,PortName,NodeID,NoOfLines,CharactersPerLine,IdleMessageXML,ProductScanXML,BillPayXML,OnExitXML,CashDrawPrintID
-		from ADM_PoleDisplay a  WITH(NOLOCK) 
-		left join ADM_PoleDisplayRegisters b  WITH(NOLOCK)  on a.poleid=b.poleid
-		where DocumentID=@CostCenterID
-		
-  select DefinitionXML,BarcodeXml from ADM_DocBarcodeLayouts WITH(NOLOCK) 
-  where CostCenterID=@CostCenterID and  len(Bodyxml)<10
-  
-  
-   select  DocumentLinkDefID,Mode,CostCenterIDBase
-   ,case when DR.ResourceData is not null then DR.ResourceData else b.Name end DocName   
-   from COM_DocumentLinkDef a   WITH(NOLOCK) 
-   join ADM_Features  b  WITH(NOLOCK) on a.CostCenterIDBase=b.FeatureID 
-   JOIN ADM_RIBBONVIEW V WITH(NOLOCK) ON b.FEATUREID=V.FEATUREID
-   LEFT JOIN COM_LanguageResources DR WITH(NOLOCK) ON V.ScreenResourceID=DR.ResourceID AND DR.LanguageID=@LangID
-   join ADM_FeatureAction fa WITH(NOLOCK) on b.FeatureID=fa.FeatureID and fa.FeatureActionTypeID=1
-   join ADM_FeatureActionRoleMap fM WITH(NOLOCK) on fa.FeatureActionID=fM.FeatureActionID
-   where [CostCenterIDLinked]=@CostCenterID and fM.RoleID=@RoleID
-   
-	SELECT 1 Type, R.ReportID,Q.ReportName,Q.ReportField,Q.ReportFieldName,Q.DocumentField,Q.DocumentFieldName,A.SysColumnName,Q.Shortcut,Q.DisplayAsPopup,Q.DisplayInMobileGrid,Q.GroupLevel,Q.Width ,Q.Height,Q.mapxml,Q.MapType
-	FROM ADM_RevenUReports R  with(nolock)
-	inner join ADM_DocumentReports Q WITH(NOLOCK) on Q.DocumentReportID=R.ReportID
-    left join ADM_CostCenterDef A WITH(NOLOCK) on A.CostCenterColID=Q.DocumentField 
-    left join [ADM_DocReportUserRoleMap] DR WITH(NOLOCK) on DR.DocumentViewID=Q.DocumentViewID and DR.CostCenterID=Q.CostCenterID
-	where  Q.CostCenterID=@CostCenterID and (DR.UserID=@UserID OR DR.RoleID=@RoleID OR GroupID IN (SELECT GroupID FROM COM_Groups WITH(NOLOCK) WHERE UserID=@UserID OR RoleID=@RoleID))
-	GROUP BY  Q.ReportID, R.ReportID,Q.ReportName,Q.ReportField,Q.ReportFieldName,Q.DocumentField,Q.DocumentFieldName,A.SysColumnName,Q.Shortcut,Q.DisplayAsPopup,Q.DisplayInMobileGrid,Q.GroupLevel ,Q.Width,Q.Height,Q.mapxml,Q.MapType  
-	UNION ALL
-	SELECT distinct 2 Type,MapCCID ReportID,b.documentname,0,'''',0,'''','''',[ShortCut],[IsNewTab],0,0,0,0,NULL,NULL
-	from [ADM_DocumentMap] a WITH(NOLOCK) 
-	join adm_documenttypes b WITH(NOLOCK)  on a.MapCCID=b.costcenterid
-	JOIN ADM_FeatureAction f WITH(NOLOCK) ON b.costcenterid=f.FeatureID AND FeatureActionTypeID in(1,2)
-	JOIN ADM_FeatureActionRoleMap R WITH(NOLOCK) ON F.FeatureActionID=R.FeatureActionID AND R.RoleID=@RoleID
-	where a.CostCenterID=@CostCenterID
-	order by Type,ReportID
-    
-    select @cnt=count(*) from COM_DocumentLinkDef with(nolock) where costcenteridlinked=@CostCenterID
-  
-  
-	set @profileID=''''
-	Select @profileID=PrefValue from COM_DocumentPreferences WITH(NOLOCK) where PrefName=''DefaultProfileID'' and CostCenterID=@CostCenterID
-	
-	
-	declare @ProfileCC nvarchar(max),@PXML XML,@K INT,@CNTP INT;
+			if len(@Vno)=0
+			begin
+				select distinct @Vno=@Vno+'',''+l.Name from INV_DocDetails d with(nolock) 
+				join com_docccdata cc with(nolock) on d.InvDocDetailsID=cc.InvDocDetailsID
+				join com_location l with(nolock) on l.NodeID=cc.dcCCNID2
+				where (debitaccount =@PNodeID or CreditAccount=@PNodeID) 
+				and cc.dcCCNID2 not in (select l.NodeID from COM_CostCenterCostCenterMap M with(nolock) 
+					join COM_Location g with(nolock) on g.NodeID=M.NodeID
+					join COM_Location l with(nolock) on l.lft between g.lft and g.rgt
+					where M.ParentCostCenterID=2 and M.ParentNodeID=@PNodeID and M.CostCenterID=50002)
+				and d.CostCenterID not in (select CostCenterID from com_documentpreferences with(nolock) 
+						where prefname=''Donotuselocation'' and prefvalue=''true'')
+			end
 
-		set @ProfileCC=''''
-		SelecT @ProfileCC=prefvalue from com_documentpreferences WITH(NOLOCK) where Costcenterid=@CostCenterID and prefname=''DefaultProfileID''
-		declare @IncludeCC nvarchar(max)
-		declare @Profiletable table(ID INT IDENTITY(1,1),wef datetime,tilldate datetime,profileid NVARCHAR(50)) 
-		set @PXML=@ProfileCC
-		
-		INSERT INTO @Profiletable      
-		SELECT DISTINCT X.value(''@WEFDate'',''DateTime'') ,X.value(''@TillDate'',''DateTime'')
-			,X.value(''@ProfileID'',''INT'')
-		from @PXML.nodes(''/DimensionDefProfile/Row'') as Data(X) 
-		
-		SET @K=1
-		SELECT  @CNTP=COUNT(*) FROM @Profiletable
-		WHILE (@K<=@CNTP)
-		BEGIN
-				IF(ISNULL(@IncludeCC,'''')='''')
-					SELECT  @IncludeCC=profileid FROM @Profiletable WHERE ID=@K AND ((CONVERT(DATETIME,GETDATE()) BETWEEN CONVERT(DATETIME,WEF) AND CONVERT(DATETIME,tilldate)) OR ISNULL(WEF,'''')='''')
-				ELSE
-					SELECT  @IncludeCC=@IncludeCC+'',''+profileid FROM @Profiletable WHERE ID=@K AND ((CONVERT(DATETIME,GETDATE()) BETWEEN CONVERT(DATETIME,WEF) AND CONVERT(DATETIME,tilldate)) OR ISNULL(WEF,'''')='''')
-		SET @K=@K+1
-		END
-		
-		delete from @cctable
-		insert into @cctable  
-		exec SPSplitString @IncludeCC,'',''  	
-		--where ProfileID in(''+ @profileID +'')''    
-		--select  * from COM_DimensionMappings
-	iF(@profileID<>'''')
-	begin
-	 select distinct @cnt as CNT,getdate() ServerDate,DefXml,profileID 
-		from COM_DimensionMappings with(nolock) 		
-		where ProfileID in (select CCID from  @cctable ) 
-	 
-    END
-	else
-		select @cnt CNT,getdate() ServerDate,'''' DefXml,0 profileID
-		
-  --To Get Notifications On Document
-  /*
-  SELECT TemplateID,ActionTypeID FROM COM_NotifTemplate N WITH(NOLOCK)
-  WHERE CostCenterID=@CostCenterID AND N.TemplateID IN (SELECT NotificationID FROM COM_NotifTemplateUserMap WITH(NOLOCK)
-  WHERE UserID=@UserID OR RoleID=@RoleID
-	OR GroupID IN (select GID from COM_Groups where UserID=@UserID or RoleID=@RoleID))
-  */
-  
-	SELECT U.*,R.NAME Role,S.Status  FROM ADM_USERS U with(nolock)
-	LEFT JOIN ADM_UserRoleMap M with(nolock) ON M.USERID=U.USERID 
-	LEFT JOIN ADM_PRoles R with(nolock) ON R.ROLEID=M.ROLEID 
-	LEFT JOIN COM_Status S with(nolock) ON S.STATUSID=U.STATUSID AND S.COSTCENTERID=7
-	where U.UserID=@UserID
-
-	--24
-	SELECT GSTType,ValueType,SysColumnName FROM INV_GSTMapping WITH(NOLOCK) 
-	WHERE CostCenterID=@CostCenterID AND ValueType=''Result''
-
-SET NOCOUNT OFF;    
-RETURN 1    
-END TRY    
--- TEST   
-BEGIN CATCH      
-  --Return exception info [Message,Number,ProcedureName,LineNumber]      
-  IF ERROR_NUMBER()=50000    
-  BEGIN    
-   SELECT ErrorMessage,ErrorNumber FROM COM_ErrorMessages WITH(NOLOCK) WHERE ErrorNumber=ERROR_MESSAGE() AND LanguageID=@LangID    
-  END    
-  ELSE    
-  BEGIN    
-   SELECT ErrorMessage, ERROR_MESSAGE() AS ServerMessage,ERROR_NUMBER() as ErrorNumber, ERROR_PROCEDURE()as ProcedureName, ERROR_LINE() AS ErrorLine    
-   FROM COM_ErrorMessages WITH(NOLOCK) WHERE ErrorNumber=-999 AND LanguageID=@LangID    
-  END    
-
-SET NOCOUNT OFF      
-RETURN -999       
-END CATCH    
-
-
+			if(len(@Vno)>1)
+			begin
+				set @Vno=substring(@Vno,2,len(@Vno)-1)
+				set @Vno=''Assign Location : ''+@Vno
+				RAISERROR(@Vno,16,1)
+			end
+		end
+	END
+return 1
 
 ' 
 END
 GO
-/****** Object:  StoredProcedure [dbo].[spDOC_GetLinkReferenceData]    Script Date: 13-08-2025 16:51:31 ******/
+/****** Object:  StoredProcedure [dbo].[spDOC_GetLinkReferenceData]    Script Date: 21-08-2025 18:11:33 ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
@@ -947,7 +464,6 @@ declare @lOCATION INT,@IsParent BIT,@ccWhere nvarchar(max),@IncludeCC nvarchar(m
 		LEFT JOIN ADM_CostCenterDef CDF WITH(NOLOCK)  ON C.linkdata = CDF.CostCenterColID    
 		WHERE C.CostCenterID = @DOCUMENTID and C.linkdata in (49994,49995,49996,49997,49998,49999)
 	END
-	
 	set @Join=''''
 	SELECT @COLUMNCNT = COUNT(ID)  FROM @TEMPLINKTABLE
  
@@ -959,7 +475,8 @@ declare @lOCATION INT,@IsParent BIT,@ccWhere nvarchar(max),@IncludeCC nvarchar(m
 		set @IncludeCC=''''
 		SELECT @TEMPCOLUMN = SYSCOLUMNNAME,@COLUMN = COLUMNNAME,@IsParent=IsParent,@IncludeCC=isnull(inclcc,''''),@LinkFeatureID=FeatureID,@isHist=Prob,@linkData=LinkData
 		FROM @TEMPLINKTABLE WHERE ID =  @I  			
-		
+
+
 		IF @TEMPCOLUMN=''-1''
 			SET @TEMPCOLUMN=''addr.AddressName AS ''+ @COLUMN	
 		ELSE IF @TEMPCOLUMN=''-2''
@@ -1574,13 +1091,36 @@ declare @lOCATION INT,@IsParent BIT,@ccWhere nvarchar(max),@IncludeCC nvarchar(m
 					BEGIN
 						set @CID=0
 						if(@dependancy=5)
-							select @CID=isnull(max(NodeID),0),@CurrencyID=COUNT(NodeID) from COM_CostCenterCostCenterMap DCCM with(nolock) where DCCM.CostCenterID=@FeatureID
-							and  DCCM.ParentCostCenterID=@COSTCENTERID and DCCM.ParentNodeID=@NODEID
-						else
-							select @CID=isnull(max(ParentNodeID),0),@CurrencyID=COUNT(ParentNodeID) from COM_CostCenterCostCenterMap DCCM with(nolock) where DCCM.ParentCostCenterID=@FeatureID
-							and  DCCM.CostCenterID=@COSTCENTERID and DCCM.NodeID=@NODEID
-						
-                        if(@CurrencyID=1 and @CID>0)
+						BEGIN
+							IF EXISTS (SELECT 1 FROM COM_CostCenterCostCenterMap DCCM with(nolock) where DCCM.CostCenterID=@FeatureID
+								and  DCCM.ParentCostCenterID=@COSTCENTERID and DCCM.ParentNodeID=@NODEID and IsDefault = 1)
+							BEGIN
+							    SELECT @CID=isnull(max(NodeID),0) FROM COM_CostCenterCostCenterMap DCCM with(nolock) where DCCM.CostCenterID=@FeatureID
+								and  DCCM.ParentCostCenterID=@COSTCENTERID and DCCM.ParentNodeID=@NODEID and IsDefault = 1
+							END
+							ELSE IF (SELECT Count(1) FROM  COM_CostCenterCostCenterMap DCCM with(nolock) where DCCM.CostCenterID=@FeatureID
+							         and  DCCM.ParentCostCenterID=@COSTCENTERID and DCCM.ParentNodeID=@NODEID)= 1
+							BEGIN
+							select @CID=isnull(max(NodeID),0) from COM_CostCenterCostCenterMap DCCM with(nolock) where DCCM.CostCenterID=@FeatureID
+							    and  DCCM.ParentCostCenterID=@COSTCENTERID and DCCM.ParentNodeID=@NODEID
+							END
+						END
+						ELSE
+						BEGIN
+							IF EXISTS (select 1 from COM_CostCenterCostCenterMap DCCM with(nolock) where DCCM.ParentCostCenterID=@FeatureID
+							and  DCCM.CostCenterID=@COSTCENTERID and DCCM.NodeID=@NODEID and IsDefault = 1)
+							BEGIN
+								select @CID=isnull(max(ParentNodeID),0) from COM_CostCenterCostCenterMap DCCM with(nolock) where DCCM.ParentCostCenterID=@FeatureID
+							    and  DCCM.CostCenterID=@COSTCENTERID and DCCM.NodeID=@NODEID and IsDefault = 1
+							END
+							ELSE IF (select 1 from COM_CostCenterCostCenterMap DCCM with(nolock) where DCCM.ParentCostCenterID=@FeatureID
+							and  DCCM.CostCenterID=@COSTCENTERID and DCCM.NodeID=@NODEID)= 1
+							BEGIN
+								select @CID=isnull(max(ParentNodeID),0),@CurrencyID=COUNT(ParentNodeID) from COM_CostCenterCostCenterMap DCCM with(nolock) where DCCM.ParentCostCenterID=@FeatureID
+								and  DCCM.CostCenterID=@COSTCENTERID and DCCM.NodeID=@NODEID
+							END
+						END
+                        if(@CID>0)
                         BEGIN
 							set @Join=@Join+'' left join ''+@FeatureTableName +'' C''+CONVERT(nvarchar,@I)+'' WITH(NOLOCK) on ''+'' C''+CONVERT(nvarchar,@I)+''.NODEID=''+convert(nvarchar,@CID)	
 							set @TEMPCOLUMN= convert(nvarchar,@CID)+ '' AS ''+ @COLUMN+'' ,C''+CONVERT(nvarchar,@I)+''.IsGroup''+ '' as ''+@COLUMN+''Group,C''+CONVERT(nvarchar,@I)+''.Name''+ '' as ''+@COLUMN+''Name,C''+CONVERT(nvarchar,@I)+''.Code''+ '' as ''+@COLUMN+''Code,C''+CONVERT(nvarchar,@I)+''.lft''+ '' as ''+@COLUMN+''lft,C''+CONVERT(nvarchar,@I)+''.rgt''+ '' as ''+@COLUMN+''rgt''
@@ -1711,7 +1251,11 @@ EXEC sp_executesql @QUERY
 				select @lOCATION=NodeID from @dims where CCID=@FeatureID
 			
 			SELECT @CurrencyID CurrencyID
-			EXEC [spDoc_GetCurrencyExchangeRate] @CurrencyID,@DocDate,@lOCATION,@LangID
+			IF (exists(select PrefValue from [COM_DocumentPreferences] WITH(NOLOCK) where CostCenterID=@DOCUMENTID and PrefName=''Donotallowifnoexchangeratedefinedfordocumentdate'' and  ISNULL(PrefValue,''False'')=''True'')
+				and exists(select Value from [ADM_GlobalPreferences] WITH(NOLOCK) where Name=''Donotallowifnoexchangeratedefinedfortransactiondate'' and  ISNULL(Value,''False'')=''True''))
+				EXEC [spDoc_GetCurrencyExchangeRate] @CurrencyID,@DocDate,@lOCATION,1,@LangID
+			ELSE
+				EXEC [spDoc_GetCurrencyExchangeRate] @CurrencyID,@DocDate,@lOCATION,0,@LangID
 			
 		END
 		else
@@ -1768,7 +1312,11 @@ EXEC sp_executesql @QUERY
 				select @lOCATION=NodeID from @dims where CCID=@FeatureID
 			
 			SELECT @CurrencyID CurrencyID
-			EXEC [spDoc_GetCurrencyExchangeRate] @CurrencyID,@DocDate,@lOCATION,0,@LangID
+			IF (exists(select PrefValue from [COM_DocumentPreferences] WITH(NOLOCK) where CostCenterID=@DOCUMENTID and PrefName=''Donotallowifnoexchangeratedefinedfordocumentdate'' and  ISNULL(PrefValue,''False'')=''True'')
+				and exists(select Value from [ADM_GlobalPreferences] WITH(NOLOCK) where Name=''Donotallowifnoexchangeratedefinedfortransactiondate'' and  ISNULL(Value,''False'')=''True''))
+				EXEC [spDoc_GetCurrencyExchangeRate] @CurrencyID,@DocDate,@lOCATION,1,@LangID
+			ELSE
+				EXEC [spDoc_GetCurrencyExchangeRate] @CurrencyID,@DocDate,@lOCATION,0,@LangID
 			
 		END
 		else
@@ -2117,7 +1665,6 @@ BEGIN CATCH
  SET NOCOUNT OFF  
 RETURN -999   
 END CATCH
-
 ' 
 END
 GO
