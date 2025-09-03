@@ -1,5 +1,0 @@
-
---KHASIM
-
-IF NOT EXISTS(SELECT Name From Sys.columns WHERE object_id=OBJECT_ID(N'COM_CostCenterCostCenterMap') AND Name='IsDefault')
-Alter Table COM_CostCenterCostCenterMap ADD IsDefault bit
