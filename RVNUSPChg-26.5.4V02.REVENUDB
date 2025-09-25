@@ -1,0 +1,382 @@
+--Khaja
+GO
+/****** Object:  StoredProcedure [dbo].[spDOC_SaveHistory]    Script Date: 24-09-2025 09:56:17 ******/
+IF  EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[spDOC_SaveHistory]') AND type in (N'P', N'PC'))
+DROP PROCEDURE [dbo].[spDOC_SaveHistory]
+GO
+/****** Object:  StoredProcedure [dbo].[spDOC_SaveHistory]    Script Date: 24-09-2025 09:56:17 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[spDOC_SaveHistory]') AND type in (N'P', N'PC'))
+BEGIN
+EXEC dbo.sp_executesql @statement = N'CREATE procedure [dbo].[spDOC_SaveHistory]      
+@DocID INT,
+@HistoryStatus nvarchar(500),
+@Ininv BIT,
+@ReviseReason nvarchar(max),
+@LangID int,
+@UserName nvarchar(50)=NULL,
+@ModDate float=NULL,
+@CCID int=0,
+@AP varchar(10)='''',
+@sysinfo NVARCHAR(MAX)='''' 
+AS      
+    
+BEGIN TRANSACTION      
+BEGIN TRY        
+SET NOCOUNT ON;  
+
+if(@DocID=0)
+	return @DocID
+	
+declare @NumCols nvarchar(max),@CC nvarchar(max),@txt nvarchar(max),@DExt nvarchar(max)
+set @NumCols=''''
+set @CC=''''
+set @txt=''''
+set @DExt=''''
+
+if(@CCID=40054)	
+	select @NumCols =@NumCols +a.name+'','' from sys.columns a
+	join sys.tables b on a.object_id=b.object_id
+	where b.name=''Pay_DocNumData''
+ELSE
+	select @NumCols =@NumCols +a.name+'','' from sys.columns a
+	join sys.tables b on a.object_id=b.object_id
+	where b.name=''COM_DocNumData''
+
+select @CC =@CC +a.name+'','' from sys.columns a
+join sys.tables b on a.object_id=b.object_id
+where b.name=''COM_DocCCData''
+
+select @txt =@txt +a.name+'','' from sys.columns a
+join sys.tables b on a.object_id=b.object_id
+where b.name=''COM_DocTextData'' and a.name not in(''tCostCenterID'',''tDocumentType'')
+
+if(@Ininv=1)
+BEGIN
+	INSERT INTO [INV_DocDetails_History]    
+		 ([InvDocDetailsID]    
+		 ,[AccDocDetailsID]    
+		 ,[DocID]    
+		 ,[CostCenterID]    		     
+		 ,[DocumentType]    
+		 ,[VoucherType]    
+		 ,[VoucherNo]    
+		 ,[VersionNo]    
+		 ,[DocAbbr]    
+		 ,[DocPrefix]    
+		 ,[DocNumber]    
+		 ,[DocDate]    
+		 ,[DueDate]    
+		 ,[StatusID]    
+		 ,[BillNo]    
+		 ,[BillDate]    
+		 ,[LinkedInvDocDetailsID]    
+		 ,[LinkedFieldName]    
+		 ,[LinkedFieldValue]    
+		 ,[CommonNarration]    
+		 ,[LineNarration]    
+		 ,[DebitAccount]    
+		 ,[CreditAccount]    
+		 ,[DocSeqNo]    
+		 ,[ProductID]    
+		 ,[Quantity]    
+		 ,[Unit]    
+		 ,[HoldQuantity]    
+		 ,[ReleaseQuantity]    
+		 ,[IsQtyIgnored]    
+		 ,[IsQtyFreeOffer]    
+		 ,[Rate]    
+		 ,[AverageRate]    
+		 ,[Gross]    
+		 ,[StockValue]    
+		 ,[CurrencyID]    
+		 ,[ExchangeRate]    
+		 ,[CompanyGUID]    
+		 ,[GUID]    
+		 ,[Description]    
+		 ,[CreatedBy]    
+		 ,[CreatedDate]    
+		 ,[ModifiedBy]    
+		 ,[ModifiedDate]    
+		 ,[StockValueFC]    
+		 ,[GrossFC]    
+		 ,[UOMConversion]    
+		 ,[UOMConvertedQty]    
+		 ,[WorkflowID]    
+			   ,[WorkFlowStatus]    
+			   ,[WorkFlowLevel],RefCCID,RefNodeid,ReserveQuantity,DynamicInvDocDetailsID,HistoryStatus,ReviseReason,AP,SysInfo)    
+	  SELECT [InvDocDetailsID]    
+		 ,[AccDocDetailsID]    
+		 ,[DocID]    
+		 ,[CostCenterID]    		  
+		 ,[DocumentType]    
+		 ,[VoucherType]    
+		 ,[VoucherNo]    
+		 ,[VersionNo]    
+		 ,[DocAbbr]    
+		 ,[DocPrefix]    
+		 ,[DocNumber]    
+		 ,[DocDate]    
+		 ,[DueDate]    
+		 ,[StatusID]    
+		 ,[BillNo]    
+		 ,[BillDate]    
+		 ,[LinkedInvDocDetailsID]    
+		 ,[LinkedFieldName]    
+		 ,[LinkedFieldValue]    
+		 ,[CommonNarration]    
+		 ,[LineNarration]    
+		 ,[DebitAccount]    
+		 ,[CreditAccount]    
+		 ,[DocSeqNo]    
+		 ,[ProductID]    
+		 ,[Quantity]    
+		 ,[Unit]    
+		 ,[HoldQuantity]    
+		 ,[ReleaseQuantity]    
+		 ,[IsQtyIgnored]    
+		 ,[IsQtyFreeOffer]    
+		 ,[Rate]    
+		 ,[AverageRate]    
+		 ,[Gross]    
+		 ,[StockValue]    
+		 ,[CurrencyID]    
+		 ,[ExchangeRate]    
+		 ,[CompanyGUID]    
+		 ,[GUID]    
+		 ,[Description]    
+		 ,[CreatedBy]    
+		 ,[CreatedDate]    
+		 ,case when @UserName is null THEN [ModifiedBy] else @UserName end
+		 ,case when @ModDate is null THEN [ModifiedDate] else @ModDate end		 
+		 ,[StockValueFC]    
+		 ,[GrossFC]    
+		 ,[UOMConversion]    
+		 ,[UOMConvertedQty]    
+		 ,[WorkflowID]    
+			   ,[WorkFlowStatus]    
+			   ,[WorkFlowLevel],RefCCID,RefNodeid,ReserveQuantity,DynamicInvDocDetailsID,@HistoryStatus,@ReviseReason,case when @AP='''' then AP ELSE @AP END,case when @sysinfo='''' then sysinfo ELSE @sysinfo END
+				FROM [INV_DocDetails] a WITH(NOLOCK)
+				join COM_DOCID b WITH(NOLOCK) on a.DocID=b.id
+				 WHERE a.DocID=@DocID    
+	               
+	
+		set @CC='' INSERT INTO [COM_DocCCData_History](''+@CC+''[ModifiedDate])
+		select  ''+replace(replace(replace(@CC,''AccDocDetailsID,'',''a.AccDocDetailsID,''),''InvDocDetailsID,'',''a.InvDocDetailsID,''),'',Remarks'','',convert(nvarchar(max),Remarks)'')
+		
+		set @CC=@CC+''case when @ModDate is null THEN i.[ModifiedDate] else @ModDate end	 
+		FROM [INV_DocDetails] i WITH(NOLOCK)
+		JOIN [COM_DocCCData] a WITH(NOLOCK) on a.[InvDocDetailsID] =i.[InvDocDetailsID]
+		WHERE i.DocID=''+convert(nvarchar,@DocID)	
+		
+		exec sp_executesql @CC,N''@ModDate float'',@ModDate
+		 
+	  	 set @txt='' INSERT INTO [COM_DocTextData_History](''+@txt+''[ModifiedDate])
+		 select  ''+replace(replace(@txt,''AccDocDetailsID,'',''a.AccDocDetailsID,''),''InvDocDetailsID,'',''a.InvDocDetailsID,'')
+		
+		 set @txt=@txt+''case when @ModDate is null THEN i.[ModifiedDate] else @ModDate end	 
+		 FROM [INV_DocDetails] i WITH(NOLOCK)
+		 JOIN [COM_DocTextData] a WITH(NOLOCK) on a.[InvDocDetailsID] =i.[InvDocDetailsID]
+		 WHERE i.DocID=''+convert(nvarchar,@DocID)	
+
+		 exec sp_executesql @txt,N''@ModDate float'',@ModDate
+		 	
+		if(@CCID=40054)	
+		BEGIN
+				set @NumCols='' INSERT INTO [PAY_DocNumData_History](''+@NumCols+''[ModifiedDate])
+				select  ''+replace(replace(replace(@NumCols,''AccDocDetailsID,'',''a.AccDocDetailsID,''),''InvDocDetailsID,'',''a.InvDocDetailsID,''),'',Remarks'','',convert(nvarchar(max),Remarks)'')
+
+				set @NumCols=@NumCols+''case when @ModDate is null THEN i.[ModifiedDate] else @ModDate end	 
+				FROM [INV_DocDetails] i WITH(NOLOCK)
+				JOIN [PAY_DocNumData] a WITH(NOLOCK) on a.[InvDocDetailsID] =i.[InvDocDetailsID]
+				WHERE i.DocID=''+convert(nvarchar,@DocID)
+		END
+		ELSE	
+		BEGIN
+			set @NumCols='' INSERT INTO [COM_DocNumData_History](''+@NumCols+''[ModifiedDate])
+			select  ''+replace(replace(replace(@NumCols,''AccDocDetailsID,'',''a.AccDocDetailsID,''),''InvDocDetailsID,'',''a.InvDocDetailsID,''),'',Remarks'','',convert(nvarchar(max),Remarks)'')
+
+			set @NumCols=@NumCols+''case when @ModDate is null THEN i.[ModifiedDate] else @ModDate end	 
+			FROM [INV_DocDetails] i WITH(NOLOCK)
+			JOIN [COM_DocNumData] a WITH(NOLOCK) on a.[InvDocDetailsID] =i.[InvDocDetailsID]
+			WHERE i.DocID=''+convert(nvarchar,@DocID)
+		END	
+		exec sp_executesql @NumCols,N''@ModDate float'',@ModDate
+		
+		set @DExt='''' 
+		select @DExt =@DExt +'',a.''+a.name from sys.columns a
+		join sys.tables b on a.object_id=b.object_id
+		where b.name=''INV_DocExtraDetails''
+
+		set @DExt='' INSERT INTO [INV_DocExtraDetails_History]([HistoryStatus],[CreatedBy],[CreatedDate]''+replace(@DExt,'',a.'','','')+'')
+		 select  ''''''+@HistoryStatus+'''''',''''''+@UserName+'''''',case when @ModDate is null THEN i.[ModifiedDate] else @ModDate end''+@DExt+''
+		 FROM [INV_DocDetails] i WITH(NOLOCK)
+		 JOIN [INV_DocExtraDetails] a WITH(NOLOCK) on a.[InvDocDetailsID] =i.[InvDocDetailsID]
+		 WHERE i.DocID=''+convert(nvarchar,@DocID)	
+		
+		exec sp_executesql @DExt,N''@ModDate float'',@ModDate	
+
+		set @DExt=''''
+		select @DExt =@DExt +'',a.''+a.name from sys.columns a
+		join sys.tables b on a.object_id=b.object_id
+		where b.name=''INV_BinDetails''
+		
+		set @DExt='' INSERT INTO [INV_BinDetails_History]([HistoryStatus],[CreatedBy],[CreatedDate]''+replace(@DExt,'',a.'','','')+'')
+		 select  ''''''+@HistoryStatus+'''''',''''''+@UserName+'''''',case when @ModDate is null THEN i.[ModifiedDate] else @ModDate end''+@DExt+'' 
+		 FROM [INV_DocDetails] i WITH(NOLOCK)
+		 JOIN [INV_BinDetails] a WITH(NOLOCK) on a.[InvDocDetailsID] =i.[InvDocDetailsID]
+		 WHERE i.DocID=''+convert(nvarchar,@DocID)	
+		
+		exec sp_executesql @DExt,N''@ModDate float'',@ModDate
+		 
+		
+
+END
+ELSE
+BEGIN
+		INSERT INTO [ACC_DocDetails_History]
+           ([AccDocDetailsID]
+           ,[InvDocDetailsID]
+           ,[DocID]
+           ,[CostCenterID]           
+           ,[DocumentType]
+           ,[VoucherNo]
+           ,[VersionNo]
+           ,[DocAbbr]
+           ,[DocPrefix]
+           ,[DocNumber]
+           ,[DocDate]
+           ,[DueDate]
+           ,[ChequeBankName]
+           ,[ChequeNumber]
+           ,[ChequeDate]
+           ,[ChequeMaturityDate]
+           ,[StatusID]
+           ,[BillNo]
+           ,[BillDate]
+           ,[LinkedAccDocDetailsID]
+           ,[CommonNarration]
+           ,[LineNarration]
+           ,[DocSeqNo]
+           ,[DebitAccount]
+           ,[CreditAccount]
+           ,[Amount]
+           ,[CurrencyID]
+           ,[ExchangeRate]
+           ,[CompanyGUID]
+           ,[GUID]
+           ,[Description]
+           ,[CreatedBy]
+           ,[CreatedDate]
+           ,[ModifiedBy]
+           ,[ModifiedDate]
+           ,[IsNegative]
+           ,[ClearanceDate]
+           ,[BRS_Status]
+           ,[AmountFC]
+           ,[WorkflowID]
+           ,[WorkFlowStatus]
+           ,[WorkFlowLevel],RefCCID,RefNodeid,HistoryStatus,ReviseReason,ConvertedDate,AP,SysInfo,BankAccountID)
+  SELECT [AccDocDetailsID]
+           ,[InvDocDetailsID]
+           ,[DocID]
+           ,[CostCenterID]           
+           ,[DocumentType]
+           ,[VoucherNo]
+           ,[VersionNo]
+           ,[DocAbbr]
+           ,[DocPrefix]
+           ,[DocNumber]
+           ,[DocDate]
+           ,[DueDate]
+           ,[ChequeBankName]
+           ,[ChequeNumber]
+           ,[ChequeDate]
+           ,[ChequeMaturityDate]
+           ,[StatusID]
+           ,[BillNo]
+           ,[BillDate]
+           ,[LinkedAccDocDetailsID]
+           ,[CommonNarration]
+           ,[LineNarration]
+           ,[DocSeqNo]
+           ,[DebitAccount]
+           ,[CreditAccount]
+           ,[Amount]
+           ,[CurrencyID]
+           ,[ExchangeRate]
+           ,[CompanyGUID]
+           ,[GUID]
+           ,[Description]
+           ,[CreatedBy]
+           ,[CreatedDate]
+           ,case when @UserName is null THEN [ModifiedBy] else @UserName end
+           ,case when @ModDate is null THEN [ModifiedDate] else @ModDate end
+           ,[IsNegative]
+           ,[ClearanceDate]
+           ,[BRS_Status]
+           ,[AmountFC]
+           ,[WorkflowID]
+           ,[WorkFlowStatus]
+           ,[WorkFlowLevel],RefCCID,RefNodeid,@HistoryStatus,@ReviseReason,ConvertedDate,case when @AP='''' then AP ELSE @AP END,case when @sysinfo='''' then sysinfo ELSE @sysinfo END,BankAccountID 
+           FROM [ACC_DocDetails] a WITH(NOLOCK)
+           join COM_DOCID b WITH(NOLOCK) on a.DocID=b.id
+             WHERE DocID=@DocID
+          
+          
+         set @CC='' INSERT INTO [COM_DocCCData_History](''+@CC+''[ModifiedDate])
+		 select  ''+replace(replace(replace(@CC,''AccDocDetailsID,'',''a.AccDocDetailsID,''),''InvDocDetailsID,'',''a.InvDocDetailsID,''),'',Remarks'','',convert(nvarchar(max),Remarks)'')
+		
+		 set @CC=@CC+''case when @ModDate is null THEN i.[ModifiedDate] else @ModDate end	 
+		 FROM [ACC_DocDetails] i WITH(NOLOCK)
+		 JOIN [COM_DocCCData] a WITH(NOLOCK) on a.[AccDocDetailsID] =i.[AccDocDetailsID]
+		 WHERE i.DocID=''+convert(nvarchar,@DocID)	
+		
+		exec sp_executesql @CC,N''@ModDate float'',@ModDate
+		 
+	  	 set @txt='' INSERT INTO [COM_DocTextData_History](''+@txt+''[ModifiedDate])
+		 select  ''+replace(replace(@txt,''AccDocDetailsID,'',''a.AccDocDetailsID,''),''InvDocDetailsID,'',''a.InvDocDetailsID,'')
+		
+		 set @txt=@txt+''case when @ModDate is null THEN i.[ModifiedDate] else @ModDate end	 
+		 FROM [ACC_DocDetails] i WITH(NOLOCK)
+		 JOIN [COM_DocTextData] a WITH(NOLOCK) on a.[AccDocDetailsID] =i.[AccDocDetailsID]
+		 WHERE i.DocID=''+convert(nvarchar,@DocID)	
+
+		 exec sp_executesql @txt,N''@ModDate float'',@ModDate
+ 
+			 
+		 set @NumCols='' INSERT INTO [COM_DocNumData_History](''+@NumCols+''[ModifiedDate])
+		 select  ''+replace(replace(replace(@NumCols,''AccDocDetailsID,'',''a.AccDocDetailsID,''),''InvDocDetailsID,'',''a.InvDocDetailsID,''),'',Remarks'','',convert(nvarchar(max),Remarks)'')
+			
+		set @NumCols=@NumCols+''case when @ModDate is null THEN i.[ModifiedDate] else @ModDate end
+		 FROM [ACC_DocDetails] i WITH(NOLOCK)
+		 JOIN [COM_DocNumData] a WITH(NOLOCK) on a.[AccDocDetailsID] =i.[AccDocDetailsID]
+		 WHERE i.DocID=''+convert(nvarchar,@DocID)
+		
+		 exec sp_executesql @NumCols,N''@ModDate float'',@ModDate
+
+
+END     
+     
+COMMIT TRANSACTION
+SET NOCOUNT OFF;        
+RETURN @DocID
+END TRY        
+BEGIN CATCH  
+  
+  SELECT ErrorMessage, ERROR_MESSAGE() AS ServerMessage,ERROR_NUMBER() as ErrorNumber, ERROR_PROCEDURE()as ProcedureName, ERROR_LINE() AS ErrorLine      
+  FROM COM_ErrorMessages WITH(nolock) WHERE ErrorNumber=-999 AND LanguageID=@LangID      
+      
+ 
+ ROLLBACK TRANSACTION      
+ SET NOCOUNT OFF        
+ RETURN -999         
+    
+    
+END CATCH
+' 
+END
+GO

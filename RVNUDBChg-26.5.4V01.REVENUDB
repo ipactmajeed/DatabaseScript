@@ -1,0 +1,25 @@
+--khaja
+
+CREATE TABLE [dbo].[INV_BinDetails_History](
+	[BinDetHistoryID] [bigint] IDENTITY(1,1) NOT NULL,
+	[BinDetailsID] [bigint] NOT NULL,
+	[BinID] [bigint] NOT NULL,
+	[InvDocDetailsID] [bigint] NOT NULL,
+	[Quantity] [float] NOT NULL,
+	[VoucherType] [int] NULL,
+	[IsQtyIgnored] [bit] NOT NULL,
+	[RefInvDocDetailsID] [bigint] NULL,
+	[Remarks] [nvarchar](max) NULL,
+	[BOE] [bigint] NULL,
+	[HistoryStatus] [nvarchar](50) NOT NULL,
+	[CreatedBy] [nvarchar](50) NOT NULL,
+	[CreatedDate] [float] NOT NULL
+ CONSTRAINT [PK_INV_BinDetails_History] PRIMARY KEY CLUSTERED 
+(
+	[BinDetHistoryID] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, FILLFACTOR = 90) ON [PRIMARY]
+) ON [PRIMARY] TEXTIMAGE_ON [PRIMARY]
+
+GO
+
+

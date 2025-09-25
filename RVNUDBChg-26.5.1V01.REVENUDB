@@ -1,6 +1,0 @@
---Sameer
- if(not exists(select * from REN_FM_Mobile_Configuration WITH(NOLOCK) where Name='AboutUsConfiguration'))
-begin
-INSERT INTO REN_FM_Mobile_Configuration ([Name],[Value],[Description],[CreatedBy],[CreatedDate],[ModifiedBy],[ModifiedDate],[ConfigValueType])
-VALUES ('AboutUsConfiguration','{"IconEnabled":"true","Icon":"fa-file-lines","Title":"About Us","BgColor":"","TextColor":"#fff"}','About Us Configuration in Facility Management','admin',CONVERT(FLOAT,GETDATE()),'Admin',CONVERT(FLOAT,GETDATE()),'string')
-end
