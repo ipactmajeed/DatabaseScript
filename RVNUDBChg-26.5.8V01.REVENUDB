@@ -1,0 +1,3 @@
+--CHARY
+
+update ADM_SynSettings set ismoddate=1 where tablename in('COM_CCPrices','COM_CCTaxes')
