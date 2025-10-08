@@ -1,0 +1,8 @@
+--CHARY
+
+ Update a
+ set a.ColumnCostCenterID=50052,a.ColumnCCListViewTypeID=1
+ FROM ADM_CostCenterDef a
+ join ADM_DocumentTypes b on b.CostCenterID=a.CostCenterID
+ where b.documenttype=68 
+ AND SysColumnName in('dcAlpha1','dcAlpha3')
