@@ -1,0 +1,13 @@
+-- SHASHANK
+DECLARE @ListViewID BIGINT
+
+INSERT INTO [ADM_ListView] ([ListViewName],[CostCenterID],[FeatureID],[ListViewTypeID],[SearchFilter],[FilterXML],[RoleID],[UserID],[IsUserDefined],[CompanyGUID],[GUID],[Description],[CreatedBy],[CreatedDate],[ModifiedBy],[ModifiedDate],[SearchOption],[SearchOldValue])
+values('Employee ReportingManager',50051,50051,5,'a.IsManager=''Yes''','',1,1,0,'830b4366-ab3c-4150-aefe-f5acaddc7089','48155F23-F5C8-4D23-967F-4CA0A6D8F817',NULL,'admin',2,'admin',4,1,1)
+SET @ListViewID=SCOPE_IDENTITY()
+
+INSERT INTO [ADM_ListViewColumns] ([ListViewID],[CostCenterColID],[ColumnOrder],[ColumnWidth],[Description],[CreatedBy],[CreatedDate],[ModifiedBy],[ModifiedDate])
+values(@ListViewID,30000,0,200,'Description','ADMIN',4,'admin',4)  
+
+INSERT INTO [ADM_ListViewColumns] ([ListViewID],[CostCenterColID],[ColumnOrder],[ColumnWidth],[Description],[CreatedBy],[CreatedDate],[ModifiedBy],[ModifiedDate])
+values(@ListViewID,30001,1,200,'Description','ADMIN',4,'admin',4)  
+

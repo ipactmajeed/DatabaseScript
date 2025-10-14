@@ -1,0 +1,39 @@
+--Ibrahim
+
+DECLARE @RID BIGINT,@I INT=1,@Cnt INT,@CostCenterID BIGINT,@TableName NVARCHAR(50),@FID INT
+
+SELECT @RID=MAX([ResourceID])+1 FROM COM_LanguageResources WITH(NOLOCK)
+
+IF NOT EXISTS(SELECT * FROM COM_LanguageResources WITH(NOLOCK) WHERE ResourceName='DontAllowCodemodify')
+BEGIN
+	INSERT INTO COM_LanguageResources (ResourceID, ResourceName, LanguageID, LanguageName, ResourceData,FEATURE)
+	VALUES (@RID, 'DontAllowCodemodify',1,'English','Do not Allow Code modify if used' ,'')
+	INSERT INTO COM_LanguageResources (ResourceID, ResourceName, LanguageID, LanguageName, ResourceData,FEATURE)
+	VALUES (@RID,'DontAllowCodemodify',2,'Arabic', 'Do not Allow Code modify if used','')
+	INSERT INTO COM_LanguageResources (ResourceID, ResourceName, LanguageID, LanguageName, ResourceData,FEATURE)
+	VALUES (@RID,'DontAllowCodemodify',3,'Italian', 'Do not Allow Code modify if used','')
+END
+
+IF NOT EXISTS(SELECT * FROM COM_CostCenterPreferences WITH(NOLOCK) WHERE CostCenterID=3 AND Name='DontAllowCodemodify')
+BEGIN
+	INSERT INTO COM_CostCenterPreferences
+	SELECT 3,3,@RID,'DontAllowCodemodify','False','False','','GUID','','ADMIN',CONVERT(FLOAT,GETDATE()),'ADMIN',CONVERT(FLOAT,GETDATE())
+END
+
+SELECT @RID=MAX([ResourceID])+1 FROM COM_LanguageResources WITH(NOLOCK)
+
+IF NOT EXISTS(SELECT * FROM COM_LanguageResources WITH(NOLOCK) WHERE ResourceName='DontAllowNamemodify')
+BEGIN
+	INSERT INTO COM_LanguageResources (ResourceID, ResourceName, LanguageID, LanguageName, ResourceData,FEATURE)
+	VALUES (@RID, 'DontAllowNamemodify',1,'English','Do not Allow Name modify if used' ,'')
+	INSERT INTO COM_LanguageResources (ResourceID, ResourceName, LanguageID, LanguageName, ResourceData,FEATURE)
+	VALUES (@RID,'DontAllowNamemodify',2,'Arabic', 'Do not Allow Name modify if used','')
+	INSERT INTO COM_LanguageResources (ResourceID, ResourceName, LanguageID, LanguageName, ResourceData,FEATURE)
+	VALUES (@RID,'DontAllowNamemodify',3,'Italian', 'Do not Allow Name modify if used','')
+END
+
+IF NOT EXISTS(SELECT * FROM COM_CostCenterPreferences WITH(NOLOCK) WHERE CostCenterID=3 AND Name='DontAllowNamemodify')
+BEGIN
+	INSERT INTO COM_CostCenterPreferences
+	SELECT 3,3,@RID,'DontAllowNamemodify','False','False','','GUID','','ADMIN',CONVERT(FLOAT,GETDATE()),'ADMIN',CONVERT(FLOAT,GETDATE())
+END
