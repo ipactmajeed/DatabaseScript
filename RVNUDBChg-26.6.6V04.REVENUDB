@@ -1,6 +1,0 @@
---Sajid
-if Not exists(Select name from  sys.columns Where Name='HelpText' AND Object_ID=Object_ID(N'dbo.ADM_CostCenterDef'))
-				Alter Table ADM_CostCenterDef Add HelpText nvarchar(max) null
-
-if Not exists(Select name from  sys.columns Where Name='HelpText' AND Object_ID=Object_ID(N'dbo.ADM_CostCenterDef_History'))
-				Alter Table  ADM_CostCenterDef_History Add HelpText nvarchar(max) null
