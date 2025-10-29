@@ -1,0 +1,16 @@
+--Sajid
+declare @Rid int
+select @Rid=MAX(ResourceID) from COM_LanguageResources  
+
+set @Rid=@Rid+1
+IF NOT EXISTS(SELECT Name FROM COM_CostCenterPreferences WITH(NOLOCK) WHERE CostCenterID=103 and  Name='L1QuotationRemarks')
+BEGIN
+	INSERT INTO [com_languageresources] ([ResourceID],[ResourceName],[LanguageID],[LanguageName],[ResourceData],[GUID],[Description],[CreatedBy],[CreatedDate],[ModifiedBy],[ModifiedDate],[FEATURE])
+	VALUES(@Rid,'L1QuotationRemarks',1,'English','Workflow L1 Remarks','A18AA097-DF5D-41CD-9AFF-22C66D20097A',NULL,'ADMIN',convert(float,getdate()),NULL,NULL,'')
+
+	INSERT INTO [com_languageresources] ([ResourceID],[ResourceName],[LanguageID],[LanguageName],[ResourceData],[GUID],[Description],[CreatedBy],[CreatedDate],[ModifiedBy],[ModifiedDate],[FEATURE])
+	VALUES(@Rid,'L1QuotationRemarks',2,'Arabic','Workflow L1 Remarks-AR','A18AA097-DF5D-41CD-9AFF-22C66D20097A',NULL,'ADMIN',convert(float,getdate()),NULL,NULL,'')
+
+	insert into COM_CostCenterPreferences(CostCenterID,FeatureID,ResourceID,Name,Value,GUID,CreatedBy,CreatedDate,DefaultValue)
+	values(103,103,@Rid,'L1QuotationRemarks','false','guid','admin',convert(float,getdate()),'false')
+END
