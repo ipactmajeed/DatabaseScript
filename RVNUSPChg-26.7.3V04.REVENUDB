@@ -1,9 +1,9 @@
 --Ibrahim
-/****** Object:  StoredProcedure [dbo].[spCOM_SearchProductCatalog]    Script Date: 27-10-2025 10:53:37 ******/
+/****** Object:  StoredProcedure [dbo].[spCOM_SearchProductCatalog]    Script Date: 28-10-2025 11:34:39 ******/
 IF  EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[spCOM_SearchProductCatalog]') AND type in (N'P', N'PC'))
 DROP PROCEDURE [dbo].[spCOM_SearchProductCatalog]
 GO
-/****** Object:  StoredProcedure [dbo].[spCOM_SearchProductCatalog]    Script Date: 27-10-2025 10:53:37 ******/
+/****** Object:  StoredProcedure [dbo].[spCOM_SearchProductCatalog]    Script Date: 28-10-2025 11:34:39 ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
@@ -278,6 +278,7 @@ SET NOCOUNT ON;
 									left JOIN COM_DocCCData DCCXL WITH(NOLOCK)  ON DCCXL.InvDocDetailsID=l.InvDocDetailsID where DX.InvDocDetailsID=l.LinkedInvDocDetailsID  AND l.StatusID=369  )  Qty)
                                     AS T) END)*DX.UOMConversion Executed FROM INV_DocDetails DX with(nolock) 
                                      INNER JOIN COM_DocCCData DCCX WITH(NOLOCK) ON DCCX.InvDocDetailsID=DX.InvDocDetailsID AND DX.StatusID<>376
+								INNER JOIN COM_DocumentPreferences DP WITH(NOLOCK) ON DP.CostCenterID=DX.CostCenterID AND DP.PrefName=''''Enable Hold'''' AND DP.PrefValue=''''True''''
 			WHERE DX.ProductID=P.ProductID AND DX.IsQtyIgnored=1 and DX.DocumentType in (2) and DX.VoucherType=1 AND convert(datetime,DX.DocDate)<=''+CONVERT(nvarchar,CONVERT(float,@DocDate))
 	            
 			if(@QtyWhere <>'''')  
