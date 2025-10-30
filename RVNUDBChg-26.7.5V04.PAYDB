@@ -1,0 +1,4 @@
+-- SHASHANK
+
+update COM_LanguageResources set ResourceData='Allow Payroll Processing, If Emp on Vacation/Leave' where LanguageID=1 and  ResourceID in(
+select ResourceID from ADM_GlobalPreferences where name ='AllowPayrollProcessIfEmpOnVacation')

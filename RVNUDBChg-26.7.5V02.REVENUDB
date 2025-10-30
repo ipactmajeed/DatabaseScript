@@ -1,0 +1,37 @@
+--Ibrahim
+
+DECLARE @RID BIGINT,@I INT=1,@Cnt INT,@CostCenterID BIGINT,@TableName NVARCHAR(50),@FID INT
+
+SELECT @RID=MAX([ResourceID])+1 FROM COM_LanguageResources WITH(NOLOCK)
+
+IF NOT EXISTS(SELECT * FROM COM_LanguageResources WITH(NOLOCK) WHERE ResourceName='AddressAsPopup')
+BEGIN
+	INSERT INTO COM_LanguageResources (ResourceID, ResourceName, LanguageID, LanguageName, ResourceData,FEATURE)
+	VALUES (@RID, 'AddressAsPopup',1,'English','Address As Popup' ,'')
+	INSERT INTO COM_LanguageResources (ResourceID, ResourceName, LanguageID, LanguageName, ResourceData,FEATURE)
+	VALUES (@RID,'AddressAsPopup',2,'Arabic', 'Address As Popup','')
+	INSERT INTO COM_LanguageResources (ResourceID, ResourceName, LanguageID, LanguageName, ResourceData,FEATURE)
+	VALUES (@RID,'AddressAsPopup',3,'Italian', 'Address As Popup','')
+END
+
+SET @I=1
+SET @Cnt=0
+DECLARE @TAB TABLE(ID INT IDENTITY(1,1),FID INT)
+INSERT INTO @TAB
+SELECT FeatureID FROM ADM_Features WHERE ((FeatureID IN (2,71,83) OR (FeatureID BETWEEN 50000 AND 59999)))
+
+SELECT @Cnt=COUNT(*) FROM @TAB
+WHILE(@I<@Cnt)
+BEGIN
+	SELECT @FID=FID FROM @TAB WHERE ID=@I
+	
+	IF NOT EXISTS(SELECT * FROM COM_CostCenterPreferences WITH(NOLOCK) WHERE CostCenterID=@FID AND Name='AddressAsPopup')
+	BEGIN
+		INSERT INTO COM_CostCenterPreferences
+		SELECT @FID,@FID,@RID,'AddressAsPopup','False','False','','GUID','','ADMIN',CONVERT(FLOAT,GETDATE()),'ADMIN',CONVERT(FLOAT,GETDATE())
+	END
+
+	SET @I=@I+1
+END
+
+
