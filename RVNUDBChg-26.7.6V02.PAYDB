@@ -1,9 +1,0 @@
--- SHASHANK
-
-DECLARE @VAL NVARCHAR(500)
-select @VAL=Value from ADM_GlobalPreferences WITH(NOLOCK) where name ='FinalSettlementConsiderLopBasedOnLopLeave' 
-
-
-update t set t.dcAlpha21=CASE WHEN @VAL='True' then 'LOP Leave' else 'Processed Payroll' end  FROM INV_DocDetails I WITH(NOLOCK)
-JOIN COM_DocTextData T WITH(NOLOCK) ON T.InvDocDetailsID=I.InvDocDetailsID
-WHERE I.CostCenterID=40075

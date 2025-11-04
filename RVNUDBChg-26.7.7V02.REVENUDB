@@ -1,0 +1,4 @@
+--Khaja
+
+ALTER TABLE ADM_Users ADD AccessFromDate FLOAT,AccessToDate FLOAT	
+ALTER TABLE ADM_PRoles ADD AccessFromDate FLOAT,AccessToDate FLOAT

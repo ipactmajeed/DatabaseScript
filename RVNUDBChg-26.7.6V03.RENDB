@@ -1,6 +1,0 @@
---Sajid
-
-update COM_CostCenterPreferences
-set value='GenerateContract,'+value
-where Name='LeftButtons' and costcenterid=95
-and value not like '%GenerateContract%'

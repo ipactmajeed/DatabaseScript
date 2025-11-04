@@ -1,0 +1,7 @@
+--Sameer
+
+if(not exists(select * from REN_FM_Mobile_Configuration WITH(NOLOCK) where Name='MaterialRequestFilterColumn'))
+begin
+INSERT INTO REN_FM_Mobile_Configuration ([Name],[Value],[Description],[CreatedBy],[CreatedDate],[ModifiedBy],[ModifiedDate],[ConfigValueType])
+VALUES ('MaterialRequestFilterColumn','','FM Material Request Column to filter request and issue data','admin',CONVERT(FLOAT,GETDATE()),'Admin',CONVERT(FLOAT,GETDATE()),'string')
+end

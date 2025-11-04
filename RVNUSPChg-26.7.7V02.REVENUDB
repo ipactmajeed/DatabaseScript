@@ -1,0 +1,1300 @@
+--Khaja
+
+/****** Object:  StoredProcedure [dbo].[spADM_SetUser]    Script Date: 03-11-2025 10:26:26 ******/
+IF  EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[spADM_SetUser]') AND type in (N'P', N'PC'))
+DROP PROCEDURE [dbo].[spADM_SetUser]
+GO
+/****** Object:  StoredProcedure [dbo].[spADM_SetRole]    Script Date: 03-11-2025 10:26:26 ******/
+IF  EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[spADM_SetRole]') AND type in (N'P', N'PC'))
+DROP PROCEDURE [dbo].[spADM_SetRole]
+GO
+/****** Object:  StoredProcedure [dbo].[spADM_GetUsersDet]    Script Date: 03-11-2025 10:26:26 ******/
+IF  EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[spADM_GetUsersDet]') AND type in (N'P', N'PC'))
+DROP PROCEDURE [dbo].[spADM_GetUsersDet]
+GO
+/****** Object:  StoredProcedure [dbo].[spADM_GetRolesGridData]    Script Date: 03-11-2025 10:26:26 ******/
+IF  EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[spADM_GetRolesGridData]') AND type in (N'P', N'PC'))
+DROP PROCEDURE [dbo].[spADM_GetRolesGridData]
+GO
+/****** Object:  StoredProcedure [dbo].[spADM_GetClientUserDetails]    Script Date: 03-11-2025 10:26:26 ******/
+IF  EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[spADM_GetClientUserDetails]') AND type in (N'P', N'PC'))
+DROP PROCEDURE [dbo].[spADM_GetClientUserDetails]
+GO
+/****** Object:  StoredProcedure [dbo].[spADM_GetClientUserDetails]    Script Date: 03-11-2025 10:26:26 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[spADM_GetClientUserDetails]') AND type in (N'P', N'PC'))
+BEGIN
+EXEC dbo.sp_executesql @statement = N'
+CREATE procedure [dbo].[spADM_GetClientUserDetails]    
+	@UserName NVARCHAR(500),    
+	@LangID int=1,
+	@EXEVersionNo nvarchar(max)='''',
+	@IsDWLogin int=0
+AS    
+BEGIN TRY     
+SET NOCOUNT ON    
+    
+	--Declaration Section    
+	DECLARE @HasAccess bit,@Ret int,@UserID INT,@RoleID INT,@VersionNo nvarchar(50),@EmpID INT,@StatusID int,@DLPWd nvarchar(50),@DLFeatureID int,@DLNodeID int
+			,@SQL NVARCHAR(MAX)
+	--SP Required Parameters Check    
+	if(@UserName='''')    
+	BEGIN    
+		RAISERROR(''-100'',16,1)    
+	END
+
+	
+	if @IsDWLogin!=0
+	begin
+		declare @i int,@Cnt int
+		declare @TblDims as Table(ID int identity(1,1), FeatureID int,Name nvarchar(100),TblName nvarchar(100))
+
+		insert into @TblDims
+		select FeatureID,Name,TableName from ADM_Features with(nolock) where FeatureID IN (select CostCenterID from COM_CostCenterPreferences with(nolock) where Name=''CreateUserOnDim'' and Value=''True'') order by FeatureID
+
+		select @i=1,@Cnt=count(*) from @TblDims
+		while(@i<=@Cnt)
+		begin
+			select @DLFeatureID=FeatureID,@DLPWd=TblName from @TblDims where ID=@i
+			set @i=@i+1
+			set @DLNodeID=0
+			--set @SQL=''select @DUPNODENO=NodeID,@DLPWd=PasswordAlpha from ''+@DLPWd+'' with(nolock) where UserNameAlpha=''''''+@UserName+''''''''
+			set @SQL=''select @DUPNODENO=NodeID,@DLPWd=PasswordAlpha from ''+@DLPWd+'' d with(nolock) left join COM_Status s on s.StatusID = d.StatusID where d.UserNameAlpha=''''''+@UserName+'''''' and s.FeatureID = ''+convert(nvarchar,@DLFeatureID)+'' and s.Status = ''''Active''''''
+			if @DLFeatureID=50170
+			begin
+			 set @SQL=''select @DUPNODENO=NodeID,@DLPWd=PasswordAlpha from ''+@DLPWd+'' d with(nolock)  where d.UserNameAlpha=''''''+@UserName+'''''' and d.StatusID not in (Select StatusID  from Com_status with(nolock) where CostCenterID=''+convert(nvarchar,@DLFeatureID)+'' and (status=''''In Active'''' or Status=''''Converted''''))''
+			end 
+			EXEC sp_executesql @SQL, N''@DUPNODENO INT OUTPUT,@DLPWd nvarchar(50) OUTPUT'',@DLNodeID OUTPUT,@DLPWd OUTPUT
+			if @DLNodeID>0
+			begin
+				select @UserName=UserName from ADM_Users WITH(NOLOCK) where UserID=(select Value from COM_CostCenterPreferences with(nolock) where CostCenterID=@DLFeatureID and Name=''CUUserID'')
+				break;
+			end
+		end
+	end
+
+	select @UserID=UserID from ADM_Users WITH(NOLOCK) where UserName=@UserName and IsUserDeleted = 0
+	select @RoleID=RoleID from ADM_UserRoleMap WITH(NOLOCK)  where UserID =@UserID and IsDefault=1
+	
+	-- Toget EmpId In MobileApplication START
+	if exists(select name from sys.tables with(nolock) where name=''COM_CC50051'')
+	begin
+		SET @SQL=''SELECT @EmpID=EMP.NodeID 
+		FROM COM_CostCenterCostCenterMap CCMAP WITH(NOLOCK),COM_CC50051 EMP WITH(NOLOCK)
+		WHERE CCMAP.NodeID=EMP.NodeID AND CCMAP.COSTCENTERID=50051 AND CCMAP.ParentNodeID=''+CONVERT(NVARCHAR,@UserID)
+
+		EXEC sp_executesql @SQL,N''@EmpID INT OUTPUT'',@EmpID OUTPUT
+	END		
+	
+	declare @Dt float
+	--set @Dt=floor(convert(float,getdate()))
+	set @Dt=convert(float,getdate())
+	
+	select @StatusID=M.[Status]
+	from [COM_CostCenterStatusMap] M WITH(NOLOCK)
+	where CostCenterID=7 and NodeID=@UserID and ((FromDate is null and ToDate is null) or (FromDate is not null and FromDate<=@Dt and ToDate is null)
+	 or (ToDate is not null and @Dt between FromDate and ToDate))
+	
+	SELECT a.UserID,a.UserName,case when @IsDWLogin!=0 then @DLPWd else a.Password end [Password],isnull(@StatusID,a.StatusID) StatusID
+	,(select top 1 s.[Status] from dbo.COM_Status s  WITH(NOLOCK) where s.StatusID =isnull(@StatusID,a.StatusID)) [Status]
+	,a.IsOffline,a.DefaultLanguage,r.RoleID,r.RoleType,r.Name,r.ExtraXML,a.Email1,a.IsPassEncr,@EmpID EmpID,a.LocationID,a.DivisionID,a.Phone1,TwoStepVerMode,a.IsNewLogin,DeviceID,MultipleDevices
+	,datediff(d,convert(datetime,a.PwdModifiedOn),getdate()) PwdModifiedDays
+	,(SELECT TOP 1 [GUID]+''.''+FileExtension FROM COM_Files WITH(NOLOCK) WHERE FeatureID=7 AND IsProductImage=1 AND FileDescription=''USERPHOTO'' AND  FeaturePK=a.UserID ) UserPhoto
+	,convert(datetime,isnull(a.AccessFromDate,r.AccessFromDate)) AccessFromDate,convert(datetime,isnull(a.AccessToDate,r.AccessToDate)) AccessToDate
+	FROM dbo.ADM_Users a  WITH(NOLOCK)  
+	JOIN [PACT2C].dbo.ADM_Users ADMUSR WITH(NOLOCK) ON ADMUSR.USERNAME collate database_default= a.USERNAME collate database_default 
+	join  dbo.ADM_PRoles r  WITH(NOLOCK) on r.RoleID=@RoleID
+	WHERE a.IsUserDeleted = 0 and a.UserName=@UserName
+	
+	set @VersionNo=(select top 1 VersionNo from dbo.ADM_Versions WITH(NOLOCK)  order by CONVERT(int,REPLACE(VersionNo,''.'','''')) desc)
+	if exists(select PatchVersion from PACT2C.dbo.ADM_Patches with(nolock) where Version=@EXEVersionNo)
+	begin
+		select @VersionNo VersionNo,PatchVersion,FileName,Size,convert(datetime,LastModifiedOn) LastModifiedOn from PACT2C.dbo.ADM_Patches with(nolock) where Version=@EXEVersionNo
+		order by FileName		
+	end
+	else
+	begin
+		select @VersionNo VersionNo
+	end
+
+	SELECT Name,Value FROM ADM_GlobalPreferences WITH(NOLOCK) 
+	WHERE Name=''LW  Login'' or Name=''EnableLocationWise'' or Name=''EnableDivisionWise'' or Name=''Login'' or Name=''Registers'' or name=''Application can Auto-Upgrade'' or name=''Upgrade Server'' or name=''Upgrade Server(Local)''
+	 or name=''IsOffline'' or name=''PwdHardning'' or name=''PwdExpiry'' or name=''CheckUserONLINEOFFLINE'' or  Name=''ValidateOTPonLogin'' OR Name=''KillExpLoginSessionsAuto'' OR Name=''AllowUserToLoginOnMultipleRegisters''
+	union	
+	select case when FeatureID=50002 THEN ''LocationName'' else ''DivisionName'' end as Name,Name Value from adm_features with(nolock)
+	where FeatureID in(50001,50002)
+
+	IF EXISTS(SELECT Value FROM ADM_GlobalPreferences WITH(NOLOCK)  WHERE Name=''EnableLocationWise'' AND Value=''True'')  
+	BEGIN  
+		---------------
+		declare @isemp bit=0,@empseqno INT,@locseqno INT
+		if exists(select name from sys.tables with(nolock) where name=''com_cc50051'')
+		begin
+			SET @SQL=''if exists(select nodeid from com_cc50051 with(nolock) where LoginUserID=''''''+@username+'''''')
+			begin
+				set @isemp=1
+				select @empseqno = nodeid from com_cc50051 with(nolock) where LoginUserID=''''''+@username+''''''
+			end''
+			EXEC sp_executesql @SQL,N''@isemp bit OUTPUT,@empseqno INT OUTPUT'',@isemp OUTPUT,@empseqno OUTPUT
+		end
+		
+		if(@isemp=1)
+		begin
+			select @locseqno= ISNULL(CCNID2,1) FROM COM_CCCCDATA WITH(NOLOCK) WHERE CostCenterID=50051 AND NodeID=@empseqno
+			select DISTINCT l.NodeID,l.Code,l.Name,l.IsGroup,l.lft from COM_Location l  WITH(NOLOCK)
+			where l.NodeID=@locseqno
+		end
+		else if @IsDWLogin!=0
+		Begin
+		    select @locseqno= ISNULL(CCNID2,1) FROM COM_CCCCDATA WITH(NOLOCK) WHERE CostCenterID=convert(nvarchar,@DLFeatureID) AND NodeID=@DLNodeID
+			select DISTINCT l.NodeID,l.Code,l.Name,l.IsGroup,l.lft from COM_Location l  WITH(NOLOCK)
+			where l.NodeID=@locseqno
+		End
+		else
+		begin
+			select DISTINCT l.NodeID,l.Code,l.Name,l.IsGroup,l.lft,CASE WHEN ParentCostCenterID=6 THEN ParentNodeID ELSE 0 END RoleID 
+			from COM_Location l  WITH(NOLOCK)
+			join COM_Location g  WITH(NOLOCK) on l.lft between g.lft and g.rgt 
+			join COM_CostCenterCostCenterMap c WITH(NOLOCK) on g.NodeID=c.NodeID and CostCenterID=50002
+			where (ParentCostCenterID=7 and ParentNodeID=@UserID) or (ParentCostCenterID=6 and (ParentNodeID=@RoleID 
+			or ParentNodeID IN (select M.RoleID 
+			from ADM_UserRoleMap M WITH(NOLOCK)
+			where M.UserID=@UserID and M.Status=1 and M.IsDefault=0 
+			and ((M.FromDate is null and M.ToDate is null) or (M.FromDate is not null and M.FromDate<=@Dt and M.ToDate is null)
+			 or (M.ToDate is not null and @Dt between M.FromDate and M.ToDate)))
+			 ))
+			order by l.IsGroup,l.lft
+		end
+
+		---------------
+			
+		--select DISTINCT l.NodeID,l.Code,l.Name,l.IsGroup,l.lft from COM_Location l  WITH(NOLOCK)
+		--join COM_Location g  WITH(NOLOCK) on l.lft between g.lft and g.rgt 
+		--join COM_CostCenterCostCenterMap c WITH(NOLOCK) on g.NodeID=c.NodeID and CostCenterID=50002
+		--where (ParentCostCenterID=7 and ParentNodeID=@UserID) or (ParentCostCenterID=6 and ParentNodeID=@RoleID)
+		--order by l.IsGroup,l.lft
+	END
+	else
+		select 1 Location where 1!=1
+
+	select R.RoleID,R.Name RoleName,R.Description,IsDefault,R.RoleType --,M.Status,FromDate,ToDate 
+	from ADM_UserRoleMap M WITH(NOLOCK)
+	inner join ADM_PRoles R with(nolock) on R.RoleID=M.RoleID
+	where UserID=@UserID and M.Status=1 and IsDefault=0 and R.RoleID!=@RoleID
+	and ((FromDate is null and ToDate is null) or (FromDate is not null and FromDate<=@Dt and ToDate is null)
+	 or (ToDate is not null and @Dt between FromDate and ToDate))
+	union all
+	select RoleID,Name RoleName,Description,1,RoleType  from ADM_PRoles WITH(NOLOCK) where RoleID=@RoleID
+	order by IsDefault desc,RoleName
+
+	--IF EXISTS(SELECT Value FROM ADM_GlobalPreferences WITH(NOLOCK)  WHERE Name=''EnableDivisionWise'' AND Value=''True'') 
+	--BEGIN  
+	--	select DISTINCT l.NodeID,l.Code,l.Name,l.IsGroup,l.lft from COM_Division l  WITH(NOLOCK)
+	--	join COM_Division g WITH(NOLOCK)  on l.lft between g.lft and g.rgt 
+	--	join COM_CostCenterCostCenterMap c WITH(NOLOCK) on g.NodeID=c.NodeID and CostCenterID=50001
+	--	where (ParentCostCenterID=7 and ParentNodeID=@UserID) or (ParentCostCenterID=6 and ParentNodeID=@RoleID)
+	--	order by l.lft
+	--END
+	--else
+	--	select 1 Division where 1!=1
+
+	select  NodeID,parentid,IsGroup,Name+''~''+Code Location from COM_Location  WITH(NOLOCK) 
+
+	select  NodeID,parentid,IsGroup,Name+''~''+Code Division from COM_Division WITH(NOLOCK) 
+	
+	select DISTINCT RoleID from ADM_UserRoleMap WITH(NOLOCK) where UserID=@UserID and [Status]=2
+	
+	declare @IsServiceTenant bit = 0,@IsTenantLogin bit = 0,@LandLordCCID BIGINT,@TenantCCID BIGINT
+
+	if @IsDWLogin=0
+		select 0 DWLogin where 1!=1
+	else
+	begin
+	    set @IsTenantLogin = 0
+		if exists(select value from com_costcenterpreferences WITH(NOLOCK) where name =''LinkDocument'' and costcenterid=94 and value is not null  and value <> '''' and ISNumeric(value)=1 and Value = @DLFeatureID)
+		begin
+			set @IsTenantLogin = 1
+				if exists(select name from sys.tables where name=''Ren_Tenant'')
+				BEGIN
+					SET @SQL =''select @IsServiceTenant=IsService from Ren_tenant WITH(NOLOCK) where CCNodeID = ''+CONVERT(NVARCHAR(max),@DLNodeID)
+					exec sp_executesql @SQL,N''@IsServiceTenant bit output'',@IsServiceTenant output					
+				END	
+		end
+		select @DLFeatureID DLFeatureID,@DLNodeID DLNodeID,@DLPWd Pwd,@IsTenantLogin IsTenantLogin,@IsServiceTenant IsServiceTenant
+	end
+	
+	declare @BlockCount int=0,@BlockMinutes int=0
+	SELECT @BlockCount=convert(int,Value) FROM ADM_GlobalPreferences WITH(NOLOCK)  
+	WHERE Name=''Blockuserafterattempts'' AND Value is not null AND Value<>'''' and isnumeric(Value)=1
+	
+	SELECT @BlockMinutes=convert(int,Value) FROM ADM_GlobalPreferences WITH(NOLOCK)  
+	WHERE Name=''Blockuserforminutes'' AND Value is not null AND Value<>'''' and isnumeric(Value)=1
+	
+	if(@BlockCount>0 and @BlockMinutes>0)
+	begin
+		select COUNT(*) ACNT,@BlockMinutes-DATEDIFF(MINUTE,CONVERT(DATETIME,MAX(UC.[LoginTime])),GETDATE()) MCNT
+		from PACT2C.dbo.[ADM_UserLoginCheck] UC with(nolock) 
+		where UC.UserName=@UserName and UC.[Status]=1 and ''PACT2C''+convert(nvarchar,UC.DBIndex)=DB_Name()
+		group by UC.UserName
+		having COUNT(*)>=@BlockCount AND @BlockMinutes-DATEDIFF(MINUTE,CONVERT(DATETIME,MAX(UC.[LoginTime])),GETDATE())>0
+	end
+	else
+		select 0 ACNT,0 MCNT WHERE 1<>1
+	
+	
+	SET @SQL =''''
+	CREATE TABLE #RestrictedTAB (ID INT IDENTITY(1,1) PRIMARY KEY,MachineCode NVARCHAR(MAX))
+	SELECT DISTINCT @SQL=@SQL+''
+		INSERT INTO #RestrictedTAB
+		SELECT DISTINCT CC.AliasName FROM COM_CostCenterCostCenterMap CCM WITH(NOLOCK)
+		JOIN ''+TableName+'' CC WITH(NOLOCK) ON CC.NodeID=CCM.NodeID
+		WHERE  CCM.ParentCostCenterID=7 AND CCM.ParentNodeID=''+CONVERT(NVARCHAR,@UserID)+'' AND CCM.CostCenterID=''+CONVERT(NVARCHAR,FeatureID)	
+	FROM ADM_Features with(nolock) 
+	where FeatureID>50000 AND CONVERT(NVARCHAR,FeatureID) IN (SELECT Value FROM ADM_GlobalPreferences WITH(NOLOCK)  WHERE Name=''RestrictedAcessDimension'')
+	EXEC (@SQL)
+	SELECT DISTINCT MachineCode FROM #RestrictedTAB WITH(NOLOCK)
+
+	DROP TABLE #RestrictedTAB
+	
+	select * from REN_FM_Mobile_Configuration with(nolock) 
+
+	if @IsDWLogin<>0
+	begin
+
+		declare @MappedDimensions varchar(max) = '''', @sqlQ varchar(max) = '''', @TenantID int = 0
+
+		if @IsTenantLogin=1 and @IsServiceTenant=1
+		begin
+			
+			select @MappedDimensions = Value from REN_FM_Mobile_Configuration with(nolock) where Name = ''FacilityServiceDimensions''
+			
+			select @TenantID = TenantID from Ren_tenant with(nolock) where CCNodeID = @DLNodeID
+
+			if @MappedDimensions is null or @MappedDimensions = ''''
+				set @MappedDimensions = '''' + CONVERT(NVARCHAR,@TenantID)+'' TenantID''
+			else
+				set @MappedDimensions = (@MappedDimensions+'' ,'' + CONVERT(NVARCHAR,@TenantID)+'' TenantID'')
+			
+			--Property and Unit
+			select P.NodeID PropertyID,P.CCNodeID PropertyNodeID,P.Name PropertyName,U.PropertyID UnitPropertyID,U.UnitID UnitID,U.CCNodeID UnitNodeID,U.Name UnitName from COM_CostCenterCostCenterMap ccmap
+			left JOIN REN_Property P WITH(NOLOCK) ON ccmap.NodeID=P.CCNodeID
+			left JOIN REN_Units U WITH(NOLOCK) ON ccmap.NodeID=U.CCNodeID
+			where ParentCostCenterID = 94 and ParentNodeID = @TenantID and CostCenterID in (select Value from com_costcenterpreferences WITH(NOLOCK) where name =''LinkDocument'' and costcenterid in (92,93))
+
+
+			set @sqlQ = ''select '' + @MappedDimensions + '' from COM_CCCCData CCD with(nolock) where CCD.CostCenterID = 94 and CCD.NodeID = ''+CONVERT(NVARCHAR,@TenantID)+''''
+
+			exec(@sqlQ)
+
+		end
+		else
+		begin
+			select 1 where 1<>1
+		end
+	end
+	else
+	begin
+		select 1 where 1<>1
+		select 1 where 1<>1
+	end
+
+	SELECT FA.FeatureID,FA.FeatureActionTypeID,FA.Name,M.[Description] 
+FROM ADM_FeatureActionRoleMap M WITH(NOLOCK)
+INNER JOIN ADM_FeatureAction FA WITH(NOLOCK) ON FA.FeatureActionID=M.FeatureActionID
+WHERE M.RoleID=@RoleID AND FeatureID=10 AND (FA.Name=''Mandatory Location selection on Login'' OR FA.Name=''Mandatory Division selection on Login'')
+ORDER BY FA.FeatureID,FA.FeatureActionTypeID
+
+SELECT [ConfigId],[Name],[Value],[IsVerified]  FROM [dbo].[ADM_WebConfig] WITH(NOLOCK)
+
+SELECT * FROM ADM_Features WITH(NOLOCK)
+
+SET NOCOUNT OFF;    
+return @Ret
+END TRY    
+BEGIN CATCH      
+ --Return exception info [Message,Number,ProcedureName,LineNumber]      
+ IF ERROR_NUMBER()=50000    
+ BEGIN    
+  SELECT ErrorMessage,ErrorNumber FROM COM_ErrorMessages WITH(nolock) WHERE ErrorNumber=ERROR_MESSAGE() AND LanguageID=@LangID    
+ END    
+ ELSE    
+ BEGIN    
+  SELECT ErrorMessage, ERROR_MESSAGE() AS ServerMessage,ERROR_NUMBER() as ErrorNumber, ERROR_PROCEDURE()as ProcedureName, ERROR_LINE() AS ErrorLine    
+  FROM COM_ErrorMessages WITH(nolock) WHERE ErrorNumber=-999 AND LanguageID=@LangID    
+ END    
+SET NOCOUNT OFF      
+RETURN -999       
+END CATCH
+
+' 
+END
+GO
+/****** Object:  StoredProcedure [dbo].[spADM_GetRolesGridData]    Script Date: 03-11-2025 10:26:26 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[spADM_GetRolesGridData]') AND type in (N'P', N'PC'))
+BEGIN
+EXEC dbo.sp_executesql @statement = N'-- =============================================            
+-- Author:  Adil            
+-- Create date: 23 Jun 2011            
+-- Description: provides a list of all roles available [Tables - PRoles, AccessPoints, Features; FeatureAction, FeatureActionRoleMap]            
+-- Example :             
+-- [spADM_GetRolesGridData] 10,1,1      
+CREATE procedure  [dbo].[spADM_GetRolesGridData]            
+	@RoleID INT=0,
+	@UserID INT,
+	@LoginRoleID int,
+	@LangID INT=1          
+AS            
+            
+BEGIN TRY            
+SET NOCOUNT ON;           
+	--Declaration Section          
+	DECLARE @HasAccess BIT
+
+	--User access check           
+	SET @HasAccess=dbo.fnCOM_HasAccess(@LoginRoleID,6,2)          
+
+	IF @HasAccess=0          
+	BEGIN          
+		RAISERROR(''-105'',16,1)          
+	END
+  
+	declare @JLen INT 
+	select @JLen=len(Value) from com_costcenterpreferences WITH(NOLOCK) where CostCenterID=76 and name=''JobDimension'' 
+
+	--Get Role Information.          
+	IF (@RoleID =  0 )        
+	BEGIN        
+		SELECT Name,Description,GUID,STATUSID,ExtraXML,RoleType, DefaultScreenXML,CONVERT(DATETIME,AccessFromDate) AccessFromDate,CONVERT(DATETIME,AccessToDate) AccessToDate
+		FROM ADM_PRoles WITH(NOLOCK)        
+		WHERE STATUSID = 1 AND IsRoleDeleted = 0         
+		--SET @RoleID = 1      
+	END        
+	ELSE        
+	BEGIN        
+		SELECT Name,Description,GUID,STATUSID,ExtraXML,RoleType, DefaultScreenXML,CONVERT(DATETIME,AccessFromDate) AccessFromDate,CONVERT(DATETIME,AccessToDate) AccessToDate
+		FROM ADM_PRoles WITH(NOLOCK)        
+		WHERE  ROLEID = @RoleID AND IsRoleDeleted = 0          
+	END     
+ 
+	select DISTINCT(FA.FeatureActionID) FeatureActionID,TabID,T.ResourceData TabName, GroupID,
+	G.ResourceData GroupName, 
+	case when(R.screenname is null or R.screenname='''') then A.Name else ISNULL(S.ResourceData,R.screenname) END DrpName, 
+	R.FeatureID, FA.Name  Feature,  (R.RIBBONVIEWID),
+	case when EXISTS (SELECT FeatureActionID FROM ADM_FeatureActionRoleMap WITH(NOLOCK) WHERE RoleID=@LoginRoleID and FeatureActionID=FA.FeatureActionID) then 1  else 0 end isEdit
+	from ADM_RibbonView R WITH(NOLOCK)
+	JOIN ADM_FEATURES A WITH(NOLOCK) ON R.FEATUREID=A.FEATUREID
+	join adm_featureaction  FA WITH(NOLOCK) on A.FeatureID=FA.FeatureID  
+	LEFT JOIN COM_LanguageResources T  WITH(NOLOCK) ON T.ResourceID=R.TabResourceID AND T.LanguageID=1          
+	LEFT JOIN COM_LanguageResources G  WITH(NOLOCK) ON G.ResourceID=R.GroupResourceID AND G.LanguageID=1          
+	LEFT JOIN COM_LanguageResources D WITH(NOLOCK) ON D.ResourceID=R.DrpResourceID AND D.LanguageID=1 
+	LEFT JOIN COM_LanguageResources S WITH(NOLOCK) ON S.ResourceID=R.ScreenResourceID AND S.LanguageID=1          
+	WHERE   FA.FEATUREID<>50 
+	--FeatureActionID (R.RibbonViewID NOT IN (29,30,50004,77,80,81,82,108,109,1010,157,158,187,202,203,523,612,674,1009,616,552,553,554,214,227,228,229,230,1012,236,992,993,1004) 
+	AND (R.FeatureActionID NOT IN (1695,770,35,85,1744,771,1888,3737,460,461,6464,1745,773,1619,2081,2082,3459,3458,4812,2068,1972,2001,2593,2064,1991,3452,608,609,3738,563,564,2873)
+	--AND (R.FeatureActionID NOT IN (1695,770,35,85,1744,771,1888,3737,460,461,6464,1745,773,1619,2081,2082,3459,3458,4812,2068,1972,2001,2593,2064,1991,3452,608,609,3738,563,564,3754,2873)
+	and R.RibbonViewID NOT IN (select ribbonviewid from ADM_RibbonView with(nolock) where TabID=9 and groupid=50 and featureactionname=''Document Resave'')) 
+	and R.RibbonViewID NOT IN ( select ribbonviewid from adm_ribbonview WITH(NOLOCK) where tabid=4 and GroupID=32 and DrpName=''Jobs'' and @JLen=0 ) 
+	and FA.FEATUREACTIONID <> (6604)
+	and (@UserID=1 or FA.FeatureActionID IN (SELECT FeatureActionID FROM ADM_FeatureActionRoleMap WITH(NOLOCK) WHERE RoleID=@LoginRoleID OR RoleID=@RoleID))
+	GROUP BY TABID, TABNAME, GROUPID, GroupName, R.RIBBONVIEWID , R.FeatureID,FA.FeatureActionID, 
+	FA.Name, T.ResourceData,G.ResourceData ,A.Name ,R.screenname,S.ResourceData
+	union all
+	select DISTINCT(FA.FeatureActionID) ,tabid,T.ResourceData tabname, groupid,
+	G.ResourceData groupname, 
+	A.Name, 
+	R.FeatureID,  FA.Name,  (R.RibbonViewID) ,1 
+	from ADM_RibbonView R WITH(NOLOCK)
+	LEFT JOIN ADM_FEATURES A WITH(NOLOCK) ON R.FEATUREID=A.FEATUREID 
+	left join adm_featureaction FA WITH(NOLOCK) on A.FeatureID=FA.FeatureID  AND FA.FEATUREACTIONID=R.FEATUREACTIONID
+	LEFT JOIN COM_LanguageResources T  WITH(NOLOCK) ON T.ResourceID=R.TabResourceID AND T.LanguageID=1          
+	LEFT JOIN COM_LanguageResources G  WITH(NOLOCK) ON G.ResourceID=R.GroupResourceID AND G.LanguageID=1          
+	LEFT JOIN COM_LanguageResources D WITH(NOLOCK) ON D.ResourceID=R.DrpResourceID AND D.LanguageID=1          
+	WHERE   FA.FEATUREID= 50  
+	GROUP BY TABID, TABNAME, GROUPID, GroupName, R.RIBBONVIEWID , R.FeatureID,FA.FeatureActionID, 
+	FA.Name, T.ResourceData,G.ResourceData ,A.Name  
+	union all
+	SELECT distinct A.FeatureActionID,16 TabID,''Company'' ,300,''Company'',ADM_Features.name,a.FeatureID, a.Name, 4000 ,1     
+	FROM ADM_FeatureAction A WITH(NOLOCK)             
+	LEFT JOIN ADM_FeatureActionRoleMap AR WITH(NOLOCK) ON AR.FeatureActionRoleMapID=A.FeatureActionID            
+	LEFT JOIN ADM_PRoles R WITH(NOLOCK) ON R.RoleID=AR.RoleID            
+	LEFT JOIN ADM_Features WITH(NOLOCK) ON ADM_Features.FEATUREID=A.FEATUREID         
+	where a.featureid in (4 ,157) and FeatureActionTypeID<>30 
+	ORDER BY R.TabID, R.GroupID,R.RIBBONVIEWID,R.FeatureID,   FA.FEATUREACTIONID --,DrpName,Feature
+ 
+-- --REPORTS
+--select DISTINCT(FA.FeatureActionID) ,tabid,T.ResourceData tabname, groupid,
+--G.ResourceData groupname, 
+--A.Name, 
+--R.FeatureID,  FA.Name,  (R.RIBBONVIEWID)
+--from ADM_RibbonView R
+--LEFT JOIN ADM_FEATURES A ON R.FEATUREID=A.FEATUREID 
+--left join adm_featureaction  FA on A.FeatureID=FA.FeatureID  AND FA.FEATUREACTIONID=R.FEATUREACTIONID
+--LEFT JOIN COM_LanguageResources T  WITH(NOLOCK) ON T.ResourceID=R.TabResourceID AND T.LanguageID=1          
+--LEFT JOIN COM_LanguageResources G  WITH(NOLOCK) ON G.ResourceID=R.GroupResourceID AND G.LanguageID=1          
+--LEFT JOIN COM_LanguageResources D WITH(NOLOCK) ON D.ResourceID=R.DrpResourceID AND D.LanguageID=1          
+--WHERE   FA.FEATUREID= 50   AND R.TABID IN (2,3)
+--GROUP BY TABID, TABNAME, GROUPID, GroupName, R.RIBBONVIEWID , R.FeatureID,FA.FeatureActionID, 
+-- FA.Name, T.ResourceData,G.ResourceData ,A.Name 
+--ORDER BY R.TabID, R.GroupID,FA.FEATUREACTIONID,R.RIBBONVIEWID,R.FeatureID    
+
+	select CostCenterID,DocumentType from adm_documenttypes with(nolock)
+           
+  SELECT [Name],[Value]            
+  FROM ADM_GlobalPreferences WITH(NOLOCK)          
+      
+  -- Getting FeatureActionID For a Particular Role      
+  SELECT FeatureActionID,Description,Status FROM dbo.ADM_FeatureActionRoleMap WITH(NOLOCK)
+  WHERE RoleID = @RoleID     
+  
+-- Getting Location Mapped with Role  
+  SELECT * FROM  COM_CostCenterCostCenterMap   WITH(NOLOCK)
+  WHERE PARENTCOSTCENTERID = 6 AND COSTCENTERID = 50002 AND ParentNodeID = @RoleID   
+
+-- Getting Location - Divisions Mapped with Role
+SELECT CCMAP.ParentNodeId,CCMAP.CostCenterId,ADM_Features.NAME AS CostCenterName,CCMAP.NodeID 
+ ,CASE WHEN COSTCENTERID = 50001 THEN COM_DIVISION.NAME ELSE COM_LOCATION.NAME END AS Value
+FROM  COM_CostCenterCostCenterMap  CCMAP WITH(NOLOCK)
+LEFT JOIN ADM_Features WITH(NOLOCK) ON CCMAP.COSTCENTERID = ADM_Features.FEATUREID 
+LEFT JOIN COM_LOCATION WITH(NOLOCK) ON CCMAP.NODEID = COM_LOCATION.NODEID
+LEFT JOIN COM_DIVISION WITH(NOLOCK) ON CCMAP.NODEID = COM_DIVISION.NODEID
+WHERE CCMAP.PARENTCOSTCENTERID = 6   AND CCMAP.ParentNodeID = @RoleID  
+  
+-- Getting Types of Accounts & Products
+select AccountType as Type, AccountTypeID as FeatureTypeID, 2 as FeatureID 
+from acc_accounttypes WITH(NOLOCK)
+union
+select ProductType as Type, ProductTypeID as FeatureTypeID, 3 as FeatureID from INV_ProductTypes WITH(NOLOCK)
+
+--select @RoleID
+select FeatureID,FeatureTypeID from ADM_FeatureTypeValues WITH(NOLOCK) where roleid=@RoleID
+
+
+          
+SET NOCOUNT OFF;             
+RETURN 1          
+END TRY          
+BEGIN CATCH            
+ --Return exception info [Message,Number,ProcedureName,LineNumber]            
+ IF ERROR_NUMBER()=50000          
+ BEGIN          
+  SELECT ErrorMessage,ErrorNumber FROM COM_ErrorMessages WITH(NOLOCK) WHERE ErrorNumber=ERROR_MESSAGE() AND LanguageID=@LangID          
+ END          
+ ELSE          
+ BEGIN          
+  SELECT ErrorMessage, ERROR_MESSAGE() AS ServerMessage,ERROR_NUMBER() as ErrorNumber, ERROR_PROCEDURE()as ProcedureName, ERROR_LINE() AS ErrorLine          
+  FROM COM_ErrorMessages WITH(NOLOCK) WHERE ErrorNumber=-999 AND LanguageID=@LangID          
+ END          
+      
+SET NOCOUNT OFF            
+RETURN -999             
+END CATCH
+' 
+END
+GO
+/****** Object:  StoredProcedure [dbo].[spADM_GetUsersDet]    Script Date: 03-11-2025 10:26:26 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[spADM_GetUsersDet]') AND type in (N'P', N'PC'))
+BEGIN
+EXEC dbo.sp_executesql @statement = N'      
+CREATE procedure [dbo].[spADM_GetUsersDet]        
+ @UserID NVARCHAR(500),        
+ @LangID int=1        
+AS        
+       
+BEGIN TRY         
+SET NOCOUNT ON        
+       
+	--SP Required Parameters Check        
+	if(@UserID='''')        
+	BEGIN        
+		RAISERROR(''-100'',16,1)        
+	END        
+   
+	SELECT a.UserID,a.UserName UserName,a.Password Password,a.StatusID,s.Status,a.DefaultLanguage,r.RoleID RoleID,      
+	r.Name RoleName,a.FirstName,a.MiddleName,a.LastName,a.Address1,a.Address2,a.Address3,      
+	a.City,a.State,a.Zip,a.Country,a.Phone1,a.Phone2,a.Fax,a.Email1,a.Email2,a.Website,a.Description,      
+	a.GUID ,a.Email1Password,a.Email2Password,a.DefaultScreenXML,a.IsPassEncr,ADMUSR.InstanceCount,a.LocationID,a.DivisionID,a.IsOffline,TwoStepVerMode,DeviceID,MultipleDevices
+	,TenantID,ClientID,ClientSecret,convert(datetime,a.CreatedDate) CDATE,convert(datetime,a.AccessFromDate) AccessFromDate,convert(datetime,a.AccessToDate) AccessToDate
+	FROM dbo.ADM_Users a with(nolock)      
+	join dbo.COM_Status s with(nolock) on a.StatusID=s.StatusID        
+	join dbo.ADM_UserRoleMap u with(nolock) on u.IsDefault=1 and a.UserID=u.UserID        
+	join  dbo.ADM_PRoles r with(nolock) on u.RoleID=r.RoleID    
+	left JOIN [PACT2C].dbo.ADM_Users ADMUSR with(nolock) ON ADMUSR.USERNAME COLLATE DATABASE_DEFAULT  =  a.USERNAME  COLLATE DATABASE_DEFAULT    
+	WHERE   a.IsUserDeleted = 0 and  a.UserID= @UserID       
+
+    --SELECT ''CHARY'',@UserID,@LangID 
+	EXEC [spCOM_GetCCCCMapDetails] 7, @UserID,@LangID 
+
+	select M.UserRoleMapID,R.RoleID,R.Name RoleName,Status,convert(datetime,FromDate) FromDate,convert(datetime,ToDate) ToDate
+	from ADM_UserRoleMap M with(nolock)
+	inner join ADM_PRoles R with(nolock) on R.RoleID=M.RoleID
+	where UserID=@UserID and IsDefault=0
+	order by FromDate,ToDate
+
+	--Getting Files
+	EXEC [spCOM_GetAttachments] 7,@UserID,@UserID
+	
+	select StatusMapID,CostCenterID,[Status],convert(datetime,FromDate) FromDate,convert(datetime,ToDate) ToDate
+	from [COM_CostCenterStatusMap] with(nolock)
+	where CostCenterID=7 and NodeID=@UserID
+	order by FromDate,ToDate
+	
+        
+        
+SET NOCOUNT OFF;        
+RETURN 1        
+END TRY        
+BEGIN CATCH          
+ --Return exception info [Message,Number,ProcedureName,LineNumber]          
+ IF ERROR_NUMBER()=50000        
+ BEGIN        
+  SELECT ErrorMessage,ErrorNumber FROM COM_ErrorMessages WITH(nolock) WHERE ErrorNumber=ERROR_MESSAGE() AND LanguageID=@LangID        
+ END        
+ ELSE        
+ BEGIN        
+  SELECT ErrorMessage, ERROR_MESSAGE() AS ServerMessage,ERROR_NUMBER() as ErrorNumber, ERROR_PROCEDURE()as ProcedureName, ERROR_LINE() AS ErrorLine        
+  FROM COM_ErrorMessages WITH(nolock) WHERE ErrorNumber=-999 AND LanguageID=@LangID        
+ END        
+       
+SET NOCOUNT OFF          
+RETURN -999           
+END CATCH
+' 
+END
+GO
+/****** Object:  StoredProcedure [dbo].[spADM_SetRole]    Script Date: 03-11-2025 10:26:26 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[spADM_SetRole]') AND type in (N'P', N'PC'))
+BEGIN
+EXEC dbo.sp_executesql @statement = N'-- =============================================      
+-- Author:  Adil      
+-- Create date: 23 Jun 2011      
+-- Description: Create New or Edit existing Role. System defined roles will not be allowed to be edited. [Tables - PRoles]      
+-- Example :      
+-- spADM_SetRole 1,'''','''',1,''CompanyGUID'',''GUID'',''ADMIN'',1,1    
+-- =============================================      
+CREATE PROC [dbo].[spADM_SetRole]      
+ @RoleID INT=0,      
+ @RoleName NVARCHAR(50),      
+ @Description NVARCHAR(500)=null,      
+ @Status SMALLINT,      
+ @MapXml NVARCHAR(MAX),    
+ @CompanyRoleXML NVARCHAR(max),   
+ @RestrictXML NVARCHAR(max),
+ @ExtraXML NVARCHAR(max),
+ @DefaultScreenXML NVARCHAR(max)=null, 
+ @RoleType INT=0,
+ @CompanyGUID NVARCHAR(50),    
+ @GUID NVARCHAR(50),    
+ @UserName NVARCHAR(50),    
+ @LoginRoleID INT,
+ @LangID INT=1,
+@AccessFromDate datetime=null,
+@AccessToDate datetime=null		    
+AS      
+BEGIN TRANSACTION      
+BEGIN TRY      
+SET NOCOUNT ON;     
+    
+  --Declaration Section    
+  DECLARE @HasAccess BIT,@Dt FLOAT,@TempGuid NVARCHAR(50),@XML XML  , @RXML XML ,@HistGUID nvarchar(50)
+    
+  --SP Required Parameters Check    
+  IF @RoleID<0 OR @CompanyGUID IS NULL OR @CompanyGUID=''''    
+  BEGIN    
+   RAISERROR(''-100'',16,1)    
+  END    
+
+  --User access check    
+  IF @RoleID=0    
+  BEGIN    
+   SET @HasAccess=dbo.fnCOM_HasAccess(@LoginRoleID,6,1)    
+  END    
+  ELSE    
+  BEGIN    
+   SET @HasAccess=dbo.fnCOM_HasAccess(@LoginRoleID,6,3)    
+  END    
+    
+  IF @HasAccess=0    
+  BEGIN    
+   RAISERROR(''-105'',16,1)    
+  END    
+    
+  SET @Dt=CONVERT(FLOAT,GETDATE())      
+  set @HistGUID=newid()
+  
+CREATE TABLE #tblList(FeatureActionID INT null,MapAction NVARCHAR(10) null,Descrip nvarchar(max))      
+
+IF @Status=-100
+BEGIN
+	SET @XML=@MapXML
+
+	declare @tblRoles as table(RoleID int)
+	insert into @tblRoles
+	exec SPSplitString @CompanyRoleXML,'',''
+	
+	--Read XML data into temporary table
+	INSERT INTO #tblList(FeatureActionID,MapAction,Descrip)      
+	SELECT X.value(''@FAID'',''INT'')   
+	,X.value(''@Map'',''NVARCHAR(10)'') ,X.value(''@Description'',''NVARCHAR(max)'')      
+	FROM @XML.nodes(''/XML/Row'') AS Data(X)
+	
+	--select * from #tblList
+	
+	--Delete all feature actions mapping for that roles
+	delete F from ADM_FeatureActionRoleMap F with(nolock)
+	join #tblList T with(nolock) on T.FeatureActionID=F.FeatureActionID
+	WHERE F.RoleID in (select RoleID from @tblRoles)
+
+	--Insert feature actions mapping for that role      
+	INSERT INTO ADM_FeatureActionRoleMap    
+	(RoleID    
+	,FeatureActionID    
+	,Status,Description
+	,CreatedBy    
+	,CreatedDate)      
+	SELECT     
+	R.RoleId    
+	,FeatureActionID    
+	,1,Descrip  
+	,@UserName    
+	,@Dt
+	FROM #tblList T with(nolock),@tblRoles R 
+	WHERE MapAction=''LINK''
+
+	INSERT INTO ADM_FeatureActionRoleMapHistory(FeatureActionRoleMapID,RoleID,FeatureActionID,[Status],[GUID],CreatedBy,CreatedDate)
+	select FeatureActionRoleMapID,RoleID,F.FeatureActionID,[Status],@HistGUID,CreatedBy,CreatedDate
+	from ADM_FeatureActionRoleMap F with(nolock) 
+	join #tblList T with(nolock) on T.FeatureActionID=F.FeatureActionID
+	where T.MapAction=''LINK'' and RoleID in (select RoleID from @tblRoles)
+	order by FeatureActionRoleMapID
+	
+	delete from ADM_GridContextMenu where GridContextMenuID in (
+	select GridContextMenuID from ADM_GridContextMenu M	 with(nolock)
+	join @tblRoles R on R.RoleID=M.RoleID
+	join #tblList T with(nolock) on T.FeatureActionID=M.FeatureActionID)
+	
+	insert into ADM_GridContextMenu  
+	([GridViewID]  
+	,[GridViewColumnID]  
+	,[FeatureActionID]  
+	,[MenuOrder]  
+	,[RoleID]  
+	,[CompanyGUID]  
+	,[GUID]   
+	,[CreatedBy]  
+	,[CreatedDate])  
+	SELECT [GridViewID]  
+	,[GridViewColumnID]  
+	,M.[FeatureActionID]  
+	,[MenuOrder]  
+	,R.RoleId    
+	,@CompanyGUID  
+	,@HistGUID
+	,@UserName    
+	,CONVERT(float,GETDATE())  
+	FROM [ADM_GridContextMenu] M with(nolock)
+	join #tblList T with(nolock) on T.FeatureActionID=M.FeatureActionID
+	,@tblRoles R
+	where M.RoleId = 1
+END
+ELSE
+BEGIN
+  IF @RoleID=0     
+  BEGIN--------START INSERT RECORD-----------    
+   INSERT INTO ADM_PRoles    
+      (Name,Description,StatusID,ExtraXML,IsUserDefined    
+      ,CompanyGUID,GUID,CreatedBy,CreatedDate,RoleType,DefaultScreenXML,AccessFromDate,AccessToDate)
+    VALUES    
+      (@RoleName,@Description,@Status,@ExtraXML
+      ,1,@CompanyGUID,@HistGUID,@UserName,@Dt,@RoleType,@DefaultScreenXML,convert(float,@AccessFromDate),convert(float,@AccessToDate))
+    
+    --To get inserted record primary key    
+    SET @RoleID=SCOPE_IDENTITY()      
+    
+  END--------END INSERT RECORD-----------      
+  ELSE-------START UPDATE RECORD-----------      
+  BEGIN      
+    
+    SELECT @TempGuid=[GUID] FROM ADM_PRoles WITH(NOLOCK)         
+    WHERE RoleID=@RoleID        
+     
+--    if(@TempGuid!=@Guid)--IF RECORD ALREADY UPDATED BY SOME OTHER USER i.e DIRTY READ        
+--    BEGIN        
+--     RAISERROR(''-101'',16,1)    
+--    END        
+    
+    UPDATE ADM_PRoles      
+    SET Name=@RoleName    
+        ,Description=@Description    
+        ,StatusID=@Status
+        ,ExtraXML=@ExtraXML
+        ,GUID=@HistGUID   
+        ,ModifiedBy=@UserName    
+        ,ModifiedDate=@Dt
+        ,RoleType=@RoleType
+		,DefaultScreenXML=@DefaultScreenXML
+		,AccessFromDate=convert(float,@AccessFromDate),AccessToDate=convert(float,@AccessToDate)
+    WHERE RoleID=@RoleID      
+  END--------END UPDATE RECORD-----------      
+  IF(@MapXML<>'''')    
+  BEGIN    
+   SET @XML=@MapXML      
+
+   --Read XML data into temporary table    
+   INSERT INTO #tblList    
+      (FeatureActionID
+      ,MapAction,Descrip)      
+    SELECT X.value(''@FAID'',''INT'')    
+      ,X.value(''@Map'',''NVARCHAR(10)'') ,X.value(''@Description'',''NVARCHAR(max)'')      
+    FROM @XML.nodes(''/XML/Row'') AS Data(X)     
+    
+    
+   --Delete all feature actions mapping for that role      
+   DELETE FROM ADM_FeatureActionRoleMap WHERE 
+	 RoleID = @RoleId
+	--FeatureActionID IN   (SELECT FeatureActionID FROM #tblList WHERE  UPPER(LTRIM(RTRIM(MapAction)))=''LINK'')      
+    
+   --Insert feature actions mapping for that role      
+   INSERT INTO ADM_FeatureActionRoleMap    
+      (RoleID    
+      ,FeatureActionID    
+      ,Status,Description
+      ,CreatedBy    
+      ,CreatedDate)      
+    SELECT     
+      @RoleId    
+      ,FeatureActionID    
+      ,1,Descrip  
+      ,@UserName    
+      ,@Dt
+    FROM #tblList with(nolock) WHERE  UPPER(LTRIM(RTRIM(MapAction)))=''LINK''    
+    
+    if @RoleId=1
+    begin
+		INSERT INTO ADM_FeatureActionRoleMap(RoleID,FeatureActionID,Status,CreatedBy,CreatedDate)  
+		select 1,FA.FeatureActionID,1,@UserName,@Dt from adm_featureaction FA with(nolock) 
+		left join ADM_FeatureActionRoleMap FAR with(nolock) on FAR.FeatureActionID=FA.FeatureActionID and FAR.RoleID=1
+		where FA.FeatureID=6 and FAR.FeatureActionID is null
+		
+		UPDATE ADM_PRoles      
+		SET Name=''ADMIN'',Description=''ADMIN'',StatusID=434
+		WHERE RoleID=1
+    end
+
+    --Added to get global preferences (pranathi)
+    if exists (select featureactionid from #tblList with(nolock) WHERE  UPPER(LTRIM(RTRIM(MapAction)))=''LINK''   and FeatureActionID=1619)
+		 INSERT INTO ADM_FeatureActionRoleMap (RoleID ,FeatureActionID,Status,CreatedBy,CreatedDate)      
+		 values (@RoleId,3759,1,@UserName,@Dt)
+		 
+	INSERT INTO ADM_FeatureActionRoleMapHistory(FeatureActionRoleMapID,RoleID,FeatureActionID,[Status],[GUID],CreatedBy,CreatedDate)
+	select FeatureActionRoleMapID,RoleID,FeatureActionID,[Status],@HistGUID,CreatedBy,CreatedDate
+	from ADM_FeatureActionRoleMap with(nolock) where RoleID=@RoleId order by FeatureActionRoleMapID
+    
+    Drop table #tblList    
+  
+	if (@RoleId<>1)
+	begin
+		DELETE FROM ADM_GridContextMenu
+		WHERE  RoleID =    @RoleId
+
+		insert into dbo.ADM_GridContextMenu  
+		([GridViewID]  
+		,[GridViewColumnID]  
+		,[FeatureActionID]  
+		,[MenuOrder]  
+		,[RoleID]  
+		,[CompanyGUID]  
+		,[GUID]   
+		,[CreatedBy]  
+		,[CreatedDate])  
+		SELECT [GridViewID]  
+		,[GridViewColumnID]  
+		,[FeatureActionID]  
+		,[MenuOrder]  
+		,@RoleId    
+		,@CompanyGUID  
+		,@HistGUID
+		,@UserName    
+		,CONVERT(float,GETDATE())  
+
+		FROM  [ADM_GridContextMenu] with(nolock)   
+
+		where [FeatureActionID] in ( SELECT     
+		X.value(''@FAID'',''INT'')       
+		FROM @XML.nodes(''/XML/Row'') AS Data(X) ) AND RoleId = 1 
+	end 
+		  
+     
+  END    
+      
+   IF(@CompanyRoleXML <> '''' AND @CompanyRoleXML IS NOT NULL)  
+		BEGIN  
+		  EXEC [spCOM_SetCCCCMap]6,@RoleId,@CompanyRoleXML,@UserName,@LangID
+	 END 
+	 
+	 IF(@RestrictXML <>'''' and  @RestrictXML is not null)
+	 BEGIN 
+	 SET @RXML=@RestrictXML
+	 delete from adm_featuretypevalues where RoleID=@RoleId and userid is null
+		INSERT INTO [ADM_FeatureTypeValues]
+		   ([FeatureID]
+		   ,[CostCenterID]
+		   ,[FeatureTypeID]
+		   ,[GUID] 
+		   ,[CreatedBy]
+		   ,[CreatedDate]
+		   ,[RoleID])
+		SELECT     
+			X.value(''@CostCenterId'',''INT'')    
+			,X.value(''@CostCenterId'',''INT'')    
+			,X.value(''@FeatureTypeID'',''INT'') 
+			,@HistGUID
+			,@UserName    
+			,CONVERT(float,GETDATE())  
+			,@RoleId    
+		FROM @RXML.nodes(''/XML/Row'') AS Data(X)    
+	 END
+END
+
+COMMIT TRANSACTION
+--ROLLBACK TRANSACTION
+
+SELECT Name,Description,StatusID,IsUserDefined,CreatedBy,CreatedDate,RoleType,DefaultScreenXML
+FROM ADM_PRoles WITH(nolock) WHERE RoleID=@RoleID     
+SET NOCOUNT OFF;      
+RETURN  @RoleID    
+END TRY    
+BEGIN CATCH      
+ --Return exception info [Message,Number,ProcedureName,LineNumber]      
+ IF ERROR_NUMBER()=50000    
+ BEGIN    
+  SELECT Name,Description,StatusID,IsUserDefined,CreatedBy,CreatedDate     
+  FROM ADM_PRoles WITH(nolock) WHERE RoleID=@RoleID     
+  SELECT ErrorMessage,ErrorNumber FROM COM_ErrorMessages WITH(NOLOCK) WHERE ErrorNumber=ERROR_MESSAGE() AND LanguageID=@LangID    
+ END    
+ ELSE    
+ BEGIN    
+  SELECT ErrorMessage, ERROR_MESSAGE() AS ServerMessage,ERROR_NUMBER() as ErrorNumber, ERROR_PROCEDURE()as ProcedureName, ERROR_LINE() AS ErrorLine    
+  FROM COM_ErrorMessages WITH(NOLOCK) WHERE ErrorNumber=-999 AND LanguageID=@LangID    
+ END    
+ROLLBACK TRANSACTION    
+SET NOCOUNT OFF      
+RETURN -999       
+END CATCH    
+' 
+END
+GO
+/****** Object:  StoredProcedure [dbo].[spADM_SetUser]    Script Date: 03-11-2025 10:26:26 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[spADM_SetUser]') AND type in (N'P', N'PC'))
+BEGIN
+EXEC dbo.sp_executesql @statement = N'-- =============================================
+-- Author:		Adil
+-- Create date: 22 Jun 2011
+-- Description:	Create New or Edit existing User. System defined users will not be allowed to be edited. [Tables - PACTC->Users]
+-- =============================================
+CREATE procedure [dbo].[spADM_SetUser]
+	@SaveUserID INT = 0,
+	@RoleId int , 
+	@SaveUserName NVARCHAR(50),
+	@Pwd NVARCHAR(50),
+	@Status INT,
+	@DefLanguage INT,
+	@IsOffline BIT,
+	@TwoStepVerMode NVARCHAR(50)=NULL,
+	@DeviceID NVARCHAR(50)=NULL,
+	@MultipleDevices BIT,
+    @Query NVARCHAR(max) , 
+	@CompanyIndex INT,
+	@CompanyUserXML NVARCHAR(max) ,
+	@RestrictXML NVARCHAR(max), 
+	@DefaultScreenXML NVARCHAR(max)=null, 
+	@LicenseCnt INT=1,
+	@LincenseXML nvarchar(max)=null,
+	@AttachmentsXML nvarchar(max)=null,
+	@RolesXML nvarchar(max)=null,
+	@StatusXML nvarchar(max)=null,
+	@LocationID INT=0,
+	@DivisionID INT=0,
+	@CompanyGUID NVARCHAR(50),
+	@GUID NVARCHAR(50),
+	@UserName NVARCHAR(50),
+	@UserID INT,
+	@LoginRoleID int,
+	@LangID INT=1,
+	@ClientID nvarchar(1000)=null,
+	@TenantID nvarchar(1000)=null,
+	@ClientSecret nvarchar(1000)=null,
+	@AccessFromDate datetime=null,
+	@AccessToDate datetime=null		 
+AS
+BEGIN TRANSACTION
+SET NOCOUNT ON
+BEGIN TRY
+
+	--Declaration Section
+	DECLARE @TempGuid NVARCHAR(50),@HasAccess BIT,@ActionType INT,@IsEdit bit,@HistoryStatus NVARCHAR(300),@PrevRoleID INT
+	DECLARE @XML XML, @RXML XML ,@Dt float,@PwdModifiedon float
+	DECLARE @2CUserID INT, @2CCOMPANYID INT 
+	DECLARE @UPDUSR  NVARCHAR(MAX) , @UPDUSRSRV NVARCHAR(MAX) 
+	--SP Required Parameters Check
+	IF @CompanyGUID IS NULL OR @CompanyGUID=''''
+	BEGIN
+		RAISERROR(''-100'',16,1)
+	END
+
+	set @Dt=CONVERT(FLOAT,GETDATE())
+	set @PwdModifiedon=@Dt
+	--User acces check
+	IF @SaveUserID=0
+	BEGIN
+		SET @ActionType =1
+		SET @HasAccess=dbo.fnCOM_HasAccess(@LoginRoleID,7,1)
+		set @HistoryStatus=''Add''
+	END
+	ELSE
+	BEGIN
+		SET @ActionType =3 
+		SET @HasAccess=dbo.fnCOM_HasAccess(@LoginRoleID,7,3)
+		set @HistoryStatus=''Update''
+	END
+	
+	IF @HasAccess=0
+	BEGIN
+		RAISERROR(''-105'',16,1)
+	END
+	
+	IF EXISTS(SELECT UserID FROM ADM_Users with(nolock) WHERE UserName = @SaveUserName AND USERID <> @SaveUserID )
+	BEGIN
+		RAISERROR(''-353'',16,1)
+	END
+ 
+	IF @SaveUserID=0--------START INSERT RECORD-----------
+	BEGIN
+		SET @IsEdit=0
+		IF EXISTS(SELECT UserID FROM [PACT2C].dbo.ADM_Users with(nolock) WHERE UserName=@SaveUserName)
+		BEGIN
+			RAISERROR(''-403'',16,1)
+		END
+	
+		INSERT INTO ADM_Users(UserName,[Password],StatusID,DefaultLanguage,IsOffline,IsPassEncr,[GUID],
+				CreatedBy,CreatedDate,DefaultScreenXML,LocationID,DivisionID,PwdModifiedon,TwoStepVerMode,DeviceID,MultipleDevices,TenantID,ClientID,ClientSecret,AccessFromDate,AccessToDate)
+		VALUES(@SaveUserName,@Pwd,@Status,@DefLanguage,@IsOffline,1,NEWID(),
+				@UserName,@Dt,@DefaultScreenXML,@LocationID,@DivisionID,@PwdModifiedon,@TwoStepVerMode,@DeviceID,@MultipleDevices,@TenantID,@ClientID,@ClientSecret,convert(float,@AccessFromDate),convert(float,@AccessToDate))
+
+		--To get inserted record primary key
+		SET @SaveUserID=SCOPE_IDENTITY()
+
+		INSERT INTO [PACT2C].dbo.ADM_Users(UserName,[Password],StatusID,DefaultLanguage,IsPassEncr,InstanceCount,
+				IsUserdefined,CompanyGUID,[GUID],CreatedBy,CreatedDate)
+		VALUES(@SaveUserName,@Pwd,@Status,@DefLanguage,1,@LicenseCnt,1,@CompanyGUID,NEWID(),@UserName,@Dt)
+		SET @2CUserID=SCOPE_IDENTITY()
+		
+		--To Map User To License Site
+		if @LincenseXML is not null and @LincenseXML!=''''
+		begin
+			set @XML=@LincenseXML
+			delete from [PACT2C].dbo.ADM_Sites where [Type]=2 and UserID=@2CUserID
+			insert into [PACT2C].dbo.ADM_Sites([Type],SiteMap,UserID)
+			select 2,X.value(''@ID'',''int''),@2CUserID
+			FROM @XML.nodes(''/Lic/R'') as Data(X) 	
+		end
+
+		INSERT INTO [ADM_UserRoleMap]([RoleID],[UserID],[UserName],[Status],[CreatedBy],[CreatedDate])
+		VALUES(@RoleId,@SaveUserID,@SaveUserName,1,@UserName,@Dt)
+		
+		-- UPDATING THE CURRENT RECORD WITH DETAILS
+		IF(@Query <> '''' or @Query is not null)
+		BEGIN
+		 
+			SET @UPDUSR = ''UPDATE ADM_Users
+			SET  ''+ @Query +'' ModifiedBy = ''''''+@UserName+'''''' , ModifiedDate = ''''''+ convert(nvarchar(50),@Dt) +'''''' WHERE USERID = ''+ CONVERT(NVARCHAR(10),@SaveUserID)
+			EXEC (@UPDUSR)
+			
+			SET @UPDUSRSRV = ''UPDATE [PACT2C].dbo.ADM_Users
+			SET  ''+ @Query +'' ModifiedBy = ''''''+@UserName+'''''' , ModifiedDate = ''''''+ convert(nvarchar(50),@Dt) +''''''  WHERE USERID = ''+ CONVERT(NVARCHAR(10),@2CUserID)
+			EXEC (@UPDUSRSRV)
+		END  
+				
+		SELECT @2CCOMPANYID = COMPANYID FROM [PACT2C].[dbo].[ADM_COMPANY] with(nolock)
+		WHERE DBINDEX = @CompanyIndex
+		
+		INSERT INTO [PACT2C].[dbo].[ADM_UserCompanyMap]([UserID],[CompanyID],[IsDefault],[GUID],[CreatedBy],[CreatedDate])
+		VALUES(@2CUserID,@2CCOMPANYID,1,NEWID(),@UserName,@Dt)
+		
+		-- INSERTING DEFAULT DIVISIONS FOR USERS
+		IF(@CompanyUserXML <> '''' AND @CompanyUserXML IS NOT NULL)  
+		BEGIN   
+			EXEC [spCOM_SetCCCCMap] 7,@SaveUserID,@CompanyUserXML,@UserName,@LangID
+		END 
+	END--------END INSERT RECORD-----------
+	ELSE--------START UPDATE RECORD-----------
+	BEGIN
+		set @IsEdit=1
+        DECLARE @USRNM NVARCHAR(50)
+
+		SELECT @USRNM = USERNAME FROM ADM_Users with(nolock) WHERE USERID=@SaveUserID
+
+		SELECT @2CUserID=UserID, @TempGuid=[GUID] FROM [PACT2C].dbo.ADM_Users WITH(NOLOCK)   
+		WHERE USERNAME=@USRNM
+		
+		--To Map User To License Site
+		if @LincenseXML is not null and @LincenseXML!=''''
+		begin
+			set @XML=@LincenseXML
+			delete from [PACT2C].dbo.ADM_Sites where [Type]=2 and UserID=@2CUserID
+			insert into [PACT2C].dbo.ADM_Sites([Type],SiteMap,UserID)
+			select 2,X.value(''@ID'',''int''),@2CUserID
+			FROM @XML.nodes(''/Lic/R'') as Data(X) 	
+		end
+		
+		select @PwdModifiedon=PwdModifiedon from ADM_Users with(nolock) where USERNAME=@USRNM and Password=@Pwd
+	 
+		UPDATE [PACT2C].dbo.ADM_Users
+		SET [Password]=@Pwd,
+			StatusID=@Status,
+			DefaultLanguage=@DefLanguage,IsPassEncr=1,InstanceCount=@LicenseCnt,
+			ModifiedBy=@UserName,
+			ModifiedDate=@Dt 
+		WHERE USERNAME=@USRNM
+
+		UPDATE ADM_Users
+		SET [Password]=@Pwd,
+			StatusID=@Status,
+			DefaultLanguage=@DefLanguage,IsPassEncr=1,
+			ModifiedBy=@UserName,PwdModifiedon=@PwdModifiedon,
+			ModifiedDate=@Dt,DefaultScreenXML=@DefaultScreenXML
+			,LocationID=@LocationID,DivisionID=@DivisionID
+			,IsOffline=@IsOffline,TwoStepVerMode=@TwoStepVerMode,DeviceID=@DeviceID,MultipleDevices=@MultipleDevices
+			,TenantID=@TenantID,ClientID=@ClientID,ClientSecret=@ClientSecret
+			,AccessFromDate=convert(float,@AccessFromDate),AccessToDate=convert(float,@AccessToDate)
+
+		WHERE  USERNAME = @USRNM
+		
+		select @PrevRoleID=RoleID from ADM_UserRoleMap with(nolock) where UserID=@SaveUserID
+
+		UPDATE dbo.ADM_UserRoleMap
+		SET RoleID=@RoleId,
+		ModifiedBy=@UserName,
+		ModifiedDate=@Dt
+		WHERE  UserName = @USRNM and IsDefault=1
+		
+		IF(@Query <> '''' or @Query is not null)
+		BEGIN
+			SET @UPDUSR = ''UPDATE ADM_Users
+			SET  ''+ @Query +'' ModifiedBy = ''''''+@UserName+'''''' , ModifiedDate = ''''''+ convert(nvarchar(50),@Dt) +	
+			'''''' WHERE USERNAME = ''''''+  @USRNM + '''''''' 
+			EXEC (@UPDUSR)
+	
+			SET @UPDUSRSRV = ''UPDATE [PACT2C].dbo.ADM_Users
+			SET  ''+ @Query +'' ModifiedBy = ''''''+@UserName+'''''' , ModifiedDate = ''''''+ convert(nvarchar(50),@Dt) +
+			''''''  WHERE USERNAME = '''''' +  @USRNM  +'''''''' 
+			EXEC (@UPDUSRSRV) 
+		END  
+		
+		IF(@CompanyUserXML <> '''' AND @CompanyUserXML IS NOT NULL)  
+		BEGIN  
+			EXEC [spCOM_SetCCCCMap] 7,@SaveUserID,@CompanyUserXML,@UserName,@LangID
+		END 
+
+	END--------END UPDATE RECORD-----------
+
+
+	IF(@RestrictXML <>'''' and  @RestrictXML is not null)
+	BEGIN 
+		SET @RXML=@RestrictXML
+		delete from adm_featuretypevalues where Userid=@SaveUserID and RoleID is null
+		
+		INSERT INTO [ADM_FeatureTypeValues]
+		   ([FeatureID]
+		   ,[CostCenterID]
+		   ,[FeatureTypeID]
+		   ,[GUID] 
+		   ,[CreatedBy]
+		   ,[CreatedDate]
+		   ,[RoleID] 
+		   ,[UserID])
+		SELECT     
+			X.value(''@CostCenterId'',''INT'')    
+			,X.value(''@CostCenterId'',''INT'')    
+			,X.value(''@FeatureTypeID'',''INT'') 
+			,newid()   
+			,@UserName    
+			,@Dt
+			,null
+			,@SaveUserID   
+		FROM @RXML.nodes(''/XML/Row'') AS Data(X)    
+	END
+
+	--Insert Notifications
+	EXEC spCOM_SetNotifEvent @ActionType,7,@SaveUserID,@CompanyGUID,@UserName,@UserID,-1
+	
+	--Inserts Multiple Attachments    
+	IF (@AttachmentsXML IS NOT NULL AND @AttachmentsXML <> '''') 
+		exec [spCOM_SetAttachments] @SaveUserID,7,@AttachmentsXML,@UserName,@Dt  
+	
+	IF (@RolesXML IS NOT NULL AND @RolesXML <> '''')
+	BEGIN		
+		SET @XML=@RolesXML
+
+		insert into ADM_UserRoleMapHistory		(UserRoleMapID,RoleID,UserID,UserName,Description,Status,CreatedBy,CreatedDate,ModifiedBy,ModifiedDate,IsDefault,FromDate,ToDate,HistoryStatus)
+		SELECT UserRoleMapID,RoleID,UserID,UserName,Description,Status,CreatedBy,CreatedDate,@UserName,@Dt,IsDefault,FromDate,ToDate,''Delete'' 
+		FROM ADM_UserRoleMap C with(nolock)
+		LEFT JOIN @XML.nodes(''/XML/Row'') as Data(X)    
+		ON convert(INT,X.value(''@MapID'',''INT''))=C.UserRoleMapID   
+		WHERE convert(INT,X.value(''@MapID'',''INT'')) IS NULL AND IsDefault=0 AND UserID=@SaveUserID
+
+		DELETE C FROM ADM_UserRoleMap C with(nolock)
+		LEFT JOIN @XML.nodes(''/XML/Row'') as Data(X)    
+		ON convert(INT,X.value(''@MapID'',''INT''))=C.UserRoleMapID   
+		WHERE convert(INT,X.value(''@MapID'',''INT'')) IS NULL AND IsDefault=0 AND UserID=@SaveUserID
+
+		INSERT INTO ADM_UserRoleMap([RoleID],[UserID],[UserName],[Status],IsDefault,FromDate,ToDate
+		,[CreatedBy],[CreatedDate])
+		SELECT X.value(''@RoleID'',''int''),@SaveUserID,@SaveUserName,X.value(''@StatusID'',''int''),0
+		,convert(float,X.value(''@FromDate'',''datetime'')),convert(float,X.value(''@ToDate'',''datetime''))
+		,@UserName,@Dt
+		FROM @XML.nodes(''/XML/Row'') as Data(X)    
+		WHERE X.value(''@Action'',''NVARCHAR(10)'')=''NEW''  
+		
+		--If Action is MODIFY then update Attachments  
+		UPDATE ADM_UserRoleMap  
+		SET [Status]=X.value(''@StatusID'',''int''),
+		FromDate=convert(float,X.value(''@FromDate'',''datetime'')),
+		ToDate=convert(float,X.value(''@ToDate'',''datetime'')),
+		ModifiedBy=@UserName,  
+		ModifiedDate=@Dt
+		FROM ADM_UserRoleMap C   
+		INNER JOIN @XML.nodes(''/XML/Row'') as Data(X)    
+		ON convert(INT,X.value(''@MapID'',''INT''))=C.UserRoleMapID  
+		WHERE X.value(''@Action'',''NVARCHAR(500)'')=''EDIT''		 
+	END
+	ELSE IF(@SaveUserID > 0 AND (@RolesXML IS NULL OR @RolesXML = ''''))
+	BEGIN
+		insert into ADM_UserRoleMapHistory		(UserRoleMapID,RoleID,UserID,UserName,Description,Status,CreatedBy,CreatedDate,ModifiedBy,ModifiedDate,IsDefault,FromDate,ToDate,HistoryStatus)
+		SELECT  UserRoleMapID,RoleID,UserID,UserName,Description,Status,CreatedBy,CreatedDate,@UserName,@Dt,IsDefault,FromDate,ToDate,''Delete'' 
+		FROM ADM_UserRoleMap with(nolock) 
+		WHERE IsDefault=0 AND UserID=@SaveUserID
+
+		DELETE FROM ADM_UserRoleMap 
+		WHERE IsDefault=0 AND UserID=@SaveUserID
+	END
+	
+	IF (@StatusXML IS NOT NULL AND @StatusXML <> '''')
+	BEGIN
+		SET @XML=@StatusXML
+		INSERT INTO [COM_CostCenterStatusMap] ([CostCenterID],[NodeID],[Status],FromDate,ToDate,[CreatedBy],[CreatedDate])
+		SELECT 7,@SaveUserID,X.value(''@StatusID'',''int''),convert(float,X.value(''@FromDate'',''datetime'')),convert(float,X.value(''@ToDate'',''datetime''))
+		,@UserName,@Dt
+		FROM @XML.nodes(''/XML/Row'') as Data(X)    
+		WHERE X.value(''@Action'',''NVARCHAR(10)'')=''NEW''  
+
+		--If Action is MODIFY then update Attachments  
+		UPDATE [COM_CostCenterStatusMap]  
+		SET [Status]=X.value(''@StatusID'',''int''),
+		FromDate=convert(float,X.value(''@FromDate'',''datetime'')),
+		ToDate=convert(float,X.value(''@ToDate'',''datetime'')),
+		ModifiedBy=@UserName,  
+		ModifiedDate=@Dt
+		FROM [COM_CostCenterStatusMap] C WITH(NOLOCK)  
+		INNER JOIN @XML.nodes(''/XML/Row'') as Data(X)    
+		ON convert(INT,X.value(''@MapID'',''INT''))=C.StatusMapID  
+		WHERE X.value(''@Action'',''NVARCHAR(500)'')=''EDIT''
+	END
+	
+	--Insert into User history   
+	insert into ADM_UsersHistory
+	select UserID,UserName,Password,StatusID,DefaultLanguage,IsUserDeleted,FirstName,MiddleName,LastName
+      ,Address1,Address2,Address3,City,State,Zip,Country,Phone1,Phone2,Fax,Email1,Email2,Website,GUID
+      ,Description,CreatedBy,CreatedDate,ModifiedBy,ModifiedDate
+      ,Email1Password,Email2Password,DefaultScreenXML,IsPassEncr,CalendarXML,@HistoryStatus,TwoStepVerMode,DeviceID,MultipleDevices,TenantID,ClientID,ClientSecret from ADM_Users with(nolock) WHERE UserID=@SaveUserID
+	
+	--Audit User Role
+	if @PrevRoleID is null or not exists (select RoleID from ADM_UserRoleMap with(nolock) WHERE UserID=@SaveUserID and RoleID=@PrevRoleID)
+		insert into ADM_UserRoleMapHistory(UserRoleMapID,RoleID,UserID,UserName,Description,Status,CreatedBy,CreatedDate,ModifiedBy,ModifiedDate,IsDefault,FromDate,ToDate,HistoryStatus)
+		select UserRoleMapID,RoleID,UserID,UserName,Description,Status,CreatedBy,CreatedDate,@UserName,@Dt,IsDefault,FromDate,ToDate,@HistoryStatus from ADM_UserRoleMap with(nolock) where UserRoleMapID=(select max(UserRoleMapID) from ADM_UserRoleMap with(nolock) WHERE UserID=@SaveUserID and IsDefault=1)
+	--Audit User Mapped Role
+	if(@RolesXML IS NOT NULL AND @RolesXML <> '''')
+	begin
+		insert into ADM_UserRoleMapHistory(UserRoleMapID,RoleID,UserID,UserName,Description,Status,CreatedBy,CreatedDate,ModifiedBy,ModifiedDate,IsDefault,FromDate,ToDate,HistoryStatus)
+		select UserRoleMapID,RoleID,UserID,UserName,Description,Status,CreatedBy,CreatedDate,@UserName,@Dt,IsDefault,FromDate,ToDate,@HistoryStatus 
+		from ADM_UserRoleMap with(nolock) 
+		where UserID=@SaveUserID and IsDefault=0		
+	end
+	 
+	SELECT * FROM [PACT2C].dbo.ADM_Users WITH(nolock) WHERE UserID=@SaveUserID
+
+COMMIT TRANSACTION  
+
+	IF @IsEdit=1
+	BEGIN
+		--changes made on dec 20 2012 by hafeez,to update password in other assinged companies
+		DECLARE @TABLE TABLE(ID INT IDENTITY(1,1),COMPANY INT)
+		INSERT INTO @TABLE
+		SELECT DISTINCT COMPANYID FROM [PACT2C].dbo.ADM_UserCompanyMap with(nolock) WHERE USERID=@2CUserID
+		AND CompanyID<>@CompanyIndex
+		DECLARE @COUNT INT,@I INT,@COMPANY NVARCHAR(200),@COMINDEX INT,@SQL NVARCHAR(MAX)
+		SELECT @COUNT=COUNT(*),@I=1 FROM @TABLE
+		--SELECT * FROM @TABLE
+		WHILE @I<=@COUNT
+		BEGIN
+			SELECT @COMINDEX=DBINDEX FROM [PACT2C].dbo.ADM_COMPANY with(nolock) WHERE COMPANYID=(
+			SELECT COMPANY FROM @TABLE WHERE ID=@I)  
+			SET @COMPANY=''PACT2C''+ CONVERT(NVARCHAR(200),@COMINDEX)				 
+			if exists(select * from sys.databases where name=@COMPANY)
+			begin
+				SET @SQL=''USE ''+@COMPANY+'' 
+if not exists(select * from ADM_Users with(nolock) WHERE USERNAME=''''''+@USRNM+'''''' and Password=''''''+@Pwd+'''''' and IsPassEncr=1)
+	UPDATE ADM_Users SET Password=''''''+@Pwd+'''''',IsPassEncr=1 WHERE USERNAME='''''' +  @USRNM  +'''''''' 	
+				BEGIN TRY		
+				--	print(@SQL) 
+					EXEC (@SQL)
+				END TRY
+				BEGIN CATCH  
+				END CATCH 
+				SET @SQL=''''
+			end
+			SET @I=@I+1
+		END
+	END
+
+
+SET NOCOUNT OFF;  
+RETURN @SaveUserID  
+END TRY  
+BEGIN CATCH  
+	--Return exception info [Message,Number,ProcedureName,LineNumber]  
+	IF ERROR_NUMBER()=50000
+	BEGIN
+		SELECT * FROM [PACT2C].dbo.ADM_Users WITH(nolock) WHERE UserID=@SaveUserID
+		SELECT ErrorMessage,ErrorNumber FROM COM_ErrorMessages WITH(nolock) WHERE ErrorNumber=ERROR_MESSAGE() AND LanguageID=@LangID
+	END
+	ELSE
+	BEGIN
+		SELECT ErrorMessage, ERROR_MESSAGE() AS ServerMessage,ERROR_NUMBER() as ErrorNumber, ERROR_PROCEDURE()as ProcedureName, ERROR_LINE() AS ErrorLine
+		FROM COM_ErrorMessages WITH(nolock) WHERE ErrorNumber=-999 AND LanguageID=@LangID
+	END
+	ROLLBACK TRANSACTION
+	SET NOCOUNT OFF  
+	RETURN -999   
+END CATCH
+' 
+END
+GO
