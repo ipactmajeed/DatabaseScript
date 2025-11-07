@@ -1,0 +1,174 @@
+--Sajid
+--Quotation
+DECLARE @FeatureActionID bigint,@Rid INT
+SELECT @Rid=MAX(ResourceID) from COM_LanguageResources WITH(NOLOCK)
+SET @Rid=@Rid+1
+
+IF NOT EXISTS (SELECT * FROM [ADM_FeatureAction] WITH(NOLOCK) WHERE [FeatureID]=103 AND [Name]='Draft') 
+BEGIN
+	INSERT INTO [com_languageresources] ([ResourceID],[ResourceName],[LanguageID],[LanguageName],[ResourceData],[GUID],[Description],[CreatedBy],[CreatedDate],[ModifiedBy],[ModifiedDate],[FEATURE])
+	VALUES(@Rid,'Draft',1,'English','Draft',NEWID(),NULL,'ADMIN',convert(float,getdate()),NULL,NULL,'FeatureAction')
+
+	INSERT INTO [com_languageresources] ([ResourceID],[ResourceName],[LanguageID],[LanguageName],[ResourceData],[GUID],[Description],[CreatedBy],[CreatedDate],[ModifiedBy],[ModifiedDate],[FEATURE])
+	VALUES(@Rid,'Draft',2,'Arabic','Draft-AR',NEWID(),NULL,'ADMIN',convert(float,getdate()),NULL,NULL,'FeatureAction')
+
+	INSERT INTO [ADM_FeatureAction] ([Name],[ResourceID],[FeatureID],[FeatureActionTypeID],[ApplicationID],[GridShortCut],[Description],[Status],[CreatedDate],[CreatedBy])
+	VALUES('Draft',@Rid,103,933,1,NULL,NULL,1,CONVERT(FLOAT,GETDATE()),'ADMIN')
+	SET @FeatureActionID=@@IDENTITY
+	INSERT INTO [ADM_FeatureActionRoleMap]([RoleID],[FeatureActionID],[Description],[Status],[CreatedBy],[CreatedDate],[ModifiedBy],[ModifiedDate])
+	VALUES( 1,@FeatureActionID,'Draft',1,'Admin',CONVERT(FLOAT,GETDATE()),NULL,NULL)
+END
+IF NOT EXISTS (SELECT * FROM [ADM_FeatureAction] WITH(NOLOCK) WHERE [FeatureID]=103 AND [Name]='Load Draft') 
+BEGIN
+	SET @Rid=@Rid+1
+
+	INSERT INTO [com_languageresources] ([ResourceID],[ResourceName],[LanguageID],[LanguageName],[ResourceData],[GUID],[Description],[CreatedBy],[CreatedDate],[ModifiedBy],[ModifiedDate],[FEATURE])
+	VALUES(@Rid,'LoadDraft',1,'English','Load Draft',NEWID(),NULL,'ADMIN',convert(float,getdate()),NULL,NULL,'FeatureAction')
+
+	INSERT INTO [com_languageresources] ([ResourceID],[ResourceName],[LanguageID],[LanguageName],[ResourceData],[GUID],[Description],[CreatedBy],[CreatedDate],[ModifiedBy],[ModifiedDate],[FEATURE])
+	VALUES(@Rid,'LoadDraft',2,'Arabic','Load Draft-AR',NEWID(),NULL,'ADMIN',convert(float,getdate()),NULL,NULL,'FeatureAction')
+
+	INSERT INTO [ADM_FeatureAction] ([Name],[ResourceID],[FeatureID],[FeatureActionTypeID],[ApplicationID],[GridShortCut],[Description],[Status],[CreatedDate],[CreatedBy])
+	VALUES('Load Draft',@Rid,103,934,1,NULL,NULL,1,CONVERT(FLOAT,GETDATE()),'ADMIN')
+	SET @FeatureActionID=@@IDENTITY
+	INSERT INTO [ADM_FeatureActionRoleMap]([RoleID],[FeatureActionID],[Description],[Status],[CreatedBy],[CreatedDate],[ModifiedBy],[ModifiedDate])
+	VALUES( 1,@FeatureActionID,'Load Draft',1,'Admin',CONVERT(FLOAT,GETDATE()),NULL,NULL)
+END
+
+
+IF NOT EXISTS (SELECT * FROM [ADM_FeatureAction] WITH(NOLOCK) WHERE [FeatureID]=103 AND [Name]='Continuous Print') 
+BEGIN
+	SET @Rid=@Rid+1
+
+	INSERT INTO [com_languageresources] ([ResourceID],[ResourceName],[LanguageID],[LanguageName],[ResourceData],[GUID],[Description],[CreatedBy],[CreatedDate],[ModifiedBy],[ModifiedDate],[FEATURE])
+	VALUES(@Rid,'Continuous Print',1,'English','Continuous Print',NEWID(),NULL,'ADMIN',convert(float,getdate()),NULL,NULL,'FeatureAction')
+
+	INSERT INTO [com_languageresources] ([ResourceID],[ResourceName],[LanguageID],[LanguageName],[ResourceData],[GUID],[Description],[CreatedBy],[CreatedDate],[ModifiedBy],[ModifiedDate],[FEATURE])
+	VALUES(@Rid,'Continuous Print',2,'Arabic','Continuous Print-AR',NEWID(),NULL,'ADMIN',convert(float,getdate()),NULL,NULL,'FeatureAction')
+
+	INSERT INTO [ADM_FeatureAction] ([Name],[ResourceID],[FeatureID],[FeatureActionTypeID],[ApplicationID],[GridShortCut],[Description],[Status],[CreatedDate],[CreatedBy])
+	VALUES('Continuous Print',@Rid,103,935,1,NULL,NULL,1,CONVERT(FLOAT,GETDATE()),'ADMIN')
+	SET @FeatureActionID=@@IDENTITY
+	INSERT INTO [ADM_FeatureActionRoleMap]([RoleID],[FeatureActionID],[Description],[Status],[CreatedBy],[CreatedDate],[ModifiedBy],[ModifiedDate])
+	VALUES( 1,@FeatureActionID,'Continuous Print',1,'Admin',CONVERT(FLOAT,GETDATE()),NULL,NULL)
+END
+
+IF NOT EXISTS (SELECT * FROM [ADM_FeatureAction] WITH(NOLOCK) WHERE [FeatureID]=103 AND [Name]='Change Unit Status') 
+BEGIN
+	SET @Rid=@Rid+1
+
+	INSERT INTO [com_languageresources] ([ResourceID],[ResourceName],[LanguageID],[LanguageName],[ResourceData],[GUID],[Description],[CreatedBy],[CreatedDate],[ModifiedBy],[ModifiedDate],[FEATURE])
+	VALUES(@Rid,'Change Unit Status',1,'English','Change Document status to default',NEWID(),NULL,'ADMIN',convert(float,getdate()),NULL,NULL,'FeatureAction')
+
+	INSERT INTO [com_languageresources] ([ResourceID],[ResourceName],[LanguageID],[LanguageName],[ResourceData],[GUID],[Description],[CreatedBy],[CreatedDate],[ModifiedBy],[ModifiedDate],[FEATURE])
+	VALUES(@Rid,'Change Unit Status',2,'Arabic','Change Document status to default-AR',NEWID(),NULL,'ADMIN',convert(float,getdate()),NULL,NULL,'FeatureAction')
+
+	INSERT INTO [ADM_FeatureAction] ([Name],[ResourceID],[FeatureID],[FeatureActionTypeID],[ApplicationID],[GridShortCut],[Description],[Status],[CreatedDate],[CreatedBy])
+	VALUES('Change Unit Status',@Rid,103,936,1,NULL,NULL,1,CONVERT(FLOAT,GETDATE()),'ADMIN')
+	SET @FeatureActionID=@@IDENTITY
+	INSERT INTO [ADM_FeatureActionRoleMap]([RoleID],[FeatureActionID],[Description],[Status],[CreatedBy],[CreatedDate],[ModifiedBy],[ModifiedDate])
+	VALUES( 1,@FeatureActionID,'Change Unit Status',1,'Admin',CONVERT(FLOAT,GETDATE()),NULL,NULL)
+END
+
+IF NOT EXISTS (SELECT * FROM [ADM_FeatureAction] WITH(NOLOCK) WHERE [FeatureID]=103 AND [Name]='Change Location') 
+BEGIN
+	SET @Rid=@Rid+1
+
+	INSERT INTO [com_languageresources] ([ResourceID],[ResourceName],[LanguageID],[LanguageName],[ResourceData],[GUID],[Description],[CreatedBy],[CreatedDate],[ModifiedBy],[ModifiedDate],[FEATURE])
+	VALUES(@Rid,'Change Location',1,'English','Change Location',NEWID(),NULL,'ADMIN',convert(float,getdate()),NULL,NULL,'FeatureAction')
+
+	INSERT INTO [com_languageresources] ([ResourceID],[ResourceName],[LanguageID],[LanguageName],[ResourceData],[GUID],[Description],[CreatedBy],[CreatedDate],[ModifiedBy],[ModifiedDate],[FEATURE])
+	VALUES(@Rid,'Change Location',2,'Arabic','Change Location-AR',NEWID(),NULL,'ADMIN',convert(float,getdate()),NULL,NULL,'FeatureAction')
+
+	INSERT INTO [ADM_FeatureAction] ([Name],[ResourceID],[FeatureID],[FeatureActionTypeID],[ApplicationID],[GridShortCut],[Description],[Status],[CreatedDate],[CreatedBy])
+	VALUES('Change Location',@Rid,103,937,1,NULL,NULL,1,CONVERT(FLOAT,GETDATE()),'ADMIN')
+	SET @FeatureActionID=@@IDENTITY
+	INSERT INTO [ADM_FeatureActionRoleMap]([RoleID],[FeatureActionID],[Description],[Status],[CreatedBy],[CreatedDate],[ModifiedBy],[ModifiedDate])
+	VALUES( 1,@FeatureActionID,'Change Location',1,'Admin',CONVERT(FLOAT,GETDATE()),NULL,NULL)
+END
+
+--Unit Reservation
+IF NOT EXISTS (SELECT * FROM [ADM_FeatureAction] WITH(NOLOCK) WHERE [FeatureID]=129 AND [Name]='Draft') 
+BEGIN
+	SET @Rid=@Rid+1
+
+	INSERT INTO [com_languageresources] ([ResourceID],[ResourceName],[LanguageID],[LanguageName],[ResourceData],[GUID],[Description],[CreatedBy],[CreatedDate],[ModifiedBy],[ModifiedDate],[FEATURE])
+	VALUES(@Rid,'Draft',1,'English','Draft',NEWID(),NULL,'ADMIN',convert(float,getdate()),NULL,NULL,'FeatureAction')
+
+	INSERT INTO [com_languageresources] ([ResourceID],[ResourceName],[LanguageID],[LanguageName],[ResourceData],[GUID],[Description],[CreatedBy],[CreatedDate],[ModifiedBy],[ModifiedDate],[FEATURE])
+	VALUES(@Rid,'Draft',2,'Arabic','Draft-AR',NEWID(),NULL,'ADMIN',convert(float,getdate()),NULL,NULL,'FeatureAction')
+
+	INSERT INTO [ADM_FeatureAction] ([Name],[ResourceID],[FeatureID],[FeatureActionTypeID],[ApplicationID],[GridShortCut],[Description],[Status],[CreatedDate],[CreatedBy])
+	VALUES('Draft',@Rid,129,943,1,NULL,NULL,1,CONVERT(FLOAT,GETDATE()),'ADMIN')
+	SET @FeatureActionID=@@IDENTITY
+	INSERT INTO [ADM_FeatureActionRoleMap]([RoleID],[FeatureActionID],[Description],[Status],[CreatedBy],[CreatedDate],[ModifiedBy],[ModifiedDate])
+	VALUES( 1,@FeatureActionID,'Draft',1,'Admin',CONVERT(FLOAT,GETDATE()),NULL,NULL)
+END
+
+IF NOT EXISTS (SELECT * FROM [ADM_FeatureAction] WITH(NOLOCK) WHERE [FeatureID]=129 AND [Name]='Load Draft') 
+BEGIN
+	SET @Rid=@Rid+1
+
+	INSERT INTO [com_languageresources] ([ResourceID],[ResourceName],[LanguageID],[LanguageName],[ResourceData],[GUID],[Description],[CreatedBy],[CreatedDate],[ModifiedBy],[ModifiedDate],[FEATURE])
+	VALUES(@Rid,'Load Draft',1,'English','Load Draft',NEWID(),NULL,'ADMIN',convert(float,getdate()),NULL,NULL,'FeatureAction')
+
+	INSERT INTO [com_languageresources] ([ResourceID],[ResourceName],[LanguageID],[LanguageName],[ResourceData],[GUID],[Description],[CreatedBy],[CreatedDate],[ModifiedBy],[ModifiedDate],[FEATURE])
+	VALUES(@Rid,'Load Draft',2,'Arabic','Load Draft-AR',NEWID(),NULL,'ADMIN',convert(float,getdate()),NULL,NULL,'FeatureAction')
+
+	INSERT INTO [ADM_FeatureAction] ([Name],[ResourceID],[FeatureID],[FeatureActionTypeID],[ApplicationID],[GridShortCut],[Description],[Status],[CreatedDate],[CreatedBy])
+	VALUES('Load Draft',@Rid,129,944,1,NULL,NULL,1,CONVERT(FLOAT,GETDATE()),'ADMIN')
+	SET @FeatureActionID=@@IDENTITY
+	INSERT INTO [ADM_FeatureActionRoleMap]([RoleID],[FeatureActionID],[Description],[Status],[CreatedBy],[CreatedDate],[ModifiedBy],[ModifiedDate])
+	VALUES( 1,@FeatureActionID,'Load Draft',1,'Admin',CONVERT(FLOAT,GETDATE()),NULL,NULL)
+END
+
+IF NOT EXISTS (SELECT * FROM [ADM_FeatureAction] WITH(NOLOCK) WHERE [FeatureID]=129 AND [Name]='Continuous Print') 
+BEGIN
+	SET @Rid=@Rid+1
+
+	INSERT INTO [com_languageresources] ([ResourceID],[ResourceName],[LanguageID],[LanguageName],[ResourceData],[GUID],[Description],[CreatedBy],[CreatedDate],[ModifiedBy],[ModifiedDate],[FEATURE])
+	VALUES(@Rid,'Continuous Print',1,'English','Continuous Print',NEWID(),NULL,'ADMIN',convert(float,getdate()),NULL,NULL,'FeatureAction')
+
+	INSERT INTO [com_languageresources] ([ResourceID],[ResourceName],[LanguageID],[LanguageName],[ResourceData],[GUID],[Description],[CreatedBy],[CreatedDate],[ModifiedBy],[ModifiedDate],[FEATURE])
+	VALUES(@Rid,'Continuous Print',2,'Arabic','Continuous Print-AR',NEWID(),NULL,'ADMIN',convert(float,getdate()),NULL,NULL,'FeatureAction')
+
+	INSERT INTO [ADM_FeatureAction] ([Name],[ResourceID],[FeatureID],[FeatureActionTypeID],[ApplicationID],[GridShortCut],[Description],[Status],[CreatedDate],[CreatedBy])
+	VALUES('Continuous Print',@Rid,129,945,1,NULL,NULL,1,CONVERT(FLOAT,GETDATE()),'ADMIN')
+	SET @FeatureActionID=@@IDENTITY
+	INSERT INTO [ADM_FeatureActionRoleMap]([RoleID],[FeatureActionID],[Description],[Status],[CreatedBy],[CreatedDate],[ModifiedBy],[ModifiedDate])
+	VALUES( 1,@FeatureActionID,'Continuous Print',1,'Admin',CONVERT(FLOAT,GETDATE()),NULL,NULL)
+END
+
+IF NOT EXISTS (SELECT * FROM [ADM_FeatureAction] WITH(NOLOCK) WHERE [FeatureID]=129 AND [Name]='Change Unit Status') 
+BEGIN
+	SET @Rid=@Rid+1
+
+	INSERT INTO [com_languageresources] ([ResourceID],[ResourceName],[LanguageID],[LanguageName],[ResourceData],[GUID],[Description],[CreatedBy],[CreatedDate],[ModifiedBy],[ModifiedDate],[FEATURE])
+	VALUES(@Rid,'Change Unit Status',1,'English','Change Document status to default',NEWID(),NULL,'ADMIN',convert(float,getdate()),NULL,NULL,'FeatureAction')
+
+	INSERT INTO [com_languageresources] ([ResourceID],[ResourceName],[LanguageID],[LanguageName],[ResourceData],[GUID],[Description],[CreatedBy],[CreatedDate],[ModifiedBy],[ModifiedDate],[FEATURE])
+	VALUES(@Rid,'Change Unit Status',2,'Arabic','Change Document status to default-AR',NEWID(),NULL,'ADMIN',convert(float,getdate()),NULL,NULL,'FeatureAction')
+
+	INSERT INTO [ADM_FeatureAction] ([Name],[ResourceID],[FeatureID],[FeatureActionTypeID],[ApplicationID],[GridShortCut],[Description],[Status],[CreatedDate],[CreatedBy])
+	VALUES('Change Unit Status',@Rid,129,946,1,NULL,NULL,1,CONVERT(FLOAT,GETDATE()),'ADMIN')
+	SET @FeatureActionID=@@IDENTITY
+	INSERT INTO [ADM_FeatureActionRoleMap]([RoleID],[FeatureActionID],[Description],[Status],[CreatedBy],[CreatedDate],[ModifiedBy],[ModifiedDate])
+	VALUES( 1,@FeatureActionID,'Change Unit Status',1,'Admin',CONVERT(FLOAT,GETDATE()),NULL,NULL)
+END
+
+IF NOT EXISTS (SELECT * FROM [ADM_FeatureAction] WITH(NOLOCK) WHERE [FeatureID]=129 AND [Name]='Change Location') 
+BEGIN
+	SET @Rid=@Rid+1
+
+	INSERT INTO [com_languageresources] ([ResourceID],[ResourceName],[LanguageID],[LanguageName],[ResourceData],[GUID],[Description],[CreatedBy],[CreatedDate],[ModifiedBy],[ModifiedDate],[FEATURE])
+	VALUES(@Rid,'Change Location',1,'English','Change Location',NEWID(),NULL,'ADMIN',convert(float,getdate()),NULL,NULL,'FeatureAction')
+
+	INSERT INTO [com_languageresources] ([ResourceID],[ResourceName],[LanguageID],[LanguageName],[ResourceData],[GUID],[Description],[CreatedBy],[CreatedDate],[ModifiedBy],[ModifiedDate],[FEATURE])
+	VALUES(@Rid,'Change Location',2,'Arabic','Change Location-AR',NEWID(),NULL,'ADMIN',convert(float,getdate()),NULL,NULL,'FeatureAction')
+
+	INSERT INTO [ADM_FeatureAction] ([Name],[ResourceID],[FeatureID],[FeatureActionTypeID],[ApplicationID],[GridShortCut],[Description],[Status],[CreatedDate],[CreatedBy])
+	VALUES('Change Location',@Rid,129,947,1,NULL,NULL,1,CONVERT(FLOAT,GETDATE()),'ADMIN')
+	SET @FeatureActionID=@@IDENTITY
+	INSERT INTO [ADM_FeatureActionRoleMap]([RoleID],[FeatureActionID],[Description],[Status],[CreatedBy],[CreatedDate],[ModifiedBy],[ModifiedDate])
+	VALUES( 1,@FeatureActionID,'Change Location',1,'Admin',CONVERT(FLOAT,GETDATE()),NULL,NULL)
+END
