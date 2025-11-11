@@ -1,0 +1,97 @@
+--Ikram
+GO
+/****** Object:  StoredProcedure [dbo].[spREN_GetSecurityDeposit]    Script Date: 10-11-2025 09:34:10 ******/
+IF  EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[spREN_GetSecurityDeposit]') AND type in (N'P', N'PC'))
+DROP PROCEDURE [dbo].[spREN_GetSecurityDeposit]
+GO
+/****** Object:  StoredProcedure [dbo].[spREN_GetSecurityDeposit]    Script Date: 10-11-2025 09:34:10 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[spREN_GetSecurityDeposit]') AND type in (N'P', N'PC'))
+BEGIN
+EXEC dbo.sp_executesql @statement = N'
+CREATE procedure [dbo].[spREN_GetSecurityDeposit]   
+	@CostCenterID INT,                   	
+	@ContractID INT, 	
+	@UserID INT,                        
+	@LangID int=1                        
+AS                                              
+BEGIN TRY                         
+SET NOCOUNT ON    
+	declare @Amt float,@prop int,@ut int
+	
+	select @prop=PropertyID,@ut=UnitID from REN_CONTRACT a WITH(NOLOCK)
+	where ContractID=@ContractID
+	
+	declare @tblPartID table(Id int)
+	declare @tblunits table(units int)
+	insert into @tblunits(units)values(@ut)
+	
+	insert into @tblunits
+	select UnitID from REN_CONTRACT a WITH(NOLOCK)
+	where RefContractID=@ContractID
+	
+	insert into @tblPartID
+	select ParticularID	from REN_Particulars P WITH(NOLOCK) 
+	join @tblunits t on P.UNITID=t.units
+	where  Refund is not null and Refund =1
+	and PropertyID=@prop 
+	union
+	select ParticularID	from REN_Particulars P WITH(NOLOCK) 	
+	where  Refund is not null and Refund =1
+	and PropertyID=@prop and UNITID=0
+	 
+	set @Amt=0
+ 
+ 	while(@ContractID>0)
+	BEGIN
+	 
+		SELECT @Amt=@Amt+isnull(sum(CP.Amount),0)
+		
+		FROM REN_ContractParticulars  CP WITH(NOLOCK)   
+		JOIN @tblPartID t ON CP.CCNODEID = t.Id 
+		where  CP.ContractID = @ContractID 
+		
+		if exists(select isnull(RenewRefID,0) from REN_Contract		
+		where ContractID=@ContractID)
+			select @ContractID=isnull(RenewRefID,0) from REN_Contract		
+			where ContractID=@ContractID
+		ELSE
+			set @ContractID=0
+	END 	
+	
+	select @Amt	SecurityDeposit
+
+END TRY    
+BEGIN CATCH    
+ --Return exception info [Message,Number,ProcedureName,LineNumber]    
+ IF ERROR_NUMBER()=50000  
+ BEGIN  
+ SELECT ErrorMessage,ErrorNumber FROM COM_ErrorMessages WITH(nolock)   
+  WHERE ErrorNumber=ERROR_MESSAGE() AND LanguageID=@LangID  
+ END  
+ ELSE IF ERROR_NUMBER()=547  
+ BEGIN  
+  SELECT ErrorMessage, ERROR_MESSAGE() AS ServerMessage,ERROR_NUMBER() as ErrorNumber, ERROR_PROCEDURE()as ProcedureName, ERROR_LINE() AS ErrorLine FROM COM_ErrorMessages WITH(nolock)  
+  WHERE ErrorNumber=-110 AND LanguageID=@LangID  
+ END  
+ ELSE IF ERROR_NUMBER()=2627  
+ BEGIN  
+  SELECT ErrorMessage, ERROR_MESSAGE() AS ServerMessage,ERROR_NUMBER() as ErrorNumber, ERROR_PROCEDURE()as ProcedureName, ERROR_LINE() AS ErrorLine FROM COM_ErrorMessages WITH(nolock)  
+  WHERE ErrorNumber=-116 AND LanguageID=@LangID  
+ END  
+ ELSE  
+ BEGIN  
+  SELECT ErrorMessage, ERROR_MESSAGE() AS ServerMessage,ERROR_NUMBER() as ErrorNumber, ERROR_PROCEDURE()as ProcedureName, ERROR_LINE() AS ErrorLine  
+  FROM COM_ErrorMessages WITH(nolock) WHERE ErrorNumber=-999 AND LanguageID=@LangID  
+ END  
+ ROLLBACK TRANSACTION  
+ SET NOCOUNT OFF    
+ RETURN -999     
+END CATCH	
+		
+		' 
+END
+GO
