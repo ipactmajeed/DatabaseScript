@@ -1,0 +1,93 @@
+--Sameer
+
+GO
+/****** Object:  StoredProcedure [dbo].[spADM_SetGridView]    Script Date: 05-11-2025 11:27:58 ******/
+IF  EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[spADM_SetGridView]') AND type in (N'P', N'PC'))
+DROP PROCEDURE [dbo].[spADM_SetGridView]
+GO
+/****** Object:  StoredProcedure [dbo].[spADM_SetGridView]    Script Date: 05-11-2025 11:27:58 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[spADM_SetGridView]') AND type in (N'P', N'PC'))
+BEGIN
+EXEC dbo.sp_executesql @statement = N'CREATE procedure [dbo].[spADM_SetGridView]
+@CallType int,
+@COSTCENTERID INT,
+@TypeID int,
+@StrXml NVARCHAR(max),
+@UserID INT=1,
+@LangID INT=1    
+AS    
+BEGIN TRANSACTION    
+SET NOCOUNT ON    
+BEGIN TRY    
+	declare @XML xml,@sql nvarchar(max),@DT Float
+	
+	set @DT=convert(Float,getdate())
+	if @CallType=1
+	begin
+		if(@COSTCENTERID = 230 and @TypeID = 270)
+		BEGIN
+			set @sql='' select * from ADM_MobileGridView with(nolock)
+			where CostCenterID=''+convert(nvarchar(max),@CostCenterID)+''  ''+@StrXml			
+			exec(@sql)
+		END
+		else if(@StrXml is not null and @StrXml<>'''')
+		BEGIN
+			set @sql='' select * from ADM_MobileGridView with(nolock)
+			where CostCenterID=''+convert(nvarchar(max),@CostCenterID)+'' and TypeID=''+convert(nvarchar(max),@TypeID)+@StrXml			
+			exec(@sql)
+		END
+		ELSE
+			select * from ADM_MobileGridView with(nolock)
+			where CostCenterID=@CostCenterID and TypeID=@TypeID 
+			
+	end
+	else if @CallType=2
+	begin
+		set @XML=@StrXml
+		delete from ADM_MobileGridView
+		where CostCenterID=@CostCenterID and TypeID=@TypeID 
+
+		insert into ADM_MobileGridView(TypeID,CostCenterID,DimType,Name,CostCenterColID,CompanyGUID,GUID,CreatedBy,CreatedDate,[Type],RowNo,ColNo,RowSpan,ColSpan,Mode,MainCardStyle,CardStyle,HeadingStyle,ValueStyle,ReportCol,Height,VoucherNoField)
+		select X.value(''@TypeID'',''INT''),@CostCenterID,X.value(''@DimType'',''nvarchar(50)''),X.value(''@Name'',''nvarchar(50)'')
+							,X.value(''@CostCenterColID'',''INT'')
+							,null,newid(),@UserID,@DT,X.value(''@Type'',''nvarchar(50)'')
+							,isnull(X.value(''@row'',''int''),0),isnull(X.value(''@col'',''int''),0),isnull(X.value(''@rowspan'',''int''),1),isnull(X.value(''@colspan'',''int''),1)
+							,isnull(X.value(''@Mode'',''int''),0),X.value(''@MainCardStyle'',''nvarchar(500)''),X.value(''@CardStyle'',''nvarchar(500)''),X.value(''@HeadingStyle'',''nvarchar(500)''),X.value(''@ValueStyle'',''nvarchar(500)''),X.value(''@ReportCol'',''nvarchar(500)''),X.value(''@Height'',''int''),X.value(''@VoucherNoField'',''nvarchar(500)'')
+							from  @XML.nodes(''/XML/Rows'') as Data(x)
+	end
+	else if @CallType=3
+	begin
+		delete from ADM_MobileGridView
+		where CostCenterID=@CostCenterID and TypeID=@TypeID 
+	end
+SET NOCOUNT OFF;     
+COMMIT TRANSACTION 
+ 
+SELECT ErrorMessage,ErrorNumber FROM COM_ErrorMessages WITH(nolock)     
+WHERE ErrorNumber=100 AND LanguageID=@LangID        
+SET NOCOUNT OFF;      
+RETURN 1
+END TRY      
+BEGIN CATCH      
+ --Return exception info [Message,Number,ProcedureName,LineNumber]      
+ IF ERROR_NUMBER()=50000    
+ BEGIN    
+  SELECT * FROM ADM_CostCenterTab WITH(NOLOCK) WHERE COSTCENTERID=@COSTCENTERID     
+  SELECT ErrorMessage,ErrorNumber FROM COM_ErrorMessages WITH(NOLOCK) WHERE ErrorNumber=ERROR_MESSAGE() AND LanguageID=@LangID    
+ END    
+ ELSE    
+ BEGIN    
+  SELECT ErrorMessage, ERROR_MESSAGE() AS ServerMessage,ERROR_NUMBER() AS ErrorNumber, ERROR_PROCEDURE()AS ProcedureName, ERROR_LINE() AS ErrorLine    
+  FROM COM_ErrorMessages WITH(NOLOCK) WHERE ErrorNumber=-999 AND LanguageID=@LangID    
+ END    
+ ROLLBACK TRANSACTION    
+ SET NOCOUNT OFF      
+ RETURN -999       
+END CATCH
+' 
+END
+GO

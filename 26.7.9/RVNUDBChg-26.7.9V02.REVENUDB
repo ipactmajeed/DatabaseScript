@@ -1,0 +1,4 @@
+--KHASIM
+
+
+Update ADM_FeatureAction set Name = 'LinkStatus' ,FeatureActionTypeID = 948 where Name = 'LinkAction' and FeatureActionTypeID = 923

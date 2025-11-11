@@ -1,0 +1,32 @@
+--Sajid
+DECLARE @ResID INT
+SELECT @ResID=MAX([ResourceID])+1 FROM [com_languageresources] WITH(NOLOCK)	
+SET @ResID=@ResID+1
+IF NOT EXISTS(SELECT * FROM COM_CostCenterPreferences WHERE CostCenterID=92 AND Name='ParticularsGrid')
+BEGIN
+	INSERT INTO COM_LanguageResources(ResourceID, ResourceName, LanguageID, LanguageName, ResourceData, FEATURE)
+	VALUES(@ResID, 'ParticularsGrid', 1, 'English', 'Particulars Grid', '')
+	INSERT INTO COM_LanguageResources(ResourceID, ResourceName, LanguageID, LanguageName, ResourceData, FEATURE)
+	VALUES(@ResID, 'ParticularsGrid', 2, 'Arabic', 'Particulars Grid_AR', '')
+	INSERT INTO COM_LanguageResources(ResourceID, ResourceName, LanguageID, LanguageName, ResourceData, FEATURE)
+	VALUES(@ResID, 'ParticularsGrid', 3, 'Italian', 'Particulars Grid', '')
+
+	INSERT INTO COM_CostCenterPreferences ([CostCenterID],[FeatureID],[ResourceID],[Name],[Value],[DefaultValue],[ProbableValues],[GUID],[Description],[CreatedBy]
+    ,[CreatedDate],[ModifiedBy],[ModifiedDate])
+	SELECT 92,92,@ResID,'ParticularsGrid','','',NULL,'GUID','Particulars Grid','Admin',CONVERT(FLOAT,GETDATE()),'Admin',CONVERT(FLOAT,GETDATE()) 
+END
+
+SET @ResID=@ResID+1
+IF NOT EXISTS(SELECT * FROM COM_CostCenterPreferences WHERE CostCenterID=93 AND Name='ParticularsGrid')
+BEGIN
+	INSERT INTO COM_LanguageResources(ResourceID, ResourceName, LanguageID, LanguageName, ResourceData, FEATURE)
+	VALUES(@ResID, 'ParticularsGrid', 1, 'English', 'Particulars Grid', '')
+	INSERT INTO COM_LanguageResources(ResourceID, ResourceName, LanguageID, LanguageName, ResourceData, FEATURE)
+	VALUES(@ResID, 'ParticularsGrid', 2, 'Arabic', 'Particulars Grid_AR', '')
+	INSERT INTO COM_LanguageResources(ResourceID, ResourceName, LanguageID, LanguageName, ResourceData, FEATURE)
+	VALUES(@ResID, 'ParticularsGrid', 3, 'Italian', 'Particular sGrid', '')
+
+	INSERT INTO COM_CostCenterPreferences ([CostCenterID],[FeatureID],[ResourceID],[Name],[Value],[DefaultValue],[ProbableValues],[GUID],[Description],[CreatedBy]
+    ,[CreatedDate],[ModifiedBy],[ModifiedDate])
+	SELECT 93,93,@ResID,'ParticularsGrid','','',NULL,'GUID','Particulars Grid','Admin',CONVERT(FLOAT,GETDATE()),'Admin',CONVERT(FLOAT,GETDATE()) 
+END

@@ -1,0 +1,5 @@
+--Ibrahim
+
+UPDATE COM_CostCenterPreferences SET Value=(
+SELECT STUFF((SELECT ';'+CONVERT(NVARCHAR,CCTabID) FROM ADM_CostCenterTab WHERE CostCenterID=86 FOR XML PATH ('')),1,1,''))
+WHERE CostCenterID=86 AND Name='ShowasSections'

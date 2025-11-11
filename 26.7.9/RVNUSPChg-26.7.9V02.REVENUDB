@@ -1,0 +1,543 @@
+--KHASIM
+
+/****** Object:  StoredProcedure [dbo].[SPInsertDocumentatCostCenterDef]    Script Date: 04-11-2025 18:17:08 ******/
+IF  EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[SPInsertDocumentatCostCenterDef]') AND type in (N'P', N'PC'))
+DROP PROCEDURE [dbo].[SPInsertDocumentatCostCenterDef]
+GO
+/****** Object:  StoredProcedure [dbo].[spDOC_GetLinkDefDetails]    Script Date: 04-11-2025 18:17:08 ******/
+IF  EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[spDOC_GetLinkDefDetails]') AND type in (N'P', N'PC'))
+DROP PROCEDURE [dbo].[spDOC_GetLinkDefDetails]
+GO
+/****** Object:  StoredProcedure [dbo].[spDOC_GetLinkDefDetails]    Script Date: 04-11-2025 18:17:08 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[spDOC_GetLinkDefDetails]') AND type in (N'P', N'PC'))
+BEGIN
+EXEC dbo.sp_executesql @statement = N'-- =============================================            
+-- Author:  Mustafeez            
+-- Create date: 8 AUG 2011            
+-- Description: Get the linking Documents available          
+-- Example :              
+--[spDOC_GetLinkDefDetails] 40011,40007,''''''SOD-111'''',''''SOD-11'''''',''43,522,2161'',1,1,1  
+-- =============================================    
+CREATE procedure [dbo].[spDOC_GetLinkDefDetails]    
+@CostcenterID INT,   
+@LinkCostCenterID   INT, 
+@Vouchers nvarchar(Max),
+@productids nvarchar(Max),
+@DocSeqNos nvarchar(max),
+@CCColIDs nvarchar(max),
+@UserID INT=0, 
+@RoleID INT=0,
+@LangID int=1        
+AS    
+BEGIN TRY     
+SET NOCOUNT ON  
+    declare @sql nvarchar(max),@sql2 nvarchar(max),@VoucherWhere nvarchar(max),@OrderBy nvarchar(max)
+    SET @sql=''''
+    SET @sql2=''''
+    SET @VoucherWhere=''''
+    SET @OrderBy=''''
+    IF(@Vouchers='''')
+    BEGIN
+	   --Getting Linking Fields    
+	   SELECT B.SysColumnName BASECOL,L.SysColumnName LINKCOL ,A.[VIEW],A.CostCenterColIDLinked  
+	   FROM COM_DocumentLinkDetails A WITH(NOLOCK) 
+	   JOIN ADM_CostCenterDef B WITH(NOLOCK) ON B.CostCenterColID=A.CostCenterColIDBase    
+	   left JOIN ADM_CostCenterDef L WITH(NOLOCK)  ON L.CostCenterColID=A.CostCenterColIDLinked    
+	   WHERE b.CostCenterID=@LinkCostCenterID and L.CostCenterID=@CostcenterID  and A.CostCenterColIDLinked<>0  
+	   
+	   SELECT distinct [WorkFlowDefID],[CostCenterID],[Action],[Expression],a.WorkFlowID
+	   FROM [COM_WorkFlowDef]  a   WITH(NOLOCK)
+	   join COM_WorkFlow b WITH(NOLOCK) on a.WorkFlowID=b.WorkFlowID  and a.LevelID=b.LevelID
+	   LEFT JOIN COM_Groups G with(nolock) on b.GroupID=G.GID
+	   where [CostCenterID]=@LinkCostCenterID and IsEnabled=1  
+	   and (b.UserID =@UserID or b.RoleID=@RoleID or G.UserID=@UserID or G.RoleID=@RoleID ) 
+	   
+	   
+	    select a.CostCenterColID,a.SysColumnName from ADM_CostCenterDef a WITH(NOLOCK)  
+		left join COM_DocumentLinkDetails b WITH(NOLOCK) on a.CostCenterColID=b.CostCenterColIDBase  
+		where a.[CostCenterID]=@LinkCostCenterID and (SysColumnName=''ProductID'' or (  
+		linkData is not null and (LinkData =26585 or LinkData =54306 or LinkData =54307 or LinkData =53529 or LinkData =53589 or LinkData =53530)  
+		and (b.CostCenterColIDBase is null or b.CostCenterColIDlinked=0)))  
+    
+	  SELECT  C.CostCenterColID,C.ResourceID,C.SysColumnName,C.ColumnCostCenterID,C.LinkData,C.LocalReference
+	  FROM ADM_CostCenterDef C WITH(NOLOCK)    WHERE C.CostCenterID = @LinkCostCenterID     
+	  AND ((C.IsColumnUserDefined=1 AND C.IsColumnInUse=1) OR C.IsColumnUserDefined=0) 
+	  AND   	  (C.SysColumnName NOT LIKE ''%dcCalcNum%'')  AND (C.SysColumnName NOT LIKE ''%dcExchRT%'') 
+	  AND (C.SysColumnName NOT LIKE ''%dcCurrID%'') AND (C.SysColumnName NOT LIKE ''dcPOSRemarksNum%'')  
+	  AND (C.SysColumnName <> ''UOMConversion'')   AND (C.SysColumnName <> ''UOMConvertedQty'')  
+    END
+    ELSE 
+    BEGIN			
+		SET @VoucherWhere='' Where a.VoucherNo IN (''+@Vouchers+'') ''
+
+		IF (ISNULL(@DocSeqNos,'''')<>'''')
+			SET @VoucherWhere=@VoucherWhere+'' and a.DocSeqNo in(''+@DocSeqNos+'')''
+		ELSE IF (ISNULL(@productids,'''')<>'''')
+			SET @VoucherWhere=@VoucherWhere+'' and a.ProductID in(''+@productids+'')''
+
+		SET @OrderBy='' order by a.VoucherNo,a.DocSeqNo,a.vouchertype''
+		--Table0
+		SET @sql=''Select a.InvDocDetailsID,A.[AccDocDetailsID],a.VoucherNo,a.[DocID],a.[CostCenterID],a.[DocumentType],a.[VersionNo],a.[DocAbbr],a.[DocPrefix],a.[DocNumber],CONVERT(DATETIME,a.[DocDate]) AS DocDate,CONVERT(DATETIME,a.[DueDate]) AS DueDate    
+                   ,CONVERT(DATETIME,a.[BillDate]) AS BillDat,a.[StatusID],a.[BillNo],a.[LinkedInvDocDetailsID],a.[CommonNarration],a.LineNarration,a.[DebitAccount],a.[CreditAccount],a.[DocSeqNo],a.[ProductID],p.QtyAdjustType,p.IsPacking,p.IsBillOfEntry,p.ProductTypeID,p.ProductName,p.ProductCode,p.Volume,p.Weight,p.ParentID,p.IsGroup,p.Wastage
+                   ,isnull(p.MaxTolerancePer,0) ToleranceLimitsPercentage,isnull(p.MaxToleranceVal,0)  ToleranceLimitsValue,a.[Quantity],a.Unit,u.UnitName,a.[HoldQuantity],a.[ReleaseQuantity],a.[IsQtyIgnored],a.[IsQtyFreeOffer],a.[Rate],a.[AverageRate],a.[Gross], a.[GrossFC],a.[StockValue]  ,a.[StockValueFC]   
+                   ,a.[CurrencyID],a.[ExchangeRate],a.ParentSchemeID,a.[CreatedBy],a.vouchertype,a.[CreatedDate],UOMConversion,UOMConvertedQty,a.DynamicInvDocDetailsID,a.ReserveQuantity,a.ProductID ID ''
+		
+		IF (ISNULL(@CCColIDs,'''')<>'''')                   
+            SET @sql=@sql+'' ,Cr.AccountName as CreditAcc, Dr.AccountName as DebitAcc ''
+        
+        SET @sql=@sql+'' From INV_DocDetails a with(nolock) join INV_Product p with(nolock) on a.ProductID=p.ProductID ''
+		
+		IF (ISNULL(@CCColIDs,'''')<>'''')                   
+			SET @sql=@sql+'' join dbo.Acc_Accounts Cr  WITH(NOLOCK) on  Cr.AccountID=a.CreditAccount join dbo.Acc_Accounts Dr WITH(NOLOCK)  on  Dr.AccountID=a.DebitAccount  ''
+
+	    SET @sql=@sql+'' left join com_uom u WITH(NOLOCK)  on a.Unit=u.UOMID   ''
+		SET @sql=@sql+@VoucherWhere+@OrderBy	 
+		
+		--IF (ISNULL(@DocSeqNos,'''')<>'''')
+		--	SET @sql=@sql+'' and a.DocSeqNo in(''+@DocSeqNos+'')''
+		--ELSE IF (ISNULL(@productids,'''')<>'''')
+		--	SET @sql=@sql+'' and a.ProductID in(''+@productids+'')''	
+			               
+		--SET @sql=@sql+@OrderBy	
+		
+		--Table1
+		SET @sql2='' SELECT a.InvDocDetailsID,Cc.* From INV_DocDetails a with(nolock) inner join COM_DocCCData Cc with(nolock) on a.InvDocDetailsID=Cc.InvDocDetailsID ''
+		SET @sql2=@sql2+@VoucherWhere+@OrderBy
+		
+		--Table2	                 
+		SET @sql2=@sql2+'' SELECT a.InvDocDetailsID,Num.* From INV_DocDetails a with(nolock) inner join COM_DocNumData Num with(nolock) on a.InvDocDetailsID=Num.InvDocDetailsID ''
+		SET @sql2=@sql2+@VoucherWhere+@OrderBy
+	        
+		--Table3	                   
+		SET @sql2=@sql2+'' SELECT a.InvDocDetailsID,Txt.* From INV_DocDetails a with(nolock) inner join COM_DocTextData Txt with(nolock) on a.InvDocDetailsID=Txt.InvDocDetailsID ''
+		SET @sql2=@sql2+@VoucherWhere+@OrderBy
+
+		--Table4	                     
+		SET @sql2=@sql2+'' DECLARE @CCIDLinked INT
+					      SET  @CCIDLinked=(Select Top 1 CostCenterID FROM Inv_DocDetails WITH(NOLOCK) WHERE  VoucherNo IN (''+@Vouchers+''))
+					      SELECT B.SysColumnName BASECOL,L.SysColumnName LINKCOL ,A.[VIEW],A.CostCenterColIDLinked,A.CalcValue 
+					      FROM COM_DocumentLinkDetails A WITH(NOLOCK) JOIN COM_DocumentLinkDef D WITH(NOLOCK) ON A.DocumentLinkDeFID=D.DocumentLinkDeFID  
+					      JOIN ADM_CostCenterDef B WITH(NOLOCK) ON B.CostCenterColID=A.CostCenterColIDBase LEFT JOIN ADM_CostCenterDef L WITH(NOLOCK)  ON L.CostCenterColID=A.CostCenterColIDLinked    
+					      WHERE A.CostCenterColIDLinked<>0 AND D.CostCenterIDBase=''+CONVERT(nvarchar,@LinkCostCenterID)+'' AND D.CostCenterIDLinked=@CCIDLinked  ''
+		IF (ISNULL(@CCColIDs,'''')<>'''')
+			SET @sql2=@sql2+'' AND A.CostCenterColIDBase NOT IN (''+@CCColIDs+'')''
+
+		--Table5				
+		SET @sql2=@sql2+'' select CostCenterIDLinked,b.SysColumnName from COM_DocumentLinkDef a WITH(NOLOCK)
+				join ADM_CostCenterDef b WITH(NOLOCK) on a.CostCenterColIDBase=b.CostCenterColID
+				where CostCenterIDBase=''+CONVERT(nvarchar,@LinkCostCenterID)+'' 
+				and CostCenterIDLinked iN(select CostCenterID from INV_DocDetails WITH(NOLOCK) where VoucherNo in(''+@Vouchers+'')''
+		IF (ISNULL(@DocSeqNos,'''')<>'''')
+			Set @sql2=@sql2+'' and DocSeqNo in(''+@DocSeqNos+''))''	
+		ELSE
+			Set @sql2=@sql2+'' and ProductID in(''+@productids+''))''
+		--
+		
+		SET @sql=@sql+@sql2
+		PRINT (@sql)    	
+		EXEC(@sql)
+	END
+         
+ SET NOCOUNT OFF;    
+RETURN 1    
+END TRY    
+BEGIN CATCH      
+ --Return exception info [Message,Number,ProcedureName,LineNumber]      
+ IF ERROR_NUMBER()=50000    
+ BEGIN    
+  SELECT ErrorMessage,ErrorNumber FROM COM_ErrorMessages WITH(nolock) WHERE ErrorNumber=ERROR_MESSAGE() AND LanguageID=@LangID    
+ END    
+ ELSE    
+ BEGIN    
+  SELECT ErrorMessage, ERROR_MESSAGE() AS ServerMessage,ERROR_NUMBER() as ErrorNumber, ERROR_PROCEDURE()as ProcedureName, ERROR_LINE() AS ErrorLine    
+  FROM COM_ErrorMessages WITH(nolock) WHERE ErrorNumber=-999 AND LanguageID=@LangID    
+ END    
+ SET NOCOUNT OFF      
+RETURN -999       
+END CATCH
+' 
+END
+GO
+/****** Object:  StoredProcedure [dbo].[SPInsertDocumentatCostCenterDef]    Script Date: 04-11-2025 18:17:08 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[SPInsertDocumentatCostCenterDef]') AND type in (N'P', N'PC'))
+BEGIN
+EXEC dbo.sp_executesql @statement = N' 
+-- =============================================  
+CREATE procedure [dbo].[SPInsertDocumentatCostCenterDef]
+@CostCenterId INT=0,
+@COSTCENTERNAME NVARCHAR(300)=NULL,@DocumentType INT=0,@UserName nvarchar(300)
+AS
+BEGIN TRANSACTION
+ DECLARE @sec int,@i int,@COUNT int,@TableName nvarchar(300),@ColumnName nvarchar(300),@RESOURCEMAX INT,@Table varchar(max),@CreatedDt float
+Declare @ISUserDefinedCOl bit,@CCID INT,@CostCenterColID INT,@RID INT,@IsColumnInUse bit
+set @CreatedDt=convert(float,getdate()) 
+
+			set @CCID=(SELECT TOP 1 COSTCENTERID FROM ADM_DOCUMENTTYPES WHERE  DOCUMENTTYPE=@DocumentType)
+			--Inserting feature actions to the costcenter--  
+			EXEC spCOM_SetCostCenterLanguageData ''Create'',@COSTCENTERNAME,@UserName,@RESOURCEMAX output --IINSERT INTO RESOURCE TABLE
+			INSERT INTO ADM_FeatureAction(Name,FeatureID,ResourceID,FeatureActionTypeID,ApplicationID,Status,CreatedDate,CreatedBy,GridShortCut)    
+			VALUES(''Create'',@CostCenterId,@RESOURCEMAX,1,1,1,@CreatedDt,@UserName,''Ctrl + N'')   
+
+			EXEC spCOM_SetCostCenterLanguageData ''Read'',@CostCenterName,@UserName,@RESOURCEMAX output
+			INSERT INTO ADM_FeatureAction(Name,FeatureID,ResourceID,FeatureActionTypeID,ApplicationID,Status,CreatedDate,CreatedBy)    
+			VALUES(''Read'',@CostCenterId,@RESOURCEMAX,2,1,1,@CreatedDt,@UserName) 
+ 
+			EXEC spCOM_SetCostCenterLanguageData ''Edit'',@CostCenterName,@UserName,@RESOURCEMAX output
+			INSERT INTO ADM_FeatureAction(Name,FeatureID,ResourceID,FeatureActionTypeID,ApplicationID,Status,CreatedDate,CreatedBy,GridShortCut)    
+			VALUES(''Edit'',@CostCenterId,@RESOURCEMAX,3,1,1,@CreatedDt,@UserName,''Ctrl + E'')  			
+		 
+			EXEC spCOM_SetCostCenterLanguageData ''Delete'',@CostCenterName,@UserName,@RESOURCEMAX output
+			INSERT INTO ADM_FeatureAction(Name,FeatureID,ResourceID,FeatureActionTypeID,ApplicationID,Status,CreatedDate,CreatedBy,GridShortCut)    
+			VALUES(''Delete'',@CostCenterId,@RESOURCEMAX,4,1,1,@CreatedDt,@UserName,''Ctrl + D'') 			
+ 
+			EXEC spCOM_SetCostCenterLanguageData ''Print'',@CostCenterName,@UserName,@RESOURCEMAX output
+			INSERT INTO ADM_FeatureAction(Name,FeatureID,ResourceID,FeatureActionTypeID,ApplicationID,Status,CreatedDate,CreatedBy)    
+			VALUES(''Print'',@CostCenterId,@RESOURCEMAX,5,1,1,@CreatedDt,@UserName) 				
+			
+			EXEC spCOM_SetCostCenterLanguageData ''PrintPreview'',@CostCenterName,@UserName,@RESOURCEMAX output
+			INSERT INTO ADM_FeatureAction(Name,FeatureID,ResourceID,FeatureActionTypeID,ApplicationID,Status,CreatedDate,CreatedBy)    
+			VALUES(''PrintPreview'',@CostCenterId,@RESOURCEMAX,66,1,1,@CreatedDt,@UserName)
+
+			EXEC spCOM_SetCostCenterLanguageData ''Copy'',@CostCenterName,@UserName,@RESOURCEMAX output
+			INSERT INTO ADM_FeatureAction(Name,FeatureID,ResourceID,FeatureActionTypeID,ApplicationID,Status,CreatedDate,CreatedBy)    
+			VALUES(''Copy'',@CostCenterId,@RESOURCEMAX,6,1,1,@CreatedDt,@UserName) 
+	 
+			EXEC spCOM_SetCostCenterLanguageData ''Recur'',@CostCenterName,@UserName,@RESOURCEMAX output
+			INSERT INTO ADM_FeatureAction(Name,FeatureID,ResourceID,FeatureActionTypeID,ApplicationID,Status,CreatedDate,CreatedBy)    
+			VALUES(''Recur'',@CostCenterId,@RESOURCEMAX,7,1,1,@CreatedDt,@UserName) 				
+		 
+			EXEC spCOM_SetCostCenterLanguageData ''Notes'',@CostCenterName,@UserName,@RESOURCEMAX output
+			INSERT INTO ADM_FeatureAction(Name,FeatureID,ResourceID,FeatureActionTypeID,ApplicationID,Status,CreatedDate,CreatedBy)    
+			VALUES(''Notes'',@CostCenterId,@RESOURCEMAX,8,1,1,@CreatedDt,@UserName) 
+		 
+			EXEC spCOM_SetCostCenterLanguageData ''Attach'',@CostCenterName,@UserName,@RESOURCEMAX output
+			INSERT INTO ADM_FeatureAction(Name,FeatureID,ResourceID,FeatureActionTypeID,ApplicationID,Status,CreatedDate,CreatedBy)    
+			VALUES(''Attach'',@CostCenterId,@RESOURCEMAX,9,1,1,@CreatedDt,@UserName) 				
+
+
+			EXEC spCOM_SetCostCenterLanguageData ''Customize'',@CostCenterName,@UserName,@RESOURCEMAX output
+			INSERT INTO ADM_FeatureAction(Name,FeatureID,ResourceID,FeatureActionTypeID,ApplicationID,Status,CreatedDate,CreatedBy)    
+			VALUES(''Customize'',@CostCenterId,@RESOURCEMAX,10,1,1,@CreatedDt,@UserName) 
+
+			EXEC spCOM_SetCostCenterLanguageData ''Save&Print'',@CostCenterName,@UserName,@RESOURCEMAX output
+			INSERT INTO ADM_FeatureAction(Name,FeatureID,ResourceID,FeatureActionTypeID,ApplicationID,Status,CreatedDate,CreatedBy)    
+			VALUES(''Save&Print'',@CostCenterId,@RESOURCEMAX,11,1,1,@CreatedDt,@UserName) 		
+			
+			EXEC spCOM_SetCostCenterLanguageData ''Email'',@CostCenterName,@UserName,@RESOURCEMAX output
+			INSERT INTO ADM_FeatureAction(Name,FeatureID,ResourceID,FeatureActionTypeID,ApplicationID,Status,CreatedDate,CreatedBy)    
+			VALUES(''Email'',@CostCenterId,@RESOURCEMAX,47,1,1,@CreatedDt,@UserName) 				
+
+			EXEC spCOM_SetCostCenterLanguageData ''SMS'',@CostCenterName,@UserName,@RESOURCEMAX output
+			INSERT INTO ADM_FeatureAction(Name,FeatureID,ResourceID,FeatureActionTypeID,ApplicationID,Status,CreatedDate,CreatedBy)    
+			VALUES(''SMS'',@CostCenterId,@RESOURCEMAX,48,1,1,@CreatedDt,@UserName) 				
+
+			EXEC spCOM_SetCostCenterLanguageData ''PriceChart'',@CostCenterName,@UserName,@RESOURCEMAX output
+			INSERT INTO ADM_FeatureAction(Name,FeatureID,ResourceID,FeatureActionTypeID,ApplicationID,Status,CreatedDate,CreatedBy)    
+			VALUES(''PriceChart'',@CostCenterId,@RESOURCEMAX,142,1,1,@CreatedDt,@UserName) 				
+
+			EXEC spCOM_SetCostCenterLanguageData ''Suspend'',@CostCenterName,@UserName,@RESOURCEMAX output
+			INSERT INTO ADM_FeatureAction(Name,FeatureID,ResourceID,FeatureActionTypeID,ApplicationID,Status,CreatedDate,CreatedBy)    
+			VALUES(''Suspend'',@CostCenterId,@RESOURCEMAX,141,1,1,@CreatedDt,@UserName) 				
+		
+		-------
+			EXEC spCOM_SetCostCenterLanguageData ''JV'',@CostCenterName,@UserName,@RESOURCEMAX output
+			INSERT INTO ADM_FeatureAction(Name,FeatureID,ResourceID,FeatureActionTypeID,ApplicationID,Status,CreatedDate,CreatedBy)    
+			VALUES(''JV'',@CostCenterId,@RESOURCEMAX,516,1,1,@CreatedDt,@UserName) 
+
+			EXEC spCOM_SetCostCenterLanguageData ''Draft'',@CostCenterName,@UserName,@RESOURCEMAX output
+			INSERT INTO ADM_FeatureAction(Name,FeatureID,ResourceID,FeatureActionTypeID,ApplicationID,Status,CreatedDate,CreatedBy)    
+			VALUES(''Draft'',@CostCenterId,@RESOURCEMAX,517,1,1,@CreatedDt,@UserName)
+
+			EXEC spCOM_SetCostCenterLanguageData ''AssignVPT'',@CostCenterName,@UserName,@RESOURCEMAX output
+			INSERT INTO ADM_FeatureAction(Name,FeatureID,ResourceID,FeatureActionTypeID,ApplicationID,Status,CreatedDate,CreatedBy)    
+			VALUES(''AssignVPT'',@CostCenterId,@RESOURCEMAX,675,1,1,@CreatedDt,@UserName)
+
+			EXEC spCOM_SetCostCenterLanguageData ''ContinuousPrint'',@CostCenterName,@UserName,@RESOURCEMAX output
+			INSERT INTO ADM_FeatureAction(Name,FeatureID,ResourceID,FeatureActionTypeID,ApplicationID,Status,CreatedDate,CreatedBy)    
+			VALUES(''ContinuousPrint'',@CostCenterId,@RESOURCEMAX,514,1,1,@CreatedDt,@UserName)
+
+			EXEC spCOM_SetCostCenterLanguageData ''AssignUsers'',@CostCenterName,@UserName,@RESOURCEMAX output
+			INSERT INTO ADM_FeatureAction(Name,FeatureID,ResourceID,FeatureActionTypeID,ApplicationID,Status,CreatedDate,CreatedBy)    
+			VALUES(''AssignUsers'',@CostCenterId,@RESOURCEMAX,515,1,1,@CreatedDt,@UserName)
+
+			EXEC spCOM_SetCostCenterLanguageData ''HoldDoc'',@CostCenterName,@UserName,@RESOURCEMAX output
+			INSERT INTO ADM_FeatureAction(Name,FeatureID,ResourceID,FeatureActionTypeID,ApplicationID,Status,CreatedDate,CreatedBy)    
+			VALUES(''HoldDoc'',@CostCenterId,@RESOURCEMAX,518,1,1,@CreatedDt,@UserName)
+
+		-------
+
+			INSERT INTO ADM_FeatureAction(Name,FeatureID,ResourceID,FeatureActionTypeID,ApplicationID,Status,CreatedDate,CreatedBy)    
+			VALUES(''Revise'',@CostCenterId,81477,146,1,1,@CreatedDt,@UserName) 				
+			
+			INSERT INTO ADM_FeatureAction(Name,FeatureID,ResourceID,FeatureActionTypeID,ApplicationID,Status,CreatedDate,CreatedBy)    
+			VALUES(''Export'',@CostCenterId,NULL,148,1,1,@CreatedDt,@UserName) 				
+			
+			INSERT INTO ADM_FeatureAction(Name,FeatureID,ResourceID,FeatureActionTypeID,ApplicationID,Status,CreatedDate,CreatedBy)    
+			VALUES(''Post Billwise'',@CostCenterId,NULL,173,1,1,@CreatedDt,@UserName) 				
+			
+			INSERT INTO ADM_FeatureAction(Name,FeatureID,ResourceID,FeatureActionTypeID,ApplicationID,Status,CreatedDate,CreatedBy)    
+			VALUES(''Edit Rejected Documents'',@CostCenterId,NULL,174,1,1,@CreatedDt,@UserName) 				
+			
+			INSERT INTO ADM_FeatureAction(Name,FeatureID,ResourceID,FeatureActionTypeID,ApplicationID,Status,CreatedDate,CreatedBy)    
+			VALUES(''Post Cancelled Documents'',@CostCenterId,NULL,175,1,1,@CreatedDt,@UserName) 				
+			
+			INSERT INTO ADM_FeatureAction(Name,FeatureID,ResourceID,FeatureActionTypeID,ApplicationID,Status,CreatedDate,CreatedBy)    
+			VALUES(''Edit Printed Documents'',@CostCenterId,NULL,190,1,1,@CreatedDt,@UserName) 				
+			
+			INSERT INTO [adm_featureaction] ([Name],[ResourceID],[FeatureID],[FeatureActionTypeID],[ApplicationID],[GridShortCut],[Description],[Status],[CreatedDate],[CreatedBy])
+			VALUES(''Print/Export Approved'',72790,@CostCenterId,204,1,NULL,NULL,1,4003,''ADMIN'')
+				
+			INSERT INTO [adm_featureaction] ([Name],[ResourceID],[FeatureID],[FeatureActionTypeID],[ApplicationID],[GridShortCut],[Description],[Status],[CreatedDate],[CreatedBy])
+			VALUES(''Print/Export Un-Approved'',72791,@CostCenterId,205,1,NULL,NULL,1,4003,''ADMIN'')
+			
+			INSERT INTO [adm_featureaction] ([Name],[ResourceID],[FeatureID],[FeatureActionTypeID],[ApplicationID],[GridShortCut],[Description],[Status],[CreatedDate],[CreatedBy])
+			VALUES(''Print/Export Rejected'',72793,@CostCenterId,207,1,NULL,NULL,1,4003,''ADMIN'')
+			
+			INSERT INTO [adm_featureaction] ([Name],[ResourceID],[FeatureID],[FeatureActionTypeID],[ApplicationID],[GridShortCut],[Description],[Status],[CreatedDate],[CreatedBy])
+			VALUES(''Approve'',72792,@CostCenterId,206,1,NULL,NULL,1,4003,''ADMIN'')
+			
+			INSERT INTO [adm_featureaction] ([Name],[ResourceID],[FeatureID],[FeatureActionTypeID],[ApplicationID],[GridShortCut],[Description],[Status],[CreatedDate],[CreatedBy])
+			VALUES(''Import'',72794,@CostCenterId,218,1,NULL,NULL,1,4003,''ADMIN'')
+			
+			INSERT INTO [adm_featureaction] ([Name],[ResourceID],[FeatureID],[FeatureActionTypeID],[ApplicationID],[GridShortCut],[Description],[Status],[CreatedDate],[CreatedBy])
+			VALUES(''Edit Approved Docs'',NULL,@CostCenterId,433,1,NULL,NULL,1,4003,''ADMIN'')
+
+			INSERT INTO [adm_featureaction] ([Name],[ResourceID],[FeatureID],[FeatureActionTypeID],[ApplicationID],[GridShortCut],[Description],[Status],[CreatedDate],[CreatedBy])
+			VALUES(''Edit Posted Docs'',NULL,@CostCenterId,401,1,NULL,NULL,1,4003,''ADMIN'')
+			
+			INSERT INTO [adm_featureaction] ([Name],[ResourceID],[FeatureID],[FeatureActionTypeID],[ApplicationID],[GridShortCut],[Description],[Status],[CreatedDate],[CreatedBy])
+			VALUES(''Skip Document Number'',NULL,@CostCenterId,671,1,NULL,NULL,1,4003,''ADMIN'')
+			
+			INSERT INTO [adm_featureaction] ([Name],[ResourceID],[FeatureID],[FeatureActionTypeID],[ApplicationID],[GridShortCut],[Description],[Status],[CreatedDate],[CreatedBy])
+			VALUES(''Do not allow past dated transaction'',NULL,@CostCenterId,672,1,NULL,NULL,1,4003,''ADMIN'')
+			
+			INSERT INTO [adm_featureaction] ([Name],[ResourceID],[FeatureID],[FeatureActionTypeID],[ApplicationID],[GridShortCut],[Description],[Status],[CreatedDate],[CreatedBy])
+			VALUES(''Do not allow future dated transaction'',NULL,@CostCenterId,673,1,NULL,NULL,1,4003,''ADMIN'')
+			
+			INSERT INTO [adm_featureaction] ([Name],[ResourceID],[FeatureID],[FeatureActionTypeID],[ApplicationID],[GridShortCut],[Description],[Status],[CreatedDate],[CreatedBy])
+			VALUES(''Duplicate'',NULL,@CostCenterId,674,1,NULL,NULL,1,4003,''ADMIN'')
+			
+			INSERT INTO [adm_featureaction] ([Name],[ResourceID],[FeatureID],[FeatureActionTypeID],[ApplicationID],[GridShortCut],[Description],[Status],[CreatedDate],[CreatedBy])
+			VALUES(''Next'',NULL,@CostCenterId,501,1,NULL,NULL,1,4003,''ADMIN'')
+			
+			INSERT INTO [adm_featureaction] ([Name],[ResourceID],[FeatureID],[FeatureActionTypeID],[ApplicationID],[GridShortCut],[Description],[Status],[CreatedDate],[CreatedBy])
+			VALUES(''Previous'',NULL,@CostCenterId,502,1,NULL,NULL,1,4003,''ADMIN'')
+			
+			INSERT INTO [adm_featureaction] ([Name],[ResourceID],[FeatureID],[FeatureActionTypeID],[ApplicationID],[GridShortCut],[Description],[Status],[CreatedDate],[CreatedBy])
+			VALUES(''LoadDocument'',NULL,@CostCenterId,503,1,NULL,NULL,1,4003,''ADMIN'')
+			
+			INSERT INTO [adm_featureaction] ([Name],[ResourceID],[FeatureID],[FeatureActionTypeID],[ApplicationID],[GridShortCut],[Description],[Status],[CreatedDate],[CreatedBy])
+			VALUES(''History'',NULL,@CostCenterId,504,1,NULL,NULL,1,4003,''ADMIN'')
+			
+			INSERT INTO [adm_featureaction] ([Name],[ResourceID],[FeatureID],[FeatureActionTypeID],[ApplicationID],[GridShortCut],[Description],[Status],[CreatedDate],[CreatedBy])
+			VALUES(''DocumentHistory'',NULL,@CostCenterId,505,1,NULL,NULL,1,4003,''ADMIN'')
+			
+			INSERT INTO [adm_featureaction] ([Name],[ResourceID],[FeatureID],[FeatureActionTypeID],[ApplicationID],[GridShortCut],[Description],[Status],[CreatedDate],[CreatedBy])
+			VALUES(''ReviseHistory'',NULL,@CostCenterId,506,1,NULL,NULL,1,4003,''ADMIN'')
+			
+			INSERT INTO [adm_featureaction] ([Name],[ResourceID],[FeatureID],[FeatureActionTypeID],[ApplicationID],[GridShortCut],[Description],[Status],[CreatedDate],[CreatedBy])
+			VALUES(''Withdraw'',NULL,@CostCenterId,462,1,NULL,NULL,1,4003,''ADMIN'')
+			
+			INSERT INTO [adm_featureaction] ([Name],[ResourceID],[FeatureID],[FeatureActionTypeID],[ApplicationID],[GridShortCut],[Description],[Status],[CreatedDate],[CreatedBy])
+			VALUES(''ReEvaluate'',NULL,@CostCenterId,509,1,NULL,NULL,1,4003,''ADMIN'')
+			
+			INSERT INTO [adm_featureaction] ([Name],[ResourceID],[FeatureID],[FeatureActionTypeID],[ApplicationID],[GridShortCut],[Description],[Status],[CreatedDate],[CreatedBy])
+			VALUES(''ReEvaluatePriceChart'',NULL,@CostCenterId,510,1,NULL,NULL,1,4003,''ADMIN'')
+			
+			INSERT INTO [adm_featureaction] ([Name],[ResourceID],[FeatureID],[FeatureActionTypeID],[ApplicationID],[GridShortCut],[Description],[Status],[CreatedDate],[CreatedBy])
+			VALUES(''ReEvaluateTaxChart'',NULL,@CostCenterId,511,1,NULL,NULL,1,4003,''ADMIN'')
+			
+			INSERT INTO [adm_featureaction] ([Name],[ResourceID],[FeatureID],[FeatureActionTypeID],[ApplicationID],[GridShortCut],[Description],[Status],[CreatedDate],[CreatedBy])
+			VALUES(''Only Assigned Documents'',NULL,@CostCenterId,221,1,NULL,NULL,1,4003,''ADMIN'')
+			
+			INSERT INTO [adm_featureaction] ([Name],[ResourceID],[FeatureID],[FeatureActionTypeID],[ApplicationID],[GridShortCut],[Description],[Status],[CreatedDate],[CreatedBy])
+			VALUES(''User-Wise DocumentsDocuments'',NULL,@CostCenterId,137,1,NULL,NULL,1,4003,''ADMIN'')
+		 
+		    INSERT INTO [adm_featureaction] ([Name],[ResourceID],[FeatureID],[FeatureActionTypeID],[ApplicationID],[GridShortCut],[Description],[Status],[CreatedDate],[CreatedBy])
+			VALUES(''File_Create'',NULL,@CostCenterId,12,1,NULL,NULL,1,4003,''ADMIN'')
+				
+			INSERT INTO [adm_featureaction] ([Name],[ResourceID],[FeatureID],[FeatureActionTypeID],[ApplicationID],[GridShortCut],[Description],[Status],[CreatedDate],[CreatedBy])
+			VALUES(''File_Read'',NULL,@CostCenterId,13,1,NULL,NULL,1,4003,''ADMIN'')
+
+			INSERT INTO [adm_featureaction] ([Name],[ResourceID],[FeatureID],[FeatureActionTypeID],[ApplicationID],[GridShortCut],[Description],[Status],[CreatedDate],[CreatedBy])
+			VALUES(''File_Update'',NULL,@CostCenterId,14,1,NULL,NULL,1,4003,''ADMIN'')
+
+			INSERT INTO [adm_featureaction] ([Name],[ResourceID],[FeatureID],[FeatureActionTypeID],[ApplicationID],[GridShortCut],[Description],[Status],[CreatedDate],[CreatedBy])
+			VALUES(''File_Delete'',NULL,@CostCenterId,15,1,NULL,NULL,1,4003,''ADMIN'')		
+
+			INSERT INTO [adm_featureaction] ([Name],[ResourceID],[FeatureID],[FeatureActionTypeID],[ApplicationID],[GridShortCut],[Description],[Status],[CreatedDate],[CreatedBy])
+			VALUES(''File_Download'',NULL,@CostCenterId,18,1,NULL,NULL,1,4003,''ADMIN'')
+ 
+			INSERT INTO [adm_featureaction] ([Name],[ResourceID],[FeatureID],[FeatureActionTypeID],[ApplicationID],[GridShortCut],[Description],[Status],[CreatedDate],[CreatedBy])
+			VALUES(''InsertRow'',NULL,@CostCenterId,906,1,NULL,NULL,1,4003,''ADMIN'')
+			
+			INSERT INTO [adm_featureaction] ([Name],[ResourceID],[FeatureID],[FeatureActionTypeID],[ApplicationID],[GridShortCut],[Description],[Status],[CreatedDate],[CreatedBy])
+			VALUES(''CopyRow'',NULL,@CostCenterId,907,1,NULL,NULL,1,4003,''ADMIN'')
+			
+			INSERT INTO [adm_featureaction] ([Name],[ResourceID],[FeatureID],[FeatureActionTypeID],[ApplicationID],[GridShortCut],[Description],[Status],[CreatedDate],[CreatedBy])
+			VALUES(''CopyRef'',NULL,@CostCenterId,908,1,NULL,NULL,1,4003,''ADMIN'')
+			
+			INSERT INTO [adm_featureaction] ([Name],[ResourceID],[FeatureID],[FeatureActionTypeID],[ApplicationID],[GridShortCut],[Description],[Status],[CreatedDate],[CreatedBy])
+			VALUES(''PasteRow'',NULL,@CostCenterId,909,1,NULL,NULL,1,4003,''ADMIN'')
+			
+			INSERT INTO [adm_featureaction] ([Name],[ResourceID],[FeatureID],[FeatureActionTypeID],[ApplicationID],[GridShortCut],[Description],[Status],[CreatedDate],[CreatedBy])
+			VALUES(''RowDelete'',NULL,@CostCenterId,910,1,NULL,NULL,1,4003,''ADMIN'')
+			
+			INSERT INTO [adm_featureaction] ([Name],[ResourceID],[FeatureID],[FeatureActionTypeID],[ApplicationID],[GridShortCut],[Description],[Status],[CreatedDate],[CreatedBy])
+			VALUES(''RowMap'',NULL,@CostCenterId,911,1,NULL,NULL,1,4003,''ADMIN'')
+			
+			INSERT INTO [adm_featureaction] ([Name],[ResourceID],[FeatureID],[FeatureActionTypeID],[ApplicationID],[GridShortCut],[Description],[Status],[CreatedDate],[CreatedBy])
+			VALUES(''RowDetails'',NULL,@CostCenterId,912,1,NULL,NULL,1,4003,''ADMIN'')
+
+			INSERT INTO [adm_featureaction] ([Name],[ResourceID],[FeatureID],[FeatureActionTypeID],[ApplicationID],[GridShortCut],[Description],[Status],[CreatedDate],[CreatedBy])
+	        VALUES(''LinkStatus'',NULL,@CostCenterId,948,1,NULL,NULL,1,CONVERT(FLOAT,GETDATE()),''ADMIN'')
+			
+
+			
+			INSERT INTO [adm_featureaction] ([Name],[ResourceID],[FeatureID],[FeatureActionTypeID],[ApplicationID],[GridShortCut],[Description],[Status],[CreatedDate],[CreatedBy])
+	        VALUES(''Allow Re-Print'',NULL,@CostCenterId,926,1,NULL,NULL,1,CONVERT(FLOAT,GETDATE()),''ADMIN'')
+
+						INSERT INTO [adm_featureaction] ([Name],[ResourceID],[FeatureID],[FeatureActionTypeID],[ApplicationID],[GridShortCut],[Description],[Status],[CreatedDate],[CreatedBy])
+	        VALUES(''CopyWithHeader'',NULL,@CostCenterId,927,1,NULL,NULL,1,CONVERT(FLOAT,GETDATE()),''ADMIN'')
+			
+			--ACTIVITY
+			IF(EXISTS (SELECT PrefValue FROM COM_DocumentPreferences WITH(NOLOCK) WHERE PrefName=''Activities'' AND CostCenterID=@CostCenterId))
+			BEGIN
+				INSERT INTO [adm_featureaction] ([Name],[ResourceID],[FeatureID],[FeatureActionTypeID],[ApplicationID],[GridShortCut],[Description],[Status],[CreatedDate],[CreatedBy])
+				VALUES(''Activity_Create'',NULL,@CostCenterId,900,1,NULL,NULL,1,CONVERT(FLOAT,GETDATE()),''ADMIN'')
+				
+				INSERT INTO [adm_featureaction] ([Name],[ResourceID],[FeatureID],[FeatureActionTypeID],[ApplicationID],[GridShortCut],[Description],[Status],[CreatedDate],[CreatedBy])
+				VALUES(''Activity_Edit'',NULL,@CostCenterId,901,1,NULL,NULL,1,CONVERT(FLOAT,GETDATE()),''ADMIN'')
+				
+				INSERT INTO [adm_featureaction] ([Name],[ResourceID],[FeatureID],[FeatureActionTypeID],[ApplicationID],[GridShortCut],[Description],[Status],[CreatedDate],[CreatedBy])
+				VALUES(''Activity_Delete'',NULL,@CostCenterId,902,1,NULL,NULL,1,CONVERT(FLOAT,GETDATE()),''ADMIN'')
+			END
+	
+			if(@DocumentType in(1,2,4,25,26,27,34))
+			BEGIN
+					INSERT INTO ADM_FeatureAction(Name,FeatureID,ResourceID,FeatureActionTypeID,ApplicationID,Status,CreatedDate,CreatedBy)    
+					VALUES(''Save&Barcode'',@CostCenterId,NULL,116,1,1,@CreatedDt,@UserName) 
+					
+					INSERT INTO ADM_FeatureAction(Name,FeatureID,ResourceID,FeatureActionTypeID,ApplicationID,Status,CreatedDate,CreatedBy)    
+					VALUES(''BarcodePrint'',@CostCenterId,NULL,117,1,1,@CreatedDt,@UserName)					
+			END
+			
+			 INSERT INTO [ADM_FeatureActionRoleMap]([RoleID],[FeatureActionID],[Status],[CreatedBy],[CreatedDate])
+			 SELECT 1,[FeatureActionID],1,@UserName,@CreatedDt FROM ADM_FeatureAction WITH(NOLOCK) 
+			 WHERE FEATUREID=@CostCenterId and FeatureActionTypeID not in(673,672,221,137)
+			
+
+CREATE TABLE #TBLTEMP(ID INT IDENTITY(1,1),COLID INT,SYSCOLUMN NVARCHAR(300),RID INT)
+INSERT INTO #TBLTEMP
+	SELECT COSTCENTERCOLID,SysTableName,ResourceID FROM adm_costCenterDef WHERE costCenteriD =@CCID
+SELECT @COUNT=COUNT(*) FROM #TBLTEMP
+set @i=1
+while(@i<=@COUNT)
+begin
+		SELECT @ColumnName=SysColumnName,@ISUserDefinedCOl=IsColumnUserDefined FROM adm_costCenterDef WHERE 
+		COSTCENTERCOLID=(SELECT COLID FROM #TBLTEMP WHERE ID=@i)
+		 SELECT @RID=RID FROM #TBLTEMP WHERE ID=@i
+		
+			if(@ColumnName like ''dcCalcNumFC%'')
+			begin
+				select @RESOURCEMAX=ResourceID from ADM_CostCenterDef where CostCenterID=@CostCenterId and SysColumnName=''dcNum''+replace(@ColumnName,''dcCalcNumFC'','''')
+			end
+			else if(@ColumnName like ''dcCalcNum%'')
+			begin
+				select @RESOURCEMAX=ResourceID from ADM_CostCenterDef where CostCenterID=@CostCenterId and SysColumnName=''dcNum''+replace(@ColumnName,''dcCalcNum'','''')
+			end
+			else if(@ColumnName like ''dcCurrID%'')
+			begin
+				select @RESOURCEMAX=ResourceID from ADM_CostCenterDef where CostCenterID=@CostCenterId and SysColumnName=''dcNum''+replace(@ColumnName,''dcCurrID'','''')
+			end
+			else if(@ColumnName like ''dcExchRT%'')
+			begin
+				select @RESOURCEMAX=ResourceID from ADM_CostCenterDef where CostCenterID=@CostCenterId and SysColumnName=''dcNum''+replace(@ColumnName,''dcExchRT'','''')
+			end
+			else 
+			begin 
+				if(@ISUserDefinedCOl=0)
+					select @ColumnName=ResourceData from COM_LanguageResources where ResourceID=@RID and LanguageID=1
+				EXEC spCOM_SetCostCenterLanguageData @ColumnName,@CostCenterName,@UserName,@RESOURCEMAX output
+			end
+			
+			if(@ISUserDefinedCOl=0)
+				set @IsColumnInUse=1
+			else
+				set @IsColumnInUse=0	
+			--Insert Name Code definition TO ADM_CostCenterDef TABLE.  
+			INSERT INTO ADM_CostCenterDef(IsColumnInUse,CostCenterID,CostCenterName,SysTableName,UserColumnName,SysColumnName,UserColumnType,ColumnDataType,ResourceID,SectionID,SectionName,SectionSeqNumber,ColumnOrder,IsCostCenterUserDefined,IsColumnUserDefined,ColumnCostCenterID,ColumnCCListViewTypeID,IsMandatory,IsEditable,CompanyGUID,GUID,CreatedBy,CreatedDate,RowNo,ColumnNo,ColumnSpan,TextFormat,UIwidth,IsForeignKey,ParentCostCenterID,ParentCostCenterColID,IsValidReportBuilderCol,ParentCostCenterSysName,ParentCostCenterColSysName,ParentCCDefaultColID)    
+			SELECT @IsColumnInUse,@CostCenterId,@COSTCENTERNAME,SysTableName,case when IsColumnUserDefined=1 then SysColumnName else
+			UserColumnName end,SysColumnName,UserColumnType,ColumnDataType,@RESOURCEMAX,SectionID,SectionName,SectionSeqNumber,ColumnOrder,1,IsColumnUserDefined,ColumnCostCenterID,ColumnCCListViewTypeID,IsMandatory,IsEditable,CompanyGUID,newid(),@UserName,@CreatedDt,RowNo,ColumnNo,ColumnSpan,TextFormat,UIwidth,IsForeignKey,ParentCostCenterID,ParentCostCenterColID,IsValidReportBuilderCol,ParentCostCenterSysName,ParentCostCenterColSysName,ParentCCDefaultColID FROM ADM_CostCenterDef
+			WHERE COSTCENTERCOLID=(SELECT COLID FROM #TBLTEMP WHERE ID=@i)
+				
+			set @CostCenterColID=@@IDENTITY
+			
+			if(@ISUserDefinedCOl=0)
+			begin
+				 	
+						if exists( select DocumentDefID from ADM_DocumentDef where COSTCENTERCOLID=(SELECT COLID FROM #TBLTEMP WHERE ID=@i) and CostCenterID=@CCID)
+						begin
+					 
+					INSERT INTO [ADM_DocumentDef]              
+					  ([DocumentTypeID]              
+					  ,[CostCenterID]             
+					  ,[CostCenterColID]              
+					  ,[DebitAccount]              
+					  ,[CreditAccount]              
+					  ,[Formula]              
+					  ,[PostingType]              
+					  ,[RoundOff]              
+					  ,[RoundOffLineWise]              
+					  ,[IsRoundOffEnabled]              
+					  ,[IsDrAccountDisplayed]           
+					  ,[IsCrAccountDisplayed]              
+					  ,[IsDistributionEnabled]              
+					  ,[DistributionColID]              
+					  ,[IsCalculate]              
+					  ,[CompanyGUID]              
+					  ,[GUID]              
+					  ,[CreatedBy]              
+					  ,[CreatedDate])              
+				   select (select DocumentTypeID FROM ADM_DOCUMENTTYPES WHERE  CostCenterID=@CostCenterId)
+					  ,@CostCenterId              
+					  ,@CostCenterColID              
+					  ,[DebitAccount]              
+					  ,[CreditAccount]              
+					  ,[Formula]              
+					  ,[PostingType]              
+					  ,[RoundOff]              
+					  ,[RoundOffLineWise]              
+					  ,[IsRoundOffEnabled]              
+					  ,[IsDrAccountDisplayed]           
+					  ,[IsCrAccountDisplayed]              
+					  ,[IsDistributionEnabled]              
+					  ,[DistributionColID]              
+					  ,[IsCalculate]              
+					  ,[CompanyGUID]             
+					  ,newid()               
+					  ,@UserName              
+					  ,convert(float,getdate()) from  ADM_DocumentDef where COSTCENTERCOLID=(SELECT COLID FROM #TBLTEMP WHERE ID=@i) and CostCenterID=@CCID
+				end
+		end
+		 
+
+		set @i=@i+1
+ 
+end
+
+
+DROP TABLE #TBLTEMP
+
+COMMIT TRANSACTION
+' 
+END
+GO

@@ -1,0 +1,24 @@
+--KHASIM
+
+
+
+declare @Rid int
+select @Rid=MAX(ResourceID) from COM_LanguageResources  WITH(NOLOCK)
+
+set @Rid=@Rid+1
+
+
+INSERT INTO [com_languageresources] ([ResourceID],[ResourceName],[LanguageID],[LanguageName],[ResourceData],[GUID],[Description],[CreatedBy],[CreatedDate],[ModifiedBy],[ModifiedDate],[FEATURE])
+VALUES(@Rid,'DimensionWiseFields',1,'English','Dimension Wise Fields','A18AA097-DF5C66D20097A',NULL,'ADMIN',4004,NULL,NULL,'')
+
+insert into COM_CostCenterPreferences(CostCenterID,FeatureID,ResourceID,Name,Value,GUID,CreatedBy,CreatedDate,DefaultValue)
+values(103,103,@Rid,'DimensionWiseFields','','guid','admin',22,'')
+
+
+set @Rid=@Rid+1
+
+INSERT INTO [com_languageresources] ([ResourceID],[ResourceName],[LanguageID],[LanguageName],[ResourceData],[GUID],[Description],[CreatedBy],[CreatedDate],[ModifiedBy],[ModifiedDate],[FEATURE])
+VALUES(@Rid,'DimensionWiseFields',1,'English','Dimension Wise Fields','A18AA097-DF5C66D20097A',NULL,'ADMIN',4004,NULL,NULL,'')
+
+insert into COM_CostCenterPreferences(CostCenterID,FeatureID,ResourceID,Name,Value,GUID,CreatedBy,CreatedDate,DefaultValue)
+values(129,129,@Rid,'DimensionWiseFields','','guid','admin',22,'')

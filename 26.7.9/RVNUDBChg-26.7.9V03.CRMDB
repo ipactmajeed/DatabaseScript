@@ -1,0 +1,3 @@
+--KHAJA
+update ADM_CostCenterDef set SectionID=0 
+where SysTableName='CRM_ProductMapping' and SysColumnName ='ProductID' and SectionID>0

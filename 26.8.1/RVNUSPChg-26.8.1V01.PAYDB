@@ -1,0 +1,379 @@
+-- SHASHANK
+
+/****** Object:  StoredProcedure [dbo].[spPAY_GetEmpFinalSettlement]    Script Date: 07-11-2025 11:01:24 ******/
+IF  EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[spPAY_GetEmpFinalSettlement]') AND type in (N'P', N'PC'))
+DROP PROCEDURE [dbo].[spPAY_GetEmpFinalSettlement]
+GO
+/****** Object:  StoredProcedure [dbo].[spPAY_GetEmpFinalSettlement]    Script Date: 07-11-2025 11:01:24 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[spPAY_GetEmpFinalSettlement]') AND type in (N'P', N'PC'))
+BEGIN
+EXEC dbo.sp_executesql @statement = N'CREATE PROCEDURE [dbo].[spPAY_GetEmpFinalSettlement]
+	@EmpSeqNo [nvarchar](max),
+	@DocID [bigint],
+	@DocDate [datetime],
+	@DtDate [datetime],
+	@DocNumber [bigint],
+	@Docprefix [nvarchar](max),
+	@Flag [int] = 0,
+	@UserID [int],
+	@RoleID [int],
+	@LangID [int] = 1
+WITH  EXECUTE AS CALLER
+AS
+BEGIN TRY    
+SET NOCOUNT ON; 
+
+DECLARE @SNo INT,@CompID BIGINT,@SQL NVARCHAR(MAX),@Cols NVARCHAR(MAX), @RCnt INT,@RId int,@Gr BIGINT,@Grade1 BIGINT,@IsGradeWise1 BIT,@Grade2 INT,@Grade BIGINT,@PayrollDate datetime,@IsGradeWise BIT,@PayrollNoOfDecimals FLOAT
+
+SELECT @IsGradeWise1=CONVERT(BIT,Value) FROM ADM_GlobalPreferences WITH(NOLOCK) WHERE Name=''GradeWiseVacation''
+SELECT @IsGradeWise=CONVERT(BIT,Value) FROM ADM_GlobalPreferences WITH(NOLOCK)WHERE Name=''GradeWiseMonthlyPayroll''
+SELECT @PayrollNoOfDecimals=Value FROM ADM_GlobalPreferences WITH(NOLOCK)WHERE Name=''PayrollNoOfDecimals''
+
+--- 0    
+SELECT NodeID,Code,Name,ISNULL(CONVERT(DATETIME,DOB),GETDATE()) as DOB,ISNULL(CONVERT(DATETIME,DOJ),GETDATE()) as DOJ,ISNULL(CONVERT(DATETIME,DOResign),''01-Jan-9000'') as DOResign ,ISNULL(CONVERT(DATETIME,DORelieve),''01-Jan-9000'') as DORelieve,ISNULL(ResignType,'''') as ResignType,ISNULL(ResignStatus,'''') ResignStatus,OPLOPDays,WeeklyOff1,WeeklyOff2  From COM_CC50051 WITH(NOLOCK) Where NodeID=@EmpSeqNo 
+
+--- 1
+IF @IsGradeWise=1
+BEGIN
+	SELECT @Grade2=(	SELECT TOP 1 HistoryNodeID FROM COM_HistoryDetails WITH(NOLOCK) 
+					WHERE NodeID=@EmpSeqNo AND CostCenterID=50051 AND HistoryCCID=50053 AND  ToDate IS NULL) 
+END
+
+IF @Grade2 IS NULL
+Begin
+	SET @Grade2=1
+End    
+
+SELECT b.Name as ComponentName,a.* From COM_CC50054 a WITH(NOLOCK)
+JOIN COM_CC50052 b WITH(NOLOCK) on b.NodeID=a.ComponentID 
+Where GradeID=@Grade2 AND Type=4 and CONVERT(DATETIME,PayrollDate)=(Select Max(CONVERT(DATETIME,PayrollDate)) FROM COM_CC50054 WITH(NOLOCK) Where CONVERT(DATETIME,PayrollDate)<=@DtDate)  
+AND MaxEncashDays>0 ORDER BY SNo
+                
+--- 2    
+Select DISTINCT d.dcAlpha1 as VacationField From INV_DOCDetails A WITH(NOLOCK) 
+JOIN COM_DocCCData B WITH(NOLOCK) ON B.INVDOCDETAILSID=a.INVDOCDETAILSID
+JOIN COM_DocTextData d WITH(NOLOCK) ON d.INVDOCDETAILSID=a.INVDOCDETAILSID
+Where A.CostCenterID=40061 AND A.StatusID=369 AND B.dcCCNID53=1
+                    
+--- 3    
+SELECT EmployeeID as EmpSeqNo,CONVERT(DATETIME,EffectFrom) as dtEffectFrom,* FROM PAY_EmpPay  WITH(NOLOCK) 
+WHERE EmployeeID=@EmpSeqNo AND CONVERT(DATETIME,EffectFrom)<=@DocDate 
+ORDER BY EffectFrom
+
+--- 4    
+DECLARE @sMonth DATETIME, @eMonth DATETIME,@tM DATETIME,@MinPayrollDate FLOAT,@PayrollDate1 DATETIME,@PayrollStart DATETIME,@PayrollEnd DATETIME
+CREATE TABLE #tPM(PM DATETIME)
+SELECT @sMonth=	CONVERT(DATETIME,(''01-''+CONVERT(VARCHAR(3),DATENAME(M,CONVERT(DATETIME,DOJ)))+''-''+CONVERT(VARCHAR(4),YEAR(CONVERT(DATETIME,DOJ)))))
+            FROM COM_CC50051 WITH(NOLOCK) WHERE NODEID=@EmpSeqNo
+SELECT  @eMonth=CASE WHEN DORelieve IS NOT NULL THEN DORelieve ELSE CONVERT(DATETIME,@DocDate) END 
+                FROM COM_CC50051 WITH(NOLOCK) WHERE NODEID=@EmpSeqNo
+                
+SELECT TOP 1 @MinPayrollDate=I.DUEDATE FROM INV_DOCDETAILS I WITH(NOLOCK) WHERE I.CostCenterID=40054 ORDER BY DUEDATE ASC
+				
+IF(CONVERT(DATETIME,@MinPayrollDate)>@sMonth)
+	SET @tM=@MinPayrollDate
+ELSE
+	SET @tM=@sMonth
+
+EXEC spPAY_GetPayrollDate @eMonth,@PayrollDate1 OUTPUT,@PayrollStart OUTPUT, @PayrollEnd OUTPUT
+
+WHILE(@tM<=@PayrollDate1)
+BEGIN
+INSERT INTO #tPM SELECT @tM
+SET @tM=DATEADD(M,1,@tM)
+END
+SELECT PM as PayrollMonth FROM #tPM WITH(NOLOCK) WHERE PM NOT IN(
+SELECT CONVERT(DATETIME,a.DueDate) as PayrollDate 
+FROM INV_DocDetails A WITH(NOLOCK) 
+JOIN COM_DocCCData B WITH(NOLOCK) ON B.INVDOCDETAILSID=a.INVDOCDETAILSID
+JOIN COM_DocTextData D WITH(NOLOCK) ON D.INVDOCDETAILSID=a.INVDOCDETAILSID
+WHERE A.CostCenterID=40054 and A.StatusID=369 
+AND B.dcCCNID51=@EmpSeqNo AND ISNULL(D.dcAlpha23,'''')<>''UnProcessed'' 
+)
+ORDER BY PM DESC
+DROP TABLE #tPM
+
+--- 5
+SELECT CONVERT(DATETIME,a.DueDate) as PayrollDate 
+FROM INV_DocDetails A WITH(NOLOCK) 
+JOIN COM_DocCCData B WITH(NOLOCK) ON B.INVDOCDETAILSID=a.INVDOCDETAILSID
+JOIN COM_DocTextData D WITH(NOLOCK) ON D.INVDOCDETAILSID=a.INVDOCDETAILSID
+WHERE A.CostCenterID=40054 and A.StatusID=369 
+AND B.dcCCNID51=@EmpSeqNo AND ISNULL(D.dcAlpha23,'''')='''' 
+
+---- 6
+SELECT TOP 1 * FROM PAY_EmpPay with(nolock) WHERE EmployeeID=@EmpSeqNo 
+ORDER BY EffectFrom DESC,SeqNo DESC
+
+---- 7
+IF @IsGradeWise=1
+BEGIN
+	SELECT TOP 1 @Grade=GradeID,@PayrollDate=CONVERT(DATETIME,PayrollDate) FROM COM_CC50054 WITH(NOLOCK) 
+	WHERE GradeID=(	SELECT TOP 1 HistoryNodeID FROM COM_HistoryDetails WITH(NOLOCK) 
+					WHERE NodeID=@EmpSeqNo AND CostCenterID=50051 AND HistoryCCID=50053 AND  ToDate IS NULL) 
+	AND CONVERT(DATETIME,PayrollDate)<=GETDATE()					
+	ORDER BY PayrollDate DESC
+END
+
+IF @Grade IS NULL
+Begin
+	SELECT TOP 1 @Grade=GradeID,@PayrollDate=CONVERT(DATETIME,PayrollDate) FROM COM_CC50054 WITH(NOLOCK) 
+	WHERE GradeID=1 AND CONVERT(DATETIME,PayrollDate)<=GETDATE()
+	ORDER BY PayrollDate DESC
+End
+
+SELECT * FROM COM_CC50054 WITH(NOLOCK) 
+WHERE GradeID=@Grade AND CONVERT(DATETIME,PayrollDate)=@PayrollDate
+Order By Type,SNo
+
+----8 -- CUMULATIVE LEAVE SALARY BALANCE
+
+
+IF @IsGradeWise1=1
+BEGIN
+	SELECT TOP 1 @Grade1=GradeID FROM COM_CC50054 WITH(NOLOCK) 
+	WHERE GradeID=(	SELECT TOP 1 HistoryNodeID FROM COM_HistoryDetails WITH(NOLOCK) 
+					WHERE NodeID=@EmpSeqNo AND CostCenterID=50051 AND HistoryCCID=50053 AND  ToDate IS NULL) 
+	AND CONVERT(DATETIME,PayrollDate)<=GETDATE()					
+	ORDER BY PayrollDate DESC
+END
+
+IF @Grade1 IS NULL
+Begin
+	SELECT TOP 1 @Grade1=GradeID FROM COM_CC50054 WITH(NOLOCK) 
+	WHERE GradeID=1 AND CONVERT(DATETIME,PayrollDate)<=GETDATE()
+	ORDER BY PayrollDate DESC
+End
+
+SET @Gr=@Grade1
+SET @SQL=''''
+SET @Cols=''''
+
+SELECT CONVERT(BIGINT,dcAlpha17) as ComponentID INTO #Comp
+FROM INV_DocDetails a WITH(NOLOCK) 
+JOIN COM_DocCCData b WITH(NOLOCK) ON b.InvDocDetailsID=a.InvDocDetailsID
+JOIN COM_DocNumData c WITH(NOLOCK) ON c.InvDocDetailsID=a.InvDocDetailsID
+JOIN COM_DocTextData d WITH(NOLOCK) ON d.InvDocDetailsID=a.InvDocDetailsID
+WHERE D.tCostCenterID=40061 and a.StatusID=369 
+AND b.dcCCNID53=@Gr and c.dcNum1=-1
+
+DECLARE CUR CURSOR FOR 
+	SELECT DISTINCT SNo,a.ComponentID 
+	FROM COM_CC50054 a WITH(NOLOCK)
+	WHERE 
+	GradeID=@Gr AND PayrollDate=(Select MAX(PayrollDate) FROM COM_CC50054 WHERE CONVERT(DATETIME,PayrollDate)<= GETDATE())
+	AND ComponentID IN( SELECT ComponentID FROM #Comp WITH(NOLOCK))
+OPEN CUR
+FETCH NEXT FROM CUR INTO @SNo,@CompID
+WHILE @@FETCH_STATUS=0
+BEGIN
+	SET @Cols=@Cols+''ISNULL(SUM(ISNULL(dcCalcNum''+convert(nvarchar,@SNo)+'',0)),0) as ComponentID''+convert(nvarchar,@CompID)+'',''
+FETCH NEXT FROM CUR INTO @SNo,@CompID
+END
+CLOSE CUR
+DEALLOCATE CUR
+
+IF((SELECT COUNT(ComponentID) FROM #Comp WITH(NOLOCK)) >0)
+BEGIN
+	SET @Cols=SUBSTRING(@Cols,0,LEN(@Cols))
+
+--8
+	SET @SQL=''
+	SELECT ''+ @Cols +''
+	FROM INV_DocDetails a WITH(NOLOCK) 
+	JOIN COM_DocCCData b WITH(NOLOCK) ON b.InvDocDetailsID=a.InvDocDetailsID
+	JOIN PAY_DocNumData c WITH(NOLOCK) ON c.InvDocDetailsID=a.InvDocDetailsID
+	JOIN COM_DocTextData d WITH(NOLOCK) ON d.InvDocDetailsID=a.InvDocDetailsID
+	WHERE a.CostCenterID=40054 and a.StatusID=369 
+	and dcCCNID51=''+CONVERT(NVARCHAR,@EmpSeqNo)+'' AND a.VoucherType=11 ''
+	EXEC(@SQL)
+--9
+	SELECT CONVERT(BIGINT,dcAlpha20) as ComponentID,ISNULL(SUM(ISNULL(dcCalcNum1,0)),0) as Amount
+	FROM INV_DocDetails a WITH(NOLOCK) 
+	JOIN COM_DocCCData b WITH(NOLOCK) ON b.InvDocDetailsID=a.InvDocDetailsID
+	JOIN COM_DocNumData c WITH(NOLOCK) ON c.InvDocDetailsID=a.InvDocDetailsID
+	JOIN COM_DocTextData d WITH(NOLOCK) ON d.InvDocDetailsID=a.InvDocDetailsID
+	WHERE D.tCostCenterID=40072 and a.StatusID=369 
+	AND b.dcCCNID51=@EmpSeqNo
+	AND CONVERT(BIGINT,dcAlpha20) IN(SELECT ComponentID FROM #Comp WITH(NOLOCK))
+	GROUP BY dcAlpha20
+
+END
+ELSE 
+BEGIN
+	SELECT 0
+	SELECT '''',0 as Amount
+END
+
+DROP TABLE #Comp
+
+IF(@Flag=1)
+BEGIN
+
+	SELECT a.InvDocDetailsID INTO #ttmp2 FROM INV_DocDetails a WITH(NOLOCK)
+	LEFT JOIN COM_DocCCData b WITH(NOLOCK) ON B.InvDocDetailsID=a.InvDocDetailsID
+	LEFT JOIN COM_DocNumData c WITH(NOLOCK) ON c.InvDocDetailsID=a.InvDocDetailsID
+	LEFT JOIN COM_DocTextData d WITH(NOLOCK) ON d.InvDocDetailsID=a.InvDocDetailsID
+	LEFT JOIN COM_CC50052 e WITH(NOLOCK) ON e.NodeID=b.dcCCNID52
+	WHERE a.StatusID=369 AND D.tCostCenterID=40057 and b.dcCCNID51=@EmpSeqNo
+	and ISDATE(ISNULL(d.dcAlpha4,''''))=1 and ISDATE(ISNULL(d.dcAlpha5,''''))=1 AND CONVERT(DATETIME,d.dcAlpha5) = CONVERT(DATETIME,@DocDate) AND d.dcAlpha6=''1'' 
+
+	
+	SELECT T.dcAlpha12 LoanDocID,T.dcAlpha17 RePayDocID INTO #T1 FROM INV_DocDetails I WITH(NOLOCK) 
+	JOIN COM_DocTextData T WITH(NOLOCK) ON T.InvDocDetailsID=I.InvDocDetailsID
+	WHERE T.tCostCenterID=40095 AND dcAlpha1=7 AND i.DocNumber=@DocNumber and i.DocPrefix=@Docprefix --I.voucherno=''FST-'' + CONVERT(NVARCHAR,@DocNumber)
+	----10---
+	SELECT EmpSeqNo,DocID,DocNo,LoanCompID,LoanType,MAX(ApprovedAmt) as ApprovedAmt,SUM(Paid) as Paid, ROUND(MAX(ApprovedAmt),@PayrollNoOfDecimals)-ROUND(SUM(Paid),@PayrollNoOfDecimals) as Balance
+	FROM (
+	SELECT b.dcCCNID51 as EmpSeqNo,a.InvDocDetailsID,a.DocID,a.VoucherNo as DocNo,b.dcCCNID52 as LoanCompID,e.Name as LoanType,REPLACE(d.dcAlpha2,'','','''') as ApprovedAmt,c.dcNum1 as InstallmentNo,ISNULL(c.dcNum2,0) as InstallmentAmt,d.dcAlpha4 as NoOfInstallments,CONVERT(DATETIME,d.dcAlpha6) as DeductionMonth,
+	ISNULL(f.dcNum1,0) AS InstNo,ISNULL(f.dcNum3,0) as Paid,ISNULL(c.dcNum2,0)-ISNULL(f.dcNum3,0) as InstBalance,PayrollMonth
+	FROM INV_DocDetails a WITH(NOLOCK)
+	LEFT JOIN COM_DocCCData b WITH(NOLOCK) ON B.InvDocDetailsID=a.InvDocDetailsID
+	LEFT JOIN COM_DocNumData c WITH(NOLOCK) ON c.InvDocDetailsID=a.InvDocDetailsID
+	LEFT JOIN COM_DocTextData d WITH(NOLOCK) ON d.InvDocDetailsID=a.InvDocDetailsID
+	LEFT JOIN COM_CC50052 e WITH(NOLOCK) ON e.NodeID=b.dcCCNID52
+	LEFT JOIN ( SELECT b.dcCCNID51 as EmpSeqNo,b.dcCCNID52 as LoanType,CONVERT(DATETIME,d.dcAlpha4) as PayrollMonth,a.RefNo,c.dcNum1,SUM(c.dcNum3) as dcNum3
+				FROM INV_DocDetails a WITH(NOLOCK)
+				LEFT JOIN COM_DocCCData b WITH(NOLOCK) ON B.InvDocDetailsID=a.InvDocDetailsID
+				LEFT JOIN COM_DocNumData c WITH(NOLOCK) ON c.InvDocDetailsID=a.InvDocDetailsID
+				LEFT JOIN COM_DocTextData d WITH(NOLOCK) ON d.InvDocDetailsID=a.InvDocDetailsID
+				LEFT JOIN COM_CC50052 e WITH(NOLOCK) ON e.NodeID=b.dcCCNID52
+				WHERE a.StatusID=369 AND D.tCostCenterID=40057 and b.dcCCNID51=@EmpSeqNo and isdate(ISNULL(d.dcAlpha4,''''))=1 and ISDATE(ISNULL(d.dcAlpha5,''''))=1 
+				AND a.InvDocDetailsID NOT IN(Select InvDocDetailsID FROM #ttmp2)
+				AND ISNULL(d.dcAlpha6,'''')<>''FFS_LoanBalances''
+				GROUP BY b.dcCCNID51,b.dcCCNID52,CONVERT(DATETIME,d.dcAlpha4),a.RefNo,c.dcNum1
+				) as f on f.EmpSeqNo=b.dcCCNID51 AND f.RefNo=a.VoucherNo AND f.dcNum1=c.dcNum1
+	WHERE D.tCostCenterID=40056 AND b.dcCCNID51=@EmpSeqNo AND A.DocID  IN (SELECT LoanDocID FROM #T1)
+	AND a.StatusID=369 and ISDATE(ISNULL(d.dcAlpha6,''''))=1 
+	) as LB
+	Group BY EmpSeqNo,DocID,DocNo,LoanCompID,LoanType
+	Having ROUND(MAX(ApprovedAmt),@PayrollNoOfDecimals)-ROUND(SUM(Paid),@PayrollNoOfDecimals) >0
+
+
+
+	----11---
+	SELECT a.DocID,b.dcCCNID51 as EmpSeqNo,a.RefNo,MAX(d.dcAlpha6) as ProcessType
+				FROM INV_DocDetails a WITH(NOLOCK)
+				LEFT JOIN COM_DocCCData b WITH(NOLOCK) ON B.InvDocDetailsID=a.InvDocDetailsID
+				LEFT JOIN COM_DocNumData c WITH(NOLOCK) ON c.InvDocDetailsID=a.InvDocDetailsID
+				LEFT JOIN COM_DocTextData d WITH(NOLOCK) ON d.InvDocDetailsID=a.InvDocDetailsID
+				LEFT JOIN COM_CC50052 e WITH(NOLOCK) ON e.NodeID=b.dcCCNID52
+				WHERE a.StatusID=369 AND D.tCostCenterID=40057 and b.dcCCNID51=@EmpSeqNo and isdate(ISNULL(d.dcAlpha4,''''))=1 and ISDATE(ISNULL(d.dcAlpha5,''''))=1 
+				AND a.InvDocDetailsID NOT IN(Select InvDocDetailsID FROM #ttmp2)
+				AND ISNULL(d.dcAlpha6,'''')=''FFS_LoanBalances'' AND A.DocID  IN (SELECT RePayDocID FROM #T1)
+				GROUP BY a.DocID,b.dcCCNID51,a.RefNo
+
+
+	DROP TABLE #ttmp2 
+	DROP TABLE #T1
+END
+ELSE
+BEGIN
+--------10 -- LOAN BALANCES
+		SELECT a.InvDocDetailsID INTO #ttmp1 FROM INV_DocDetails a WITH(NOLOCK)
+		LEFT JOIN COM_DocCCData b WITH(NOLOCK) ON B.InvDocDetailsID=a.InvDocDetailsID
+		LEFT JOIN COM_DocNumData c WITH(NOLOCK) ON c.InvDocDetailsID=a.InvDocDetailsID
+		LEFT JOIN COM_DocTextData d WITH(NOLOCK) ON d.InvDocDetailsID=a.InvDocDetailsID
+		LEFT JOIN COM_CC50052 e WITH(NOLOCK) ON e.NodeID=b.dcCCNID52
+		WHERE a.StatusID=369 AND D.tCostCenterID=40057 and b.dcCCNID51=@EmpSeqNo
+		and ISDATE(ISNULL(d.dcAlpha4,''''))=1 and ISDATE(ISNULL(d.dcAlpha5,''''))=1 AND CONVERT(DATETIME,d.dcAlpha5) = CONVERT(DATETIME,@DocDate) AND d.dcAlpha6=''1'' 
+
+		----10---
+		SELECT EmpSeqNo,DocID,DocNo,LoanCompID,LoanType,MAX(ApprovedAmt) as ApprovedAmt,SUM(Paid) as Paid, ROUND(MAX(ApprovedAmt),@PayrollNoOfDecimals)-ROUND(SUM(Paid),@PayrollNoOfDecimals) as Balance
+		FROM (
+		SELECT b.dcCCNID51 as EmpSeqNo,a.InvDocDetailsID,a.DocID,a.VoucherNo as DocNo,b.dcCCNID52 as LoanCompID,e.Name as LoanType,REPLACE(d.dcAlpha2,'','','''') as ApprovedAmt,c.dcNum1 as InstallmentNo,ISNULL(c.dcNum2,0) as InstallmentAmt,d.dcAlpha4 as NoOfInstallments,CONVERT(DATETIME,d.dcAlpha6) as DeductionMonth,
+		ISNULL(f.dcNum1,0) AS InstNo,ISNULL(f.dcNum3,0) as Paid,ISNULL(c.dcNum2,0)-ISNULL(f.dcNum3,0) as InstBalance,PayrollMonth
+		FROM INV_DocDetails a WITH(NOLOCK)
+		LEFT JOIN COM_DocCCData b WITH(NOLOCK) ON B.InvDocDetailsID=a.InvDocDetailsID
+		LEFT JOIN COM_DocNumData c WITH(NOLOCK) ON c.InvDocDetailsID=a.InvDocDetailsID
+		LEFT JOIN COM_DocTextData d WITH(NOLOCK) ON d.InvDocDetailsID=a.InvDocDetailsID
+		LEFT JOIN COM_CC50052 e WITH(NOLOCK) ON e.NodeID=b.dcCCNID52
+		LEFT JOIN ( SELECT b.dcCCNID51 as EmpSeqNo,b.dcCCNID52 as LoanType,CONVERT(DATETIME,d.dcAlpha4) as PayrollMonth,a.RefNo,c.dcNum1,SUM(c.dcNum3) as dcNum3
+					FROM INV_DocDetails a WITH(NOLOCK)
+					LEFT JOIN COM_DocCCData b WITH(NOLOCK) ON B.InvDocDetailsID=a.InvDocDetailsID
+					LEFT JOIN COM_DocNumData c WITH(NOLOCK) ON c.InvDocDetailsID=a.InvDocDetailsID
+					LEFT JOIN COM_DocTextData d WITH(NOLOCK) ON d.InvDocDetailsID=a.InvDocDetailsID
+					LEFT JOIN COM_CC50052 e WITH(NOLOCK) ON e.NodeID=b.dcCCNID52
+					WHERE a.StatusID=369 AND D.tCostCenterID=40057 and b.dcCCNID51=@EmpSeqNo and isdate(ISNULL(d.dcAlpha4,''''))=1 and ISDATE(ISNULL(d.dcAlpha5,''''))=1 
+					AND a.InvDocDetailsID NOT IN(Select InvDocDetailsID FROM #ttmp1)
+					--AND ISNULL(d.dcAlpha6,'''')<>''FFS_LoanBalances''
+					GROUP BY b.dcCCNID51,b.dcCCNID52,CONVERT(DATETIME,d.dcAlpha4),a.RefNo,c.dcNum1
+					) as f on f.EmpSeqNo=b.dcCCNID51 AND f.RefNo=a.VoucherNo AND f.dcNum1=c.dcNum1
+		WHERE D.tCostCenterID=40056 AND b.dcCCNID51=@EmpSeqNo
+		AND a.StatusID=369 and ISDATE(ISNULL(d.dcAlpha6,''''))=1 
+		) as LB
+		Group BY EmpSeqNo,DocID,DocNo,LoanCompID,LoanType
+		Having ROUND(MAX(ApprovedAmt),@PayrollNoOfDecimals)-ROUND(SUM(Paid),@PayrollNoOfDecimals)>0
+
+----11---
+	SELECT a.DocID,b.dcCCNID51 as EmpSeqNo,a.RefNo,MAX(d.dcAlpha6) as ProcessType
+				FROM INV_DocDetails a WITH(NOLOCK)
+				LEFT JOIN COM_DocCCData b WITH(NOLOCK) ON B.InvDocDetailsID=a.InvDocDetailsID
+				LEFT JOIN COM_DocNumData c WITH(NOLOCK) ON c.InvDocDetailsID=a.InvDocDetailsID
+				LEFT JOIN COM_DocTextData d WITH(NOLOCK) ON d.InvDocDetailsID=a.InvDocDetailsID
+				LEFT JOIN COM_CC50052 e WITH(NOLOCK) ON e.NodeID=b.dcCCNID52
+				WHERE a.StatusID=369 AND D.tCostCenterID=40057 and b.dcCCNID51=@EmpSeqNo and isdate(ISNULL(d.dcAlpha4,''''))=1 and ISDATE(ISNULL(d.dcAlpha5,''''))=1 
+				AND a.InvDocDetailsID NOT IN(Select InvDocDetailsID FROM #ttmp1)
+				AND ISNULL(d.dcAlpha6,'''')=''FFS_LoanBalances''
+				GROUP BY a.DocID,b.dcCCNID51,a.RefNo
+
+	DROP TABLE #ttmp1 
+END
+----12--
+SELECT distinct [WorkFlowDefID],[CostCenterID],[Action],[Expression],a.WorkFlowID,a.LevelID,IsLineWise,IsExpressionLineWise  
+FROM [COM_WorkFlowDef]  a   WITH(NOLOCK)
+join COM_WorkFlow b WITH(NOLOCK) on a.WorkFlowID=b.WorkFlowID  and a.LevelID=b.LevelID
+LEFT JOIN COM_Groups G WITH(NOLOCK) on b.GroupID=G.GID
+where [CostCenterID]=40095 and IsEnabled=1  
+and (b.UserID =@UserID or b.RoleID=@RoleID or G.UserID=@UserID or G.RoleID=@RoleID) 
+            
+----13--
+    SELECT TOP 1 HistoryNodeID FROM COM_HistoryDetails WITH(NOLOCK) 
+	                WHERE NodeID=@EmpSeqNo AND CostCenterID=50051 AND HistoryCCID=50053 AND ToDate IS NULL 
+----14--
+IF(@Flag=1)
+BEGIN
+	SELECT ''NODATA''
+END
+ELSE
+BEGIN
+	SELECT VoucherNo FROM INV_DocDetails I WITH(NOLOCK)
+	JOIN COM_DocCCData CC WITH(NOLOCK) ON CC.InvDocDetailsID=I.InvDocDetailsID
+	JOIN COM_DocTextData T WITH(NOLOCK) ON T.InvDocDetailsID=I.InvDocDetailsID
+	WHERE T.tCostCenterID=40095 AND T.dcAlpha10=''Final'' AND CC.dcCCNID51=@EmpSeqNo AND DocID<>@DocID
+END
+----15--
+SELECT PrefName,PrefValue FROM COM_DocumentPreferences WITH(NOLOCK) WHERE CostCenterID=40075
+
+SET NOCOUNT OFF;  
+RETURN 1  
+END TRY  
+BEGIN CATCH    
+  --Return exception info [Message,Number,ProcedureName,LineNumber]    
+  IF ERROR_NUMBER()=50000  
+  BEGIN  
+   SELECT ErrorMessage,ErrorNumber FROM COM_ErrorMessages WITH(NOLOCK) WHERE ErrorNumber=ERROR_MESSAGE() AND LanguageID=@LangID  
+  END  
+  ELSE  
+  BEGIN  
+   SELECT ErrorMessage, ERROR_MESSAGE() AS ServerMessage,ERROR_NUMBER() as ErrorNumber, ERROR_PROCEDURE()as ProcedureName, ERROR_LINE() AS ErrorLine  
+   FROM COM_ErrorMessages WITH(NOLOCK) WHERE ErrorNumber=-999 AND LanguageID=@LangID  
+  END   
+SET NOCOUNT OFF    
+RETURN -999     
+END CATCH
+
+----spPAY_GetEmpFinalSettlement
+--130,
+--0,
+--''23/Aug/2022'',
+--7,1,
+--1,1,1
+
+' 
+END
+GO
