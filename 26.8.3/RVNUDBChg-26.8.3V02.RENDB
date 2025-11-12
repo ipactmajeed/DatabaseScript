@@ -1,0 +1,71 @@
+--KHASIM
+DECLARE @ResID INT 
+SELECT @ResID=MAX([ResourceID])+1 from [com_languageresources] with(nolock)
+
+INSERT INTO COM_CostCenterPreferences
+SELECT 95,95,@ResID,'ShowContractsIfNoUserMapped','False','False',NULL,'guid',NULL,'admin',CONVERT(FLOAT,GETDATE()),'admin',CONVERT(FLOAT,GETDATE())
+
+INSERT INTO COM_LanguageResources (ResourceID, ResourceName, LanguageID, LanguageName, ResourceData,FEATURE)
+VALUES (@ResID, 'ShowContractsIfNoUserMapped',1,'English', 'Show Contracts If No User Mapped','SalesContract')
+INSERT INTO COM_LanguageResources (ResourceID, ResourceName, LanguageID, LanguageName, ResourceData,FEATURE)
+VALUES (@ResID, 'ShowContractsIfNoUserMapped',2,'Arabic', 'Show Contracts If No User Mapped - AR','SalesContract')
+INSERT INTO COM_LanguageResources (ResourceID, ResourceName, LanguageID, LanguageName, ResourceData,FEATURE)
+VALUES (@ResID, 'ShowContractsIfNoUserMapped',3,'Italian', 'Show Contracts If No User Mapped- ITalic','SalesContract')
+
+
+Set @ResID = @ResID +1
+
+INSERT INTO COM_CostCenterPreferences
+SELECT 103,103,@ResID,'ShowContractsIfNoUserMapped','False','False',NULL,'guid',NULL,'admin',CONVERT(FLOAT,GETDATE()),'admin',CONVERT(FLOAT,GETDATE())
+
+
+INSERT INTO COM_LanguageResources (ResourceID, ResourceName, LanguageID, LanguageName, ResourceData,FEATURE)
+VALUES (@ResID, 'ShowContractsIfNoUserMapped',1,'English', 'Show Quotations If No User Mapped','UnitQuotation')
+INSERT INTO COM_LanguageResources (ResourceID, ResourceName, LanguageID, LanguageName, ResourceData,FEATURE)
+VALUES (@ResID, 'ShowContractsIfNoUserMapped',2,'Arabic', 'Show Quotations If No User Mapped - AR','UnitQuotation')
+INSERT INTO COM_LanguageResources (ResourceID, ResourceName, LanguageID, LanguageName, ResourceData,FEATURE)
+VALUES (@ResID, 'ShowContractsIfNoUserMapped',3,'Italian', 'Show Quotations If No User Mapped- ITalic','UnitQuotation')
+
+
+Set @ResID = @ResID +1
+
+INSERT INTO COM_CostCenterPreferences
+SELECT 103,103,@ResID,'DisplayBasedAssignment','False','False',NULL,'guid',NULL,'admin',CONVERT(FLOAT,GETDATE()),'admin',CONVERT(FLOAT,GETDATE())
+
+INSERT INTO COM_LanguageResources (ResourceID, ResourceName, LanguageID, LanguageName, ResourceData,FEATURE)
+VALUES (@ResID, 'DisplayBasedAssignment',1,'English', 'Display Based On Assignment','UnitQuotation')
+INSERT INTO COM_LanguageResources (ResourceID, ResourceName, LanguageID, LanguageName, ResourceData,FEATURE)
+VALUES (@ResID, 'DisplayBasedAssignment',2,'Arabic', 'Display Based On Assignment - AR','UnitQuotation')
+INSERT INTO COM_LanguageResources (ResourceID, ResourceName, LanguageID, LanguageName, ResourceData,FEATURE)
+VALUES (@ResID, 'DisplayBasedAssignment',3,'Italian', 'Display Based On Assignment- ITalic','UnitQuotation')
+
+
+Set @ResID = @ResID +1
+
+INSERT INTO COM_CostCenterPreferences
+SELECT 129,129,@ResID,'ShowContractsIfNoUserMapped','False','False',NULL,'guid',NULL,'admin',CONVERT(FLOAT,GETDATE()),'admin',CONVERT(FLOAT,GETDATE())
+
+INSERT INTO COM_LanguageResources (ResourceID, ResourceName, LanguageID, LanguageName, ResourceData,FEATURE)
+VALUES (@ResID, 'ShowContractsIfNoUserMapped',1,'English', 'Show Unit Reservations If No User Mapped','UnitReservation')
+INSERT INTO COM_LanguageResources (ResourceID, ResourceName, LanguageID, LanguageName, ResourceData,FEATURE)
+VALUES (@ResID, 'ShowContractsIfNoUserMapped',2,'Arabic', 'Show Unit Reservations If No User Mapped - AR','UnitReservation')
+INSERT INTO COM_LanguageResources (ResourceID, ResourceName, LanguageID, LanguageName, ResourceData,FEATURE)
+VALUES (@ResID, 'ShowContractsIfNoUserMapped',3,'Italian', 'Show Unit Reservations If No User Mapped- ITalic','UnitReservation')
+
+
+
+Set @ResID = @ResID +1
+
+INSERT INTO COM_CostCenterPreferences
+SELECT 129,129,@ResID,'DisplayBasedAssignment','False','False',NULL,'guid',NULL,'admin',CONVERT(FLOAT,GETDATE()),'admin',CONVERT(FLOAT,GETDATE())
+
+INSERT INTO COM_LanguageResources (ResourceID, ResourceName, LanguageID, LanguageName, ResourceData,FEATURE)
+VALUES (@ResID, 'DisplayBasedAssignment',1,'English', 'Display Based On Assignment','UnitReservation')
+INSERT INTO COM_LanguageResources (ResourceID, ResourceName, LanguageID, LanguageName, ResourceData,FEATURE)
+VALUES (@ResID, 'DisplayBasedAssignment',2,'Arabic', 'Display Based On Assignment - AR','UnitReservation')
+INSERT INTO COM_LanguageResources (ResourceID, ResourceName, LanguageID, LanguageName, ResourceData,FEATURE)
+VALUES (@ResID, 'DisplayBasedAssignment',3,'Italian', 'Display Based On Assignment- ITalic','UnitReservation')
+
+
+
+

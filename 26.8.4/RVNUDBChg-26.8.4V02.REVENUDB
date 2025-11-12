@@ -1,0 +1,21 @@
+-- Wajid
+
+if Not exists (select ConfigId from ADM_WebConfig with(nolock) where [Name] ='ReloadMessage')
+Begin
+INSERT INTO [dbo].[ADM_WebConfig]
+           ([Name]
+           ,[Value]
+           ,[CreatedBy]
+           ,[CreateDate]
+           ,[ModifiedBy]
+           ,[ModifiedDate]
+           ,[IsVerified])
+     VALUES
+           ('ReloadMessage'
+           ,'Refreshing this page is restricted for security reasion, do you want to refresh ?'
+           ,'admin'
+           ,CONVERT(float, getdate())
+           ,null
+           ,null
+           ,'Yes')
+End

@@ -1,0 +1,56 @@
+--Khaja
+
+/****** Object:  UserDefinedFunction [dbo].[fnRPT_GetAdjustedDocInfo]    Script Date: 11-11-2025 11:54:15 ******/
+IF  EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[fnRPT_GetAdjustedDocInfo]') AND type in (N'FN', N'IF', N'TF', N'FS', N'FT'))
+DROP FUNCTION [dbo].[fnRPT_GetAdjustedDocInfo]
+GO
+/****** Object:  UserDefinedFunction [dbo].[fnRPT_GetAdjustedDocInfo]    Script Date: 11-11-2025 11:54:15 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[fnRPT_GetAdjustedDocInfo]') AND type in (N'FN', N'IF', N'TF', N'FS', N'FT'))
+BEGIN
+execute dbo.sp_executesql @statement = N'-- =============================================
+-- Author:		Adil
+-- Create date: 20 Aug 2013
+-- Description:	Returns adjusted docnos
+--==============================
+CREATE FUNCTION [dbo].[fnRPT_GetAdjustedDocInfo]
+(
+	@VoucherNo nvarchar(100)
+)
+RETURNS nvarchar(max)
+AS
+BEGIN
+	declare @Docs nvarchar(max)
+	set @Docs=''''
+	select @Docs=@Docs+'', ''+isnull(DocNo,'''')
+	FROM (
+	SELECT CB.DocNo+(SELECT CASE WHEN MAX(ISNULL(B.BillNo,''''))<>'''' THEN ''~''+MAX(ISNULL(B.BillNo,'''')) ELSE '''' END FROM COM_Billwise B WITH(NOLOCK) WHERE B.RefDocNo=CB.DocNo )
+	+''~''+replace(convert(nvarchar,convert(datetime,CB.DocDate),106),'' '',''/'')+''~''+convert(nvarchar,cast(abs(sum(CB.AdjAmount)) as decimal(18,2))) DocNo,CB.DocDate Dt 
+	FROM COM_Billwise CB WITH(NOLOCK) 
+	WHERE IsNewReference=0 AND CB.RefDocNo=@VoucherNo
+	group by CB.DocNo,CB.DocDate
+	UNION
+	SELECT CB.RefDocNo+(SELECT CASE WHEN MAX(ISNULL(B.BillNo,''''))<>'''' THEN ''~''+MAX(ISNULL(B.BillNo,'''')) ELSE '''' END FROM COM_Billwise B WITH(NOLOCK) WHERE B.RefDocNo=CB.RefDocNo )
+	+''~''+replace(convert(nvarchar,convert(datetime,CB.RefDocDate),106),'' '',''/'')+''~''+convert(nvarchar,cast(abs(sum(CB.AdjAmount)) as decimal(18,2))) DocNo,CB.RefDocDate Dt 
+	FROM COM_Billwise CB WITH(NOLOCK)
+	WHERE IsNewReference=0 AND CB.DocNo=@VoucherNo
+	group by CB.RefDocNo,CB.RefDocDate
+	) AS T
+	order by Dt
+
+	if len(@Docs)>0
+		set @Docs=substring(@Docs,3,len(@Docs)-2)
+	return @Docs
+
+END
+
+
+
+
+' 
+END
+
+GO

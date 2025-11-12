@@ -1,0 +1,4 @@
+--Ibrahim
+
+UPDATE ADM_CostCenterDef SET IsVisible=1,IsMandatory=1
+		FROM ADM_CostCenterDef WHERE CostCenterID=110 AND SysColumnName='AddressName'
