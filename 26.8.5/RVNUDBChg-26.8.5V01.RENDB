@@ -1,0 +1,16 @@
+--Sajid
+--UnitReservation
+DECLARE @Rid INT
+SELECT @Rid=MAX(ResourceID) from COM_LanguageResources WITH(NOLOCK)
+SET @Rid=@Rid+1
+IF NOT EXISTS(SELECT * FROM COM_CostCenterPreferences WITH(NOLOCK) WHERE CostCenterID=129 AND Name='AllowMultiplePaymentTerms')
+BEGIN
+	INSERT INTO [com_languageresources] ([ResourceID],[ResourceName],[LanguageID],[LanguageName],[ResourceData],[GUID],[Description],[CreatedBy],[CreatedDate],[ModifiedBy],[ModifiedDate],[FEATURE])
+	VALUES(@Rid,'AllowMultiplePaymentTerms',1,'English','Allow Multiple Payment Terms','A18AA097-DF5D-41CD-9AFF-22C66D20097A',NULL,'ADMIN',convert(float,getdate()),NULL,NULL,'')
+
+	INSERT INTO [com_languageresources] ([ResourceID],[ResourceName],[LanguageID],[LanguageName],[ResourceData],[GUID],[Description],[CreatedBy],[CreatedDate],[ModifiedBy],[ModifiedDate],[FEATURE])
+	VALUES(@RId,'AllowMultiplePaymentTerms',2,'Arabic',N'Allow Multiple Payment Terms-AR','A18AA097-DF5D-41CD-9AFF-22C66D20097A',NULL,'ADMIN',convert(float,getdate()),NULL,NULL,'')
+
+	INSERT [dbo].[COM_CostCenterPreferences] ( [CostCenterID], [FeatureID], [ResourceID], [Name], [Value], [DefaultValue], [ProbableValues], [GUID], [Description], [CreatedBy], [CreatedDate], [ModifiedBy], [ModifiedDate]) 
+	VALUES (129, 129, @RId, N'AllowMultiplePaymentTerms', N'False', N'False', NULL, N'GUID', NULL, N'ADMIN', 1, N'admin', CONVERT(FLOAT,GETDATE()))
+END

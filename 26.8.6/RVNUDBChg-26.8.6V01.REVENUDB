@@ -1,0 +1,2 @@
+--KHAJA
+update ADM_CostCenterDef set syscolumnname='LinkStatusRemarks' where costcentercolid=11956
