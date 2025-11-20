@@ -1,0 +1,6 @@
+--Subhani
+
+update COM_LanguageResources set ResourceData='Include Wastage' where  ResourceName='Waistage' and LanguageID=1
+
+
+update COM_LanguageResources set ResourceData='Include Wastage-AR' where  ResourceName='Waistage' and LanguageID=2

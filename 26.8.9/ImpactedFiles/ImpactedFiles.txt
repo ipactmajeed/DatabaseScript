@@ -1,0 +1,20 @@
+
+
+
+
+
+M	PactRevenUWebapi2.0/PactRevenUWebapi2.0/Controllers/MCommonController.cs
+M	RevenUWeb/src/app/document/add-edit-document/AddEditDocumentViewModel.ts
+M	RevenUWeb/src/app/document/add-edit-document/VoucherGenerator.ts
+M	RevenUWeb/src/app/document/dynamic-set/DynamicSetViewModel.ts
+M	RevenUWeb/src/app/facility-management/Tickets/ServiceRequestDetails.component.html
+M	RevenUWeb/src/app/facility-management/Tickets/ServiceRequestDetails.component.ts
+M	RevenUWeb/src/app/reports/StaticReports/PAY_Reports.ts
+M	RevenUWeb/src/app/reports/report-view/IPrefetchFilter.ts
+M	RevenUWeb/src/app/reports/report-view/ReportViewModel.ts
+M	RevenUWeb/src/app/reports/static-report-filter/StaticReportFilterViewModel.ts
+M	RevenUWeb/src/app/services/session-manager.service.ts
+M	RevenUWeb/src/app/shared/controls/data-widget/data-widget.component.ts
+M	RevenUWeb/src/app/shared/controls/tree/TreeViewModelNew.ts
+M	RevenUWeb/src/app/shared/models/master-tabs/ViewAddressViewModel.ts
+M	RevenUWeb/src/app/shared/models/master-tabs/ViewAttachmentViewModel.ts

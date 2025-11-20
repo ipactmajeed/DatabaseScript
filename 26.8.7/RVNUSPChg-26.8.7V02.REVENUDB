@@ -1,0 +1,210 @@
+--Ibrahim
+/****** Object:  StoredProcedure [dbo].[spADM_SetImportProductWithVendorMulitpleBarcode]    Script Date: 17-11-2025 17:47:39 ******/
+IF  EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[spADM_SetImportProductWithVendorMulitpleBarcode]') AND type in (N'P', N'PC'))
+DROP PROCEDURE [dbo].[spADM_SetImportProductWithVendorMulitpleBarcode]
+GO
+/****** Object:  StoredProcedure [dbo].[spADM_SetImportProductWithVendorMulitpleBarcode]    Script Date: 17-11-2025 17:47:39 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[spADM_SetImportProductWithVendorMulitpleBarcode]') AND type in (N'P', N'PC'))
+BEGIN
+EXEC dbo.sp_executesql @statement = N'-- =============================================
+-- Author:		PRANATHI
+-- Create date: 28 Oct 2011
+-- Description:	CREATE CUSTOMIZE COSTCENTER EXTRA FIELDS TAB
+-- Example :  
+ --exec [spADM_SetImportProductWithVendorMulitpleBarcode] N''<XML><Row AccountName ="Testforaudittrail-product-2"/></XML>'', ''<VendorsXML><Row Action="NEW" VendorID="0" AccountID="236" Priority="5" LeadTime="6" Barcode="123456,0123,ABCD"/><Row Action="NEW" VendorID="0" AccountID="237" Priority="15" LeadTime="60" Barcode="456,03,CD"/></VendorsXML>'',3,0,1,0,''GUID'',''ADMIN'',1,1
+-- =============================================
+CREATE procedure [dbo].[spADM_SetImportProductWithVendorMulitpleBarcode]
+    @XML NVARCHAR(MAX), 
+	@VendorXML nvarchar(MAX)='''',
+	@COSTCENTERID INT,
+	@IsDuplicateNameAllowed bit, 
+	@IsUpdate bit=0,
+	@IsCode bit =NULL,
+	@CompanyGUID NVARCHAR(50),
+	@UserName NVARCHAR(50),
+	@UserID INT,
+	@LangID INT=1
+AS
+BEGIN TRANSACTION
+BEGIN TRY
+SET NOCOUNT ON	
+
+  
+		--Declaration Section
+		DECLARE	@return_value int,@failCount int, @Dt float 
+		DECLARE @NodeID INT, @SQL NVARCHAR(max)
+		DECLARE @AccountCode nvarchar(max),@AccountName nvarchar(max)
+        DECLARE  @DATA XML,@Cnt INT,@I INT, @VXML xml
+      
+		SET @DATA=@XML
+		
+		SET @Dt=CONVERT(FLOAT,GETDATE())--Setting Current Date  
+		
+		--SP Required Parameters Check
+		IF @CompanyGUID IS NULL OR @CompanyGUID=''''
+		BEGIN
+			RAISERROR(''-100'',16,1)
+		END
+ 
+			
+		-- Create Temp Table
+		DECLARE  @temptbl TABLE(ID int identity(1,1),
+           [AccountCode] nvarchar(500)
+           ,[AccountName] nvarchar(max)) 
+	  
+		INSERT INTO @temptbl ([AccountCode],[AccountName])          
+		SELECT X.value(''@AccountCode'',''nvarchar(500)'')
+           ,X.value(''@AccountName'',''nvarchar(max)'')
+ 		from @DATA.nodes(''/XML/Row'') as Data(X)
+ 	
+ 	
+ 	--SELECT * FROM @temptbl
+		SELECT @I=1, @Cnt=count(ID) FROM @temptbl 
+		set @failCount=0
+		WHILE(@I<=@Cnt)  
+		BEGIN
+		begin try
+				 	select @AccountCode    = ISNULL(AccountCode ,'''')
+					,@AccountName    =  AccountName  
+					from  @temptbl where ID=@I
+		    
+		 	-- Update statements 
+			IF  @IsUpdate=1
+			BEGIN	 
+				set @SQL='''' 
+				if(@COSTCENTERID=3)
+				begin
+				if( @IsCode is not null and @IsCode =0)
+					set @NodeID= (Select  top 1 ProductID from INV_Product WITH(NOLOCK) where ProductName=@AccountName) 
+				else
+					set @NodeID= (Select  top 1 ProductID from INV_Product WITH(NOLOCK) where ProductCode=@AccountCode) 
+				--select @IsCode,@NodeID NID,@AccountName
+				IF (@VendorXML IS NOT NULL AND @VendorXML <> '''')
+				BEGIN
+					
+					declare @VendorTable table(id int identity(1,1),VendorID INT, AccountID INT,Priorty INT,LeadTime float,Barcode nvarchar(100),Volume FLOAT,Weight FLOAT,Remarks NVARCHAR(MAX),[Action] NVARCHAR(10),MinOrderQty FLOAT)
+					declare @VVendorID INT,@VAccountID INT,@VPriorty INT,@VLeadTime float,@VBarcode nvarchar(100),@VVolume FLOAT,@VWeight FLOAT,@VRemarks NVARCHAR(MAX),@VAction nvarchar(10),@Vid INT,@Vcnt INT,@VMinOrderQty FLOAT
+					SET @VXML=@VendorXML
+					
+					declare @vtable table(id int identity(1,1),bar nvarchar(100))
+					declare @VVid INT,@VVcnt INT,@VVbar nvarchar(100)
+
+					insert into @VendorTable(VendorID,AccountID,Priorty,LeadTime,Barcode,Volume,Weight,Remarks,[Action],MinOrderQty)
+					SELECT X.value(''@VendorID'',''INT''),X.value(''@AccountID'',''INT''),X.value(''@Priority'',''INT''),X.value(''@LeadTime'',''FLOAT''), X.value(''@Barcode'',''NVARCHAR(100)''),X.value(''@Volume'',''FLOAT''),X.value(''@Weight'',''FLOAT''),X.value(''@Remarks'',''NVARCHAR(MAX)''),X.value(''@Action'',''NVARCHAR(10)''),X.value(''@MinOrderQty'',''FLOAT'')
+					FROM @VXML.nodes(''/VendorsXML/Row'') as Data(X)
+				
+					set @Vid=1
+					select @Vcnt=count(*) from @VendorTable
+					--select * from @VendorTable
+					while(@Vid<=@Vcnt)
+					BEGIN
+					
+						select @VVendorID=VendorID,@VAccountID=AccountID,@VPriorty=Priorty,@VLeadTime=LeadTime,@VBarcode=Barcode,@VVolume=Volume,@VWeight=Weight,@VMinOrderQty=MinOrderQty,@VRemarks=Remarks,@VAction=[Action] from @VendorTable where id=@Vid
+						--If Action is NEW then insert new Vedors
+						if(@VAction=ltrim(rtrim(''NEW'')))
+						BEGIN
+				
+						IF NOT EXISTS (SELECT * FROM INV_ProductVendors WITH(NOLOCK) WHERE ProductID=@NodeID AND AccountID =@VAccountID)
+						BEGIN
+							if(@VPriorty is null)
+								set @VPriorty=0
+							--DELETE FROM INV_ProductVendors WHERE ProductID=@NodeID AND AccountID =@VAccountID
+					
+							INSERT INTO INV_ProductVendors(ProductID,AccountID,Priority,LeadTime,Volume,Weight,Remarks,MinOrderQty,
+								CompanyGUID,GUID,CreatedBy,CreatedDate)
+							SELECT @NodeID,@VAccountID,@VPriorty,@VLeadTime,@VVolume,@VWeight,@VRemarks
+							,isnull(@VMinOrderQty,0),
+								@CompanyGUID,newid(),@UserName,@Dt 
+							set @VVendorID=scope_identity() 		 
+				
+							if exists(select * from INV_ProductBarcode WITH(NOLOCK) where VenderID=@VAccountID and productID=@NodeID)
+							BEGIN
+								delete from INV_ProductBarcode where VenderID=@VAccountID and productID=@NodeID
+							END 
+							delete from @vtable 
+							insert into @vtable(bar)
+							exec SPSplitString @VBarcode,'',''
+							select @VVid=MIN(id),@VVcnt=MAX(id) from @vtable
+							--select * from @vtable
+							while(@VVid<=@VVcnt)
+							BEGIN  
+								select @VVbar=bar from @vtable where id=@VVid  
+								if exists(select * from INV_ProductBarcode WITH(NOLOCK) where Barcode=@VVbar and @VVbar is not null and @VVbar<>'''' AND VENDERID<>@VAccountID AND ProductID<>@NodeID)
+								BEGIN
+									raiserror(''-130'',16,1)
+								END 
+							--	select @VVbar,@VVid,@VVcnt
+								insert into INV_ProductBarcode(Barcode,VenderID,UnitID,ProductID,CompanyGUID,GUID,CreatedBy,CreatedDate,ModifiedBy,ModifiedDate)
+								select @VVbar,@VAccountID,0,@NodeID,@CompanyGUID,newid(),@UserName,@Dt,@UserName,@Dt 
+								set @VVid=@VVid+1
+							END 
+						END
+						 END
+						set @Vid=@Vid+1;
+					END	
+				END 
+				end 
+			END 
+			
+	 		End Try
+			 Begin Catch 
+				 select ERROR_MESSAGE()
+				set @failCount=@failCount+1
+			end Catch 
+			set @I=@I+1 
+	end
+
+COMMIT TRANSACTION  
+--ROLLBACK TRANSACTION  
+
+
+if(@COSTCENTERID=3)
+begin
+	SET @SQL=''SELECT ProductID NodeID,ProductName Name FROM INV_PRODUCT WITH(nolock)where ProductName in ( 
+	SELECT X.value(''''@AccountName'''',''''nvarchar(500)'''')
+	from @sml.nodes(''''/XML/Row'''') as Data(X))''
+
+	EXEC sp_executesql @SQL, N''@sml xml'', @XML	
+end 
+
+SELECT ErrorMessage,ErrorNumber FROM COM_ErrorMessages WITH(nolock) 
+WHERE ErrorNumber=100 AND LanguageID=@LangID
+SET NOCOUNT OFF;   
+RETURN @failCount  
+END TRY  
+BEGIN CATCH  
+select ''asdf''
+
+	--Return exception info [Message,Number,ProcedureName,LineNumber]  
+	IF ERROR_NUMBER()=50000
+	BEGIN
+		SELECT * FROM [ACC_Accounts] WITH(nolock) WHERE AccountCode=@AccountCode  
+		SELECT ErrorMessage,ErrorNumber FROM COM_ErrorMessages WITH(nolock) 
+		WHERE ErrorNumber=ERROR_MESSAGE() AND LanguageID=@LangID
+	END
+	ELSE IF ERROR_NUMBER()=547
+	BEGIN
+		SELECT ErrorMessage, ERROR_MESSAGE() AS ServerMessage,ERROR_NUMBER() as ErrorNumber, ERROR_PROCEDURE()as ProcedureName, ERROR_LINE() AS ErrorLine FROM COM_ErrorMessages WITH(nolock)
+		WHERE ErrorNumber=-110 AND LanguageID=@LangID
+	END
+	ELSE IF ERROR_NUMBER()=2627
+	BEGIN
+		SELECT ErrorMessage, ERROR_MESSAGE() AS ServerMessage,ERROR_NUMBER() as ErrorNumber, ERROR_PROCEDURE()as ProcedureName, ERROR_LINE() AS ErrorLine FROM COM_ErrorMessages WITH(nolock)
+		WHERE ErrorNumber=-116 AND LanguageID=@LangID
+	END
+	ELSE
+	BEGIN
+		SELECT ErrorMessage, ERROR_MESSAGE() AS ServerMessage,ERROR_NUMBER() as ErrorNumber, ERROR_PROCEDURE()as ProcedureName, ERROR_LINE() AS ErrorLine
+		FROM COM_ErrorMessages WITH(nolock) WHERE ErrorNumber=-999 AND LanguageID=@LangID
+	END
+	ROLLBACK TRANSACTION
+	SET NOCOUNT OFF  
+	RETURN -999   
+END CATCH
+' 
+END
+GO

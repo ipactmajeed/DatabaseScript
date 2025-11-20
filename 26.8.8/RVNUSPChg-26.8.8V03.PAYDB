@@ -1,0 +1,141 @@
+-- SHASHANK
+
+/****** Object:  UserDefinedFunction [dbo].[fnPAY_GetWFDetails]    Script Date: 19-11-2025 11:10:39 ******/
+IF  EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[fnPAY_GetWFDetails]') AND type in (N'FN', N'IF', N'TF', N'FS', N'FT'))
+DROP FUNCTION [dbo].[fnPAY_GetWFDetails]
+GO
+/****** Object:  UserDefinedFunction [dbo].[fnPAY_GetWFDetails]    Script Date: 19-11-2025 11:10:39 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[fnPAY_GetWFDetails]') AND type in (N'FN', N'IF', N'TF', N'FS', N'FT'))
+BEGIN
+execute dbo.sp_executesql @statement = N'
+CREATE FUNCTION [dbo].[fnPAY_GetWFDetails] 
+(
+	@InvDocDetID BIGINT,
+	@DocType INT,
+	@UserName nvarchar(100),
+	@CostCenterID INT,
+	@WID INT,
+	@Level INT,
+	@StatusID INT,
+	@CreatedDate FLOAT,
+	@UserID INT,
+	@RoleID INT
+)
+RETURNS @temp TABLE
+(
+canEdit BIT,
+userlevel INT,
+Wlevel INT,
+WType int
+)
+AS
+BEGIN
+	
+	DECLARE @canEdit BIT,@userlevel INT,@Type int
+	
+	if(@WID is not null and @WID>0)  
+		BEGIN 
+		
+			if (@doctype >= 51 AND @doctype <= 199 AND @doctype != 64) --IS PAYROLL DOCUMENT
+			BEGIN
+				--Check Whether the User Level is Payroll Employee Report Manager Level or Not
+				SET @Userlevel=dbo.fnExt_GetRptMgrUserLevel(@InvDocDetID,@WID,@Level,@UserName,@RoleID)
+			END
+			
+			if(@Userlevel is null )  
+				SELECT @Userlevel=LevelID,@Type=type FROM [COM_WorkFlow]   WITH(NOLOCK)   
+				where WorkFlowID=@WID and  UserID =@UserID and LevelID>=@Level
+				order by LevelID desc
+
+			if(@Userlevel is null )  
+				SELECT @Userlevel=LevelID,@Type=type FROM [COM_WorkFlow]  WITH(NOLOCK)    
+				where WorkFlowID=@WID and  RoleID =@RoleID and LevelID>=@Level
+				order by LevelID desc
+
+			if(@Userlevel is null )       
+				SELECT @Userlevel=LevelID,@Type=type FROM [COM_WorkFlow] W WITH(NOLOCK)
+				JOIN COM_Groups G WITH(NOLOCK) on w.GroupID=g.GID     
+				where g.UserID=@UserID and WorkFlowID=@WID and LevelID>=@Level
+				order by LevelID desc
+
+			if(@Userlevel is null )  
+				SELECT @Userlevel=LevelID,@Type=type FROM [COM_WorkFlow] W WITH(NOLOCK)
+				JOIN COM_Groups G WITH(NOLOCK) on w.GroupID=g.GID     
+				where g.RoleID =@RoleID and WorkFlowID=@WID and LevelID>=@Level
+				order by LevelID desc
+						
+			if(@Userlevel is null )  	
+				SELECT @Type=type FROM [COM_WorkFlow] WITH(NOLOCK) where WorkFlowID=@WID
+		end 
+
+	set @canEdit=1  
+     
+		if((@StatusID=369 or @StatusID=441 or @StatusID=371) and @WID>0)   
+		begin  
+			if(@Userlevel is null )  
+			BEGIN
+				SELECT @Userlevel=LevelID,@Type=type FROM [COM_WorkFlow]   WITH(NOLOCK)   
+				where WorkFlowID=@WID and  UserID =@UserID
+				order by LevelID
+				
+				if(@Userlevel is null )  
+					SELECT @Userlevel=LevelID,@Type=type FROM [COM_WorkFlow]  WITH(NOLOCK)    
+					where WorkFlowID=@WID and  RoleID =@RoleID
+					order by LevelID
+
+				if(@Userlevel is null )       
+					SELECT @Userlevel=LevelID,@Type=type FROM [COM_WorkFlow] W WITH(NOLOCK)
+					JOIN COM_Groups G WITH(NOLOCK) on w.GroupID=g.GID     
+					where g.UserID=@UserID and WorkFlowID=@WID
+					order by LevelID
+
+				if(@Userlevel is null )  
+					SELECT @Userlevel=LevelID,@Type=type FROM [COM_WorkFlow] W WITH(NOLOCK)
+					JOIN COM_Groups G WITH(NOLOCK) on w.GroupID=g.GID     
+					where g.RoleID =@RoleID and WorkFlowID=@WID
+					order by LevelID
+			END
+			
+			if(@Userlevel is not null and  @Level is not null and @Userlevel<@level)  
+			begin  
+				set @canEdit=0   
+			end    
+		end 
+
+		if(@Userlevel is null and @WID>0 )  
+		BEGIN
+				SELECT @Userlevel=LevelID,@Type=type FROM [COM_WorkFlow]   WITH(NOLOCK)   
+				where WorkFlowID=@WID and  UserID =@UserID
+				order by LevelID
+				
+				if(@Userlevel is null )  
+					SELECT @Userlevel=LevelID,@Type=type FROM [COM_WorkFlow]  WITH(NOLOCK)    
+					where WorkFlowID=@WID and  RoleID =@RoleID
+					order by LevelID
+
+				if(@Userlevel is null )       
+					SELECT @Userlevel=LevelID,@Type=type FROM [COM_WorkFlow] W WITH(NOLOCK)
+					JOIN COM_Groups G WITH(NOLOCK) on w.GroupID=g.GID     
+					where g.UserID=@UserID and WorkFlowID=@WID
+					order by LevelID
+
+				if(@Userlevel is null )  
+					SELECT @Userlevel=LevelID,@Type=type FROM [COM_WorkFlow] W WITH(NOLOCK)
+					JOIN COM_Groups G WITH(NOLOCK) on w.GroupID=g.GID     
+					where g.RoleID =@RoleID and WorkFlowID=@WID
+					order by LevelID
+		END
+
+
+INSERT INTO @temp
+SELECT @canEdit,@userlevel,@Level,@Type
+
+	RETURN 
+END' 
+END
+
+GO

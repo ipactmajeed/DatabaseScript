@@ -1,0 +1,3 @@
+--KHAJA
+update ADM_CostCenterDef set SectionSeqNumber=98 where SysColumnName='UserNameAlpha'
+update ADM_CostCenterDef set SectionSeqNumber=99 where SysColumnName='PasswordAlpha'

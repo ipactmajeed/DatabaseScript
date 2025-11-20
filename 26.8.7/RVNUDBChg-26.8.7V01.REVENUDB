@@ -1,0 +1,14 @@
+--waseem
+DECLARE @RID INT
+IF NOT EXISTS(SELECT value FROM ADM_GlobalPreferences WITH(NOLOCK) WHERE  [Name]='AttachmentsPATH')
+begin
+	SELECT @RID=MAX(ResourceID) FROM COM_LanguageResources WITH(NOLOCK)
+	INSERT INTO [Com_LanguageResources] ([ResourceID],[ResourceName],[LanguageID],[LanguageName],[ResourceData],[GUID],[Description],[CreatedBy],[CreatedDate],[ModifiedBy],[ModifiedDate],[FEATURE])
+	VALUES(@Rid+1,'AttachmentsPATH',1,'English','AttachmentsPATH','GUID',NULL,'Admin',convert(float,getdate()),NULL,NULL,'') 
+
+	INSERT INTO [Com_LanguageResources] ([ResourceID],[ResourceName],[LanguageID],[LanguageName],[ResourceData],[GUID],[Description],[CreatedBy],[CreatedDate],[ModifiedBy],[ModifiedDate],[FEATURE])
+	VALUES(@Rid+1,'AttachmentsPATH',2,'Arabic','AttachmentsPATH','GUID',NULL,'Admin',convert(float,getdate()),NULL,NULL,'') 
+
+	INSERT [dbo].[ADM_GlobalPreferences] ([ResourceID], [Name], [Value], [DefaultValue], [GUID], [Description], [CreatedBy], [CreatedDate], [ModifiedBy], [ModifiedDate], [PreferenceTypeName], [PrefRowOrder], [PrefColOrder], [PrefValueType], [Version]) 
+	VALUES (@RID+1, N'AttachmentsPATH', N'', N'', N'', 4, N'ADMIN', 1, 4, NULL, NULL, NULL, NULL, NULL, 1)
+end

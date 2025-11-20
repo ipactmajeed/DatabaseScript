@@ -1,0 +1,344 @@
+--Subhani
+
+
+/****** Object:  StoredProcedure [dbo].[spPAY_RptGetLeaveReports]    Script Date: 17-11-2025 11:33:07 ******/
+IF  EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[spPAY_RptGetLeaveReports]') AND type in (N'P', N'PC'))
+DROP PROCEDURE [dbo].[spPAY_RptGetLeaveReports]
+GO
+/****** Object:  StoredProcedure [dbo].[spPAY_RptGetLeaveReports]    Script Date: 17-11-2025 11:33:07 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[spPAY_RptGetLeaveReports]') AND type in (N'P', N'PC'))
+BEGIN
+EXEC dbo.sp_executesql @statement = N'CREATE procedure [dbo].[spPAY_RptGetLeaveReports]
+(
+	@EmpWhere NVARCHAR(MAX)=NULL,
+	@FromDate DATETIME,
+	@ToDate DATETIME,
+	@Select NVARCHAR(MAX)=null,
+	@Group NVARCHAR(MAX)=null,
+	@SelectAlias NVARCHAR(MAX)=null,
+	@strCCJoin NVARCHAR(MAX)=null,
+	@CCWhere NVARCHAR(MAX)=NULL,
+	@ReportId INT,
+	@ShowAs INT =0
+	
+)
+AS
+SET NOCOUNT ON
+
+DECLARE @DT1 DATETIME,@DT2 DATETIME
+DECLARE @CNT INT,@I INT,@NODEID INT,@TDATYPE NVARCHAR(100),@StartTime NVARCHAR(100),@EndTime NVARCHAR(100),@OT1 FLOAT,@OT2 FLOAT,@OT3 FLOAT,@OT4 FLOAT,@OT5 FLOAT,@GRADE NVARCHAR(500),@LeaveType INT,@EMPNODE INT,@ALStartMonthYear DATETIME,@ALEndMonthYear DATETIME
+
+CREATE TABLE #TAB(ID INT IDENTITY(1,1),NODEID INT,CODE NVARCHAR(500),NAME NVARCHAR(500),Grade NVARCHAR(500),LEAVETYPE NVARCHAR(500),LEAVEYEAR DATETIME,LEAVETYPEID INT,BALANCELEAVES FLOAT,CARRYFORWARD NVARCHAR(200),AVAILABLELEAVES FLOAT,ShowInESS NVARCHAR(50),Gender nvarchar(100),GenderApplicable nvarchar(100))
+
+DECLARE @SysColName NVARCHAR(100),@FType NVARCHAR(100),@AsOnDate DATETIME,@SQL nvarchar(max),@EmpIDs nvarchar(max)
+
+DECLARE @IsGradeWiseMP BIT,@CARRYFORWARD NVARCHAR(100),@AvailInProbation NVARCHAR(50),@ShowInESS NVARCHAR(50),@ShowVacation nvarchar(50),@VacationName nvarchar(500),@vCompID bigint,@Gender nvarchar(100),@GenderBasedOn nvarchar(100),@GenderApplicable NVARCHAR(50)
+
+DECLARE @T1 TABLE(AssignedLeaves FLOAT,AvailableLeaves FLOAT,FromDate DATETIME,ToDate DATETIME,MaxEncashLeaves FLOAT,MaxLeaves FLOAT,ActualAvailableLeaves FLOAT,ThresholdLimit FLOAT)
+
+
+
+
+SET @ASONDATE=GETDATE()
+
+SET @DT1=@FromDate
+SET @DT2=@ToDate
+
+	IF(@ReportId=342)
+	BEGIN
+		
+		SET @SQL=''
+		SELECT B.CODE AS EMPCODE,B.NAME AS EMPNAME,max(LOC.Name) Location,max(DEP.Name) Department,max(C69.Name) Designation,max(C53.Name) Grade,C.NAME AS LEAVETYPE,SUM(A.ASSIGNEDLEAVES) Allotted,SUM(A.DEDUCTEDLEAVES) Consumed,  CASE CONVERT(FLOAT,SUM(A.OPENINGBALANCE))+CONVERT(FLOAT,SUM(A.ASSIGNEDLEAVES)) WHEN 0 THEN 0 ELSE SUM(A.BALANCELEAVES)  END AS Balance,ROUND(CASE WHEN MAX(ASSIGNEDLEAVES)=0 THEN 0 ELSE (max(DEDUCTEDLEAVES)*100)/max(ASSIGNEDLEAVES) END,2) AS ConsumedPercent,A.LEAVEYEAR ''+@Select+''
+FROM PAY_EMPLOYEELEAVEDETAILS A WITH(NOLOCK)  
+JOIN COM_CC50051 B WITH(NOLOCK) ON B.NODEID=A.EMPLOYEEID  
+JOIN COM_CC50052 C WITH(NOLOCK) ON C.NODEID=A.LEAVETYPEID 
+JOIN COM_CCCCData CC WITH(NOLOCK) ON CC.NodeID=B.NodeID AND CC.CostCenterID=50051 ''+@strCCJoin+''
+LEFT JOIN COM_Location LOC WITH(NOLOCK) ON LOC.NODEID=CC.CCNID2
+LEFT JOIN COM_department DEP with(nolock) on CC.CCNID4=DEP.nodeid
+LEFT JOIN COM_CC50069 C69 with(nolock) on CC.CCNID69=C69.nodeid
+LEFT JOIN COM_CC50053 C53 with(nolock) on CC.CCNID53=C53.nodeid
+WHERE 1=1  AND CC.CCNID51 IN (''+@EmpWhere+'') ''+@CCWhere+''
+AND A.LEAVEYEAR BETWEEN ''''''+CONVERT(NVARCHAR,@FromDate)+'''''' AND ''''''+CONVERT(NVARCHAR,@ToDate)+''''''
+GROUP BY   B.NODEID,B.CODE,B.NAME,C.NAME,A.LEAVEYEAR''+@Group+''''
+
+		print @SQL
+		EXEC(@SQL)
+
+
+	END
+
+	IF(@ReportId=345)
+	BEGIN
+
+	
+	IF(@ShowAs=1)
+				BEGIN
+		
+		SET @SQL='' 
+		SELECT C51.NODEID EmpSeqNo,C51.CODE Code,C51.NAME Name,LOC.NAME Location,DEP.NAME Department,C69.NAME Designation,C53.NAME Grade,CONVERT(DATETIME,dcAlpha4) FromDate,
+CASE WHEN dcAlpha15 is not null AND CONVERT(DATETIME,dcAlpha15)<=CONVERT(DATETIME,dcAlpha5) and isnull(dcAlpha6,''''Both'''')=''''Both'''' then  DATEADD(D,-1,CONVERT(DATETIME,dcAlpha15)) else
+CONVERT(DATETIME,dcAlpha5)  END ToDate,B.dcCCNID51 EmpSeqNo,dcAlpha6 SESS,C.NAME AS LEAVETYPE ''+@Select+''
+FROM INV_DocDetails a WITH(NOLOCK) 
+JOIN COM_DocCCData b WITH(NOLOCK) ON b.InvDocDetailsID=a.InvDocDetailsID
+JOIN COM_CC50051 C51 WITH(NOLOCK) ON b.DCCCNID51=C51.NODEID 
+JOIN COM_CC50052 C WITH(NOLOCK) ON C.NODEID=b.DCCCNID52 
+JOIN COM_CCCCDATA DCC WITH (NOLOCK) ON DCC.NodeID=C51.NodeID AND DCC.CostCenterID=50051 ''+@strCCJoin+''
+LEFT JOIN COM_Location LOC WITH(NOLOCK) ON LOC.NODEID=DCC.CCNID2
+LEFT JOIN COM_department DEP with(nolock) on DCC.CCNID4=DEP.nodeid
+LEFT JOIN COM_CC50069 C69 with(nolock) on DCC.CCNID69=C69.nodeid
+LEFT JOIN COM_CC50053 C53 with(nolock) on DCC.CCNID53=C53.nodeid
+JOIN COM_DocTextData d WITH(NOLOCK) ON d.InvDocDetailsID=a.InvDocDetailsID
+WHERE D.tDocumentType=62 and a.StatusID=369 AND LEN(dcAlpha4)=11 AND LEN(dcAlpha5)=11 AND ISDATE(ISNULL(dcAlpha4,''''''''))=1 AND ISDATE(ISNULL(dcAlpha5,''''''''))=1 
+AND DCC.CCNID51 IN (''+@EmpWhere+'') ''+@CCWhere+'' AND (  CONVERT(DateTime,D.DCALPHA4) between CONVERT(DateTime,''''''+CONVERT(NVARCHAR,@FromDate)+'''''') and CONVERT(DateTime,''''''+CONVERT(NVARCHAR,@ToDate)+'''''')
+				   or CONVERT(DateTime,D.DCALPHA5) between CONVERT(DateTime,''''''+CONVERT(NVARCHAR,@FromDate)+'''''') and CONVERT(DateTime,''''''+CONVERT(NVARCHAR,@ToDate)+'''''')
+				   or CONVERT(DateTime,''''''+CONVERT(NVARCHAR,@FromDate)+'''''') between CONVERT(DateTime,D.DCALPHA4) and CONVERT(DateTime,D.DCALPHA5)
+				   or CONVERT(DateTime,''''''+CONVERT(NVARCHAR,@ToDate)+'''''') between CONVERT(DateTime,D.DCALPHA4) and CONVERT(DateTime,D.DCALPHA5)) ''
+	
+	print @SQL
+	EXEC(@SQL)
+
+	DECLARE @S1 NVARCHAR(MAX)
+SET @S1=''''
+
+SET @S1=''
+
+SELECT C51.NODEID EmpSeqNo,C51.CODE Code,C51.NAME Name,LOC.NodeID LocationId,LOC.NAME Location,DEP.NAME Department,C69.NAME Designation,C53.NAME Grade''+@Select+'' FROM 
+COM_CC50051 C51 WITH(NOLOCK) 
+LEFT JOIN COM_CCCCDATA CC WITH (NOLOCK) ON CC.NodeID=C51.NodeID AND CC.CostCenterID=50051 ''+@strCCJoin+''
+LEFT JOIN COM_Location LOC WITH(NOLOCK) ON LOC.NODEID=CC.CCNID2
+LEFT JOIN COM_department DEP with(nolock) on CC.CCNID4=DEP.nodeid
+LEFT JOIN COM_CC50069 C69 with(nolock) on CC.CCNID69=C69.nodeid
+LEFT JOIN COM_CC50053 C53 with(nolock) on CC.CCNID53=C53.nodeid
+WHERE C51.IsGroup=0 AND C51.NodeID>1 AND C51.StatusID NOT IN (251,300,301)
+AND CONVERT(DATETIME,C51.DOJ) <=''''''+CONVERT(NVARCHAR,@ToDate)+''''''
+AND (ISNULL(CONVERT(DATETIME,C51.DORelieve),''''01-JAN-1990'''')>=''''''+CONVERT(NVARCHAR,@ToDate)+'''''' OR CONVERT(DATETIME,C51.DORelieve) BETWEEN ''''''+CONVERT(NVARCHAR,@FromDate)+'''''' AND ''''''+CONVERT(NVARCHAR,@ToDate)+'''''' OR ISNULL(C51.DORelieve,'''''''')='''''''') ''
+
+IF(LEN(@EmpWhere)>0)
+SET @S1=@S1 +'' AND C51.NodeID IN('' +@EmpWhere+'') ''
+
+IF(LEN(@CCWhere)>0)
+SET @S1=@S1 +@CCWhere
+
+print @S1
+
+
+EXEC sp_executesql @S1
+	END
+
+				ELSE if(@ShowAs=2)
+				BEGIN
+				SET @SQL='' 
+		SELECT C51.NODEID EmpSeqNo,C51.CODE Code,C51.NAME Name,LOC.NAME Location,DEP.NAME Department,C69.NAME Designation,C53.NAME Grade,CONVERT(DATETIME,dcAlpha4) FromDate,
+CASE WHEN dcAlpha15 is not null AND CONVERT(DATETIME,dcAlpha15)<=CONVERT(DATETIME,dcAlpha5) and isnull(dcAlpha6,''''Both'''')=''''Both'''' then  DATEADD(D,-1,CONVERT(DATETIME,dcAlpha15)) else
+CONVERT(DATETIME,dcAlpha5)  END ToDate,B.dcCCNID51 EmpSeqNo,dcAlpha6 SESS,B.dcCCNID52 ComponentID,C.NAME AS LEAVETYPE ''+@Select+''
+FROM INV_DocDetails a WITH(NOLOCK) 
+JOIN COM_DocCCData b WITH(NOLOCK) ON b.InvDocDetailsID=a.InvDocDetailsID
+JOIN COM_CC50051 C51 WITH(NOLOCK) ON b.DCCCNID51=C51.NODEID 
+JOIN COM_CC50052 C WITH(NOLOCK) ON C.NODEID=b.DCCCNID52 
+JOIN COM_CCCCDATA DCC WITH (NOLOCK) ON DCC.NodeID=C51.NodeID AND DCC.CostCenterID=50051 ''+@strCCJoin+''
+LEFT JOIN COM_Location LOC WITH(NOLOCK) ON LOC.NODEID=DCC.CCNID2
+LEFT JOIN COM_department DEP with(nolock) on DCC.CCNID4=DEP.nodeid
+LEFT JOIN COM_CC50069 C69 with(nolock) on DCC.CCNID69=C69.nodeid
+LEFT JOIN COM_CC50053 C53 with(nolock) on DCC.CCNID53=C53.nodeid
+JOIN COM_DocTextData d WITH(NOLOCK) ON d.InvDocDetailsID=a.InvDocDetailsID
+WHERE D.tDocumentType=62 and a.StatusID=369 AND LEN(dcAlpha4)=11 AND LEN(dcAlpha5)=11 AND ISDATE(ISNULL(dcAlpha4,''''''''))=1 AND ISDATE(ISNULL(dcAlpha5,''''''''))=1 
+AND DCC.CCNID51 IN (''+@EmpWhere+'') ''+@CCWhere+'' AND (  CONVERT(DateTime,D.DCALPHA4) between CONVERT(DateTime,''''''+CONVERT(NVARCHAR,@FromDate)+'''''') and CONVERT(DateTime,''''''+CONVERT(NVARCHAR,@ToDate)+'''''')
+				   or CONVERT(DateTime,D.DCALPHA5) between CONVERT(DateTime,''''''+CONVERT(NVARCHAR,@FromDate)+'''''') and CONVERT(DateTime,''''''+CONVERT(NVARCHAR,@ToDate)+'''''')
+				   or CONVERT(DateTime,''''''+CONVERT(NVARCHAR,@FromDate)+'''''') between CONVERT(DateTime,D.DCALPHA4) and CONVERT(DateTime,D.DCALPHA5)
+				   or CONVERT(DateTime,''''''+CONVERT(NVARCHAR,@ToDate)+'''''') between CONVERT(DateTime,D.DCALPHA4) and CONVERT(DateTime,D.DCALPHA5)) ''
+	
+	print @SQL
+	EXEC(@SQL)
+	END
+	END
+
+	IF(@ReportId=344)
+	BEGIN
+	--START:FOR START DATE AND END DATE OF LEAVE YEAR
+	EXEC [spPAY_EXTGetLeaveyearDates] @ToDate,@ALStartMonthYear OUTPUT,@ALEndMonthYear OUTPUT,1
+
+		INSERT INTO #TAB
+		SELECT B.NodeID NODEID,B.CODE AS CODE,B.NAME AS NAME,max(C53.Name) Grade,C.NAME AS LEAVETYPE,A.LEAVEYEAR LEAVEYEAR,A.LEAVETYPEID LEAVETYPEID,CASE CONVERT(FLOAT,SUM(A.OPENINGBALANCE))+CONVERT(FLOAT,SUM(A.ASSIGNEDLEAVES)) WHEN 0 THEN 0 ELSE SUM(A.BALANCELEAVES)  END AS BALANCELEAVES,'''',0,'''',max(b.Gender) Gender,''YES'' 
+FROM PAY_EMPLOYEELEAVEDETAILS A WITH(NOLOCK)  
+JOIN COM_CC50051 B WITH(NOLOCK) ON B.NODEID=A.EMPLOYEEID  
+JOIN COM_CC50052 C WITH(NOLOCK) ON C.NODEID=A.LEAVETYPEID 
+JOIN COM_CCCCData CC ON CC.NodeID=B.NodeID AND CC.CostCenterID=50051
+LEFT JOIN COM_CC50053 C53 with(nolock) on CC.CCNID53=C53.nodeid
+where CONVERT(datetime,LEAVEYEAR)=convert(datetime,@ALStartMonthYear)
+GROUP BY   B.NODEID,B.CODE,B.NAME,C.NAME,A.LEAVEYEAR,A.LEAVETYPEID
+
+		--EXEC(@SQL)
+	
+SET @I=1
+SELECT @CNT=COUNT(*) FROM #TAB
+
+WHILE(@I<=@CNT)
+BEGIN
+SELECT @GRADE=GRADE,@LeaveType=LEAVETYPEID,@EMPNODE=NODEID,@Gender=Gender FROM #TAB WHERE ID=@I
+
+SET @CARRYFORWARD=''''
+set @GenderApplicable=''No''
+
+
+	IF (ISNULL(@CARRYFORWARD,'''')=''Monthly'' OR ISNULL(@CARRYFORWARD,'''')=''MonthlyYearly''  OR @AvailInProbation=''No'')
+	BEGIN
+		INSERT INTO @T1
+		EXEC spPAY_ExtGetAssignedLeaves @EMPNODE,@LeaveType,@todate,0,1,1
+
+		IF EXISTS(SELECT * FROM @T1)
+		UPDATE #TAB SET CARRYFORWARD=@CARRYFORWARD,AVAILABLELEAVES=(SELECT AvailableLeaves FROM @T1),ShowInESS=UPPER(@ShowInESS),GenderApplicable=UPPER(@GenderApplicable) WHERE ID=@I
+	END
+	ELSE 
+	BEGIN
+		UPDATE #TAB SET CARRYFORWARD=@CARRYFORWARD,AVAILABLELEAVES=BALANCELEAVES,ShowInESS=UPPER(@ShowInESS),GenderApplicable=UPPER(@GenderApplicable) WHERE ID=@I
+	END
+
+	DELETE FROM @T1
+	SET @I=@I+1
+END
+
+SET @SQL=''
+SELECT T.CODE EMPCODE,T.Name EMPNAME,MAX(LOC.Name) Location,Max(DEP.Name) Department,Max(C69.Name) Designation,Max(Grade) Grade,T.LeaveType,ROUND(SUM(AVAILABLELEAVES),2) AvailableLeaves,T.LEAVEYEAR ''+@Select+'' 
+FROM  #TAB T
+JOIN COM_CCCCData CC ON CC.NodeID=T.NodeID AND CC.CostCenterID=50051 ''+@strCCJoin+''
+LEFT JOIN COM_Location LOC ON LOC.NODEID=CC.CCNID2
+LEFT JOIN COM_department DEP on CC.CCNID4=DEP.nodeid
+LEFT JOIN COM_CC50069 C69 on CC.CCNID69=C69.nodeid
+WHERE 1=1  AND CC.CCNID51 IN (''+@EmpWhere+'') ''+@CCWhere+''
+AND T.LEAVEYEAR BETWEEN ''''''+CONVERT(NVARCHAR,@FromDate)+'''''' AND ''''''+CONVERT(NVARCHAR,@ToDate)+''''''
+GROUP BY T.CODE,T.Name,T.LeaveType,T.LEAVEYEAR''+@Group+''''
+       print @SQL
+		EXEC(@SQL)
+
+	END
+
+	IF(@ReportId=343)
+	begin
+		SET @SQL='' 
+		SELECT C51.NODEID EmpSeqNo,C51.CODE Code,C51.NAME Name,LOC.NAME Location,DEP.NAME Department,C69.NAME Designation,C53.NAME Grade,CONVERT(DATETIME,dcAlpha4) FromDate,
+CASE WHEN dcAlpha15 is not null AND CONVERT(DATETIME,dcAlpha15)<=CONVERT(DATETIME,dcAlpha5) and isnull(dcAlpha6,''''Both'''')=''''Both'''' then  DATEADD(D,-1,CONVERT(DATETIME,dcAlpha15)) else
+CONVERT(DATETIME,dcAlpha5)  END ToDate,B.dcCCNID51 EmpSeqNo,dcAlpha6 SESS,B.dcCCNID52 ComponentID,C.NAME AS LEAVETYPE ''+@Select+''
+FROM INV_DocDetails a WITH(NOLOCK) 
+JOIN COM_DocCCData b WITH(NOLOCK) ON b.InvDocDetailsID=a.InvDocDetailsID
+JOIN COM_CC50051 C51 WITH(NOLOCK) ON b.DCCCNID51=C51.NODEID 
+JOIN COM_CC50052 C WITH(NOLOCK) ON C.NODEID=b.DCCCNID52 
+JOIN COM_CCCCDATA DCC WITH (NOLOCK) ON DCC.NodeID=C51.NodeID AND DCC.CostCenterID=50051 ''+@strCCJoin+''
+LEFT JOIN COM_Location LOC WITH(NOLOCK) ON LOC.NODEID=DCC.CCNID2
+LEFT JOIN COM_department DEP with(nolock) on DCC.CCNID4=DEP.nodeid
+LEFT JOIN COM_CC50069 C69 with(nolock) on DCC.CCNID69=C69.nodeid
+LEFT JOIN COM_CC50053 C53 with(nolock) on DCC.CCNID53=C53.nodeid
+JOIN COM_DocTextData d WITH(NOLOCK) ON d.InvDocDetailsID=a.InvDocDetailsID
+WHERE D.tDocumentType=62 and a.StatusID=369 AND LEN(dcAlpha4)=11 AND LEN(dcAlpha5)=11 AND ISDATE(ISNULL(dcAlpha4,''''''''))=1 AND ISDATE(ISNULL(dcAlpha5,''''''''))=1 
+AND DCC.CCNID51 IN (''+@EmpWhere+'') ''+@CCWhere+'' AND (  CONVERT(DateTime,D.DCALPHA4) between CONVERT(DateTime,''''''+CONVERT(NVARCHAR,@FromDate)+'''''') and CONVERT(DateTime,''''''+CONVERT(NVARCHAR,@ToDate)+'''''')
+				   or CONVERT(DateTime,D.DCALPHA5) between CONVERT(DateTime,''''''+CONVERT(NVARCHAR,@FromDate)+'''''') and CONVERT(DateTime,''''''+CONVERT(NVARCHAR,@ToDate)+'''''')
+				   or CONVERT(DateTime,''''''+CONVERT(NVARCHAR,@FromDate)+'''''') between CONVERT(DateTime,D.DCALPHA4) and CONVERT(DateTime,D.DCALPHA5)
+				   or CONVERT(DateTime,''''''+CONVERT(NVARCHAR,@ToDate)+'''''') between CONVERT(DateTime,D.DCALPHA4) and CONVERT(DateTime,D.DCALPHA5)) ''
+	
+	print @SQL
+	EXEC(@SQL)
+	END
+	
+	IF(@ReportId=346)
+	begin
+
+		DECLARE @S2 NVARCHAR(MAX)
+SET @S2=''''
+
+SET @S2=''
+
+SELECT C51.NODEID EmpSeqNo,C51.CODE Code,C51.NAME Name,LOC.NodeID LocationId,LOC.NAME Location,DEP.NAME Department,C69.NAME Designation,C53.NAME Grade''+@Select+'' FROM 
+COM_CC50051 C51 WITH(NOLOCK) 
+LEFT JOIN COM_CCCCDATA CC WITH (NOLOCK) ON CC.NodeID=C51.NodeID AND CC.CostCenterID=50051 ''+@strCCJoin+''
+LEFT JOIN COM_Location LOC WITH(NOLOCK) ON LOC.NODEID=CC.CCNID2
+LEFT JOIN COM_department DEP with(nolock) on CC.CCNID4=DEP.nodeid
+LEFT JOIN COM_CC50069 C69 with(nolock) on CC.CCNID69=C69.nodeid
+LEFT JOIN COM_CC50053 C53 with(nolock) on CC.CCNID53=C53.nodeid
+WHERE C51.IsGroup=0 AND C51.NodeID>1 AND C51.StatusID NOT IN (251,300,301)
+AND CONVERT(DATETIME,C51.DOJ) <=''''''+CONVERT(NVARCHAR,@ToDate)+''''''
+AND (ISNULL(CONVERT(DATETIME,C51.DORelieve),''''01-JAN-1990'''')>=''''''+CONVERT(NVARCHAR,@ToDate)+'''''' OR CONVERT(DATETIME,C51.DORelieve) BETWEEN ''''''+CONVERT(NVARCHAR,@FromDate)+'''''' AND ''''''+CONVERT(NVARCHAR,@ToDate)+'''''' OR ISNULL(C51.DORelieve,'''''''')='''''''') ''
+
+IF(LEN(@EmpWhere)>0)
+SET @S2=@S2 +'' AND C51.NodeID IN('' +@EmpWhere+'') ''
+
+IF(LEN(@CCWhere)>0)
+SET @S2=@S2 +@CCWhere
+
+print @S2
+
+
+EXEC sp_executesql @S2
+		
+		SET @SQL='' 
+		SELECT C51.NODEID EmpSeqNo,C51.CODE Code,C51.NAME Name,LOC.NAME Location,DEP.NAME Department,C69.NAME Designation,C53.NAME Grade,DATEADD(D,1,CONVERT(DATETIME,d.dcAlpha5)) ReJoin --''+@Select+''
+FROM INV_DocDetails a WITH(NOLOCK) 
+JOIN COM_DocCCData b WITH(NOLOCK) ON b.InvDocDetailsID=a.InvDocDetailsID
+JOIN COM_CC50051 C51 WITH(NOLOCK) ON b.DCCCNID51=C51.NODEID 
+JOIN COM_CC50052 C WITH(NOLOCK) ON C.NODEID=b.DCCCNID52 
+JOIN COM_CCCCDATA DCC WITH (NOLOCK) ON DCC.NodeID=C51.NodeID AND DCC.CostCenterID=50051 --''+@strCCJoin+''
+LEFT JOIN COM_Location LOC WITH(NOLOCK) ON LOC.NODEID=DCC.CCNID2
+LEFT JOIN COM_department DEP with(nolock) on DCC.CCNID4=DEP.nodeid
+LEFT JOIN COM_CC50069 C69 with(nolock) on DCC.CCNID69=C69.nodeid
+LEFT JOIN COM_CC50053 C53 with(nolock) on DCC.CCNID53=C53.nodeid
+JOIN COM_DocTextData d WITH(NOLOCK) ON d.InvDocDetailsID=a.InvDocDetailsID
+WHERE D.tDocumentType=62 and Isnull(d.dcAlpha15,'''''''')=''''''''
+and CONVERT(DateTime,D.dcAlpha5) between CONVERT(DateTime,''''''+CONVERT(NVARCHAR,@FromDate)+'''''') and CONVERT(DateTime,''''''+CONVERT(NVARCHAR,@ToDate)+'''''') 
+''
+	
+	print @SQL
+	EXEC(@SQL)
+	END
+
+	IF(@ReportId=347)
+	begin
+
+		SET @SQL=''
+			select max(cw.LevelID) LevelID,cw.LevelName from COM_WorkFlow cw with(nolock)
+ join COM_WorkFlowDef cwd with(nolock) on cw.WorkFlowID=cwd.WorkFlowID and cwd.CostCenterID=40062
+group by cw.LevelName
+		''
+		print @SQL
+		EXEC(@SQL)
+
+		SET @SQL='' 
+		SELECT CC.dcCCNID52 ComponentID,i.WorkFlowLevel,count(CC.dcCCNID52) Count,C.NAME AS LEAVETYPE 
+FROM INV_DocDetails I WITH(NOLOCK)
+JOIN COM_DocCCData CC WITH(NOLOCK) ON CC.InvDocDetailsID=I.InvDocDetailsID
+JOIN COM_CC50052 C WITH(NOLOCK) ON C.NODEID=CC.DCCCNID52 
+JOIN COM_DocTextData T WITH(NOLOCK) ON T.InvDocDetailsID=I.InvDocDetailsID
+JOIN COM_DocNumData N WITH(NOLOCK) ON N.InvDocDetailsID=I.InvDocDetailsID
+WHERE I.CostCenterID=40062   and I.StatusID in (371,372,441) 
+group by CC.dcCCNID52,i.WorkFlowLevel,C.NAME  
+''
+	
+	print @SQL
+	EXEC(@SQL)
+
+	SET @SQL='' 
+		SELECT a.WorkFlowLevel,avg( isnull(DATEDIFF(minute,b.createddate,a.createddate),0)) as avg,c.Nodeid ComponentID,C.Name LEAVETYPE
+from COM_Approvals a
+left join COM_Approvals b on a.CCID=b.CCID and a.CCNODEID=b.CCNODEID and b.WorkFlowLevel=a.WorkFlowLevel-1
+left join INV_DocDetails idd with(nolock) on b.ccnodeid=idd.DocID
+left join COM_DocCCData cdc with(nolock) on cdc.InvDocDetailsID=idd.InvDocDetailsID
+left JOIN COM_CC50052 C WITH(NOLOCK) ON C.NODEID=cdc.DCCCNID52 
+where a.ccid=40062
+group by a.WorkFlowLevel,c.Nodeid,C.Name
+
+''
+	
+	print @SQL
+	EXEC(@SQL)
+
+	END
+
+
+
+
+SET NOCOUNT OFF
+
+' 
+END
+GO

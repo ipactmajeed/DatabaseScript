@@ -1,0 +1,2 @@
+--KHAJA
+INSERT INTO INV_GSTMapping VALUES ('EINV','Items','totAmt',0,'',0,0,'',0)

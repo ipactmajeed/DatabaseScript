@@ -1,0 +1,39 @@
+--Sajid
+Declare @ID INT,@FeatureName NVARCHAR(200),@FeatureID INT,@ListViewTypeID INT
+--Kit Product Code
+SET @FeatureID=3
+SET @FeatureName='Kit Product Code'
+SELECT @ListViewTypeID=ISNULL(MAX(ListViewTypeID),0)+1 FROM [ADM_ListView] WITH(NOLOCK) WHERE [CostCenterID]=@FeatureID
+
+IF NOT EXISTS(SELECT CostCenterID FROM ADM_ListView WITH(NOLOCK) WHERE [CostCenterID]=@FeatureID AND  ListViewName=@FeatureName)
+BEGIN
+	INSERT INTO [ADM_ListView]([ListViewName],[CostCenterID],[FeatureID],[ListViewTypeID],[SearchFilter],[FilterXML],[RoleID],[UserID],[IsUserDefined],[CompanyGUID],[GUID],[Description],[CreatedBy],[CreatedDate],[ModifiedBy],[ModifiedDate],[SearchOption],[SearchOldValue],[GroupSearchFilter],[GroupFilterXML])
+	VALUES(@FeatureName,@FeatureID,@FeatureID,@ListViewTypeID,'','<FilterXMl></FilterXMl>',1,1,0,NEWID(),NEWID(),@FeatureName,'Admin',convert(float,getdate()),NULL,NULL,1,NULL,NULL,NULL)
+	
+	SET @ID=SCOPE_IDENTITY()
+
+	INSERT INTO [ADM_ListViewColumns]([ListViewID],[CostCenterColID],[ColumnOrder],[ColumnWidth],[Description],[CreatedBy],[CreatedDate],[ModifiedBy],[ModifiedDate],[DocumentsList],[IsParent],[ColumnType])
+	VALUES(@ID,261,0,200,NULL,'Admin',convert(float,getdate()),NULL,NULL,NULL,0,1)
+
+	INSERT INTO [ADM_ListViewColumns]([ListViewID],[CostCenterColID],[ColumnOrder],[ColumnWidth],[Description],[CreatedBy],[CreatedDate],[ModifiedBy],[ModifiedDate],[DocumentsList],[IsParent],[ColumnType])
+	VALUES(@ID,262,1,200,NULL,'Admin',convert(float,getdate()),NULL,NULL,NULL,0,1)
+		
+END
+--Kit Product Name
+SET @FeatureName='Kit Product Name'
+SET @ListViewTypeID=@ListViewTypeID+1
+IF NOT EXISTS(SELECT CostCenterID FROM ADM_ListView WITH(NOLOCK) WHERE [CostCenterID]=@FeatureID AND  ListViewName=@FeatureName)
+BEGIN
+	INSERT INTO [ADM_ListView]([ListViewName],[CostCenterID],[FeatureID],[ListViewTypeID],[SearchFilter],[FilterXML],[RoleID],[UserID],[IsUserDefined],[CompanyGUID],[GUID],[Description],[CreatedBy],[CreatedDate],[ModifiedBy],[ModifiedDate],[SearchOption],[SearchOldValue],[GroupSearchFilter],[GroupFilterXML])
+	VALUES(@FeatureName,@FeatureID,@FeatureID,@ListViewTypeID,'','<FilterXMl></FilterXMl>',1,1,0,NEWID(),NEWID(),@FeatureName,'Admin',convert(float,getdate()),NULL,NULL,1,NULL,NULL,NULL)
+
+	SET @ID=SCOPE_IDENTITY()
+
+	INSERT INTO [ADM_ListViewColumns]([ListViewID],[CostCenterColID],[ColumnOrder],[ColumnWidth],[Description],[CreatedBy],[CreatedDate],[ModifiedBy],[ModifiedDate],[DocumentsList],[IsParent],[ColumnType])
+	VALUES(@ID,262,0,200,NULL,'Admin',convert(float,getdate()),NULL,NULL,NULL,0,1)
+
+	INSERT INTO [ADM_ListViewColumns]([ListViewID],[CostCenterColID],[ColumnOrder],[ColumnWidth],[Description],[CreatedBy],[CreatedDate],[ModifiedBy],[ModifiedDate],[DocumentsList],[IsParent],[ColumnType])
+	VALUES(@ID,261,1,200,NULL,'Admin',convert(float,getdate()),NULL,NULL,NULL,0,1)
+
+END
+	
