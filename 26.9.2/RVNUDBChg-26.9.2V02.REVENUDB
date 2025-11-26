@@ -1,0 +1,3 @@
+--Sameer
+
+update ADM_MobileGridView set IsReadonly = 1

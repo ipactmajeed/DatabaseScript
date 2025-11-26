@@ -1,0 +1,4 @@
+-- SHASHANK
+
+update COM_LanguageResources set ResourceData='Op Vacation Days'  where ResourceID=108392 and ResourceName='VacationDays' and ResourceData='Vacation Days' and LanguageID=1
+update COM_LanguageResources set ResourceData='Op Vacation Days-AR' where ResourceID=108392 and ResourceName='VacationDays' and ResourceData='Vacation Days-AR' and LanguageID=2

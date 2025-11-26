@@ -1,0 +1,83 @@
+--Sajid
+/****** Object:  StoredProcedure [dbo].[spADM_ResetFeatureActions]    Script Date: 21-11-2025 16:43:37 ******/
+IF  EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[spADM_ResetFeatureActions]') AND type in (N'P', N'PC'))
+DROP PROCEDURE [dbo].[spADM_ResetFeatureActions]
+GO
+/****** Object:  StoredProcedure [dbo].[spADM_ResetFeatureActions]    Script Date: 21-11-2025 16:43:37 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[spADM_ResetFeatureActions]') AND type in (N'P', N'PC'))
+BEGIN
+EXEC dbo.sp_executesql @statement = N'CREATE procedure [dbo].[spADM_ResetFeatureActions]
+	@CostCenterID INT,
+	@LangID INT
+AS  
+BEGIN TRANSACTION                
+BEGIN TRY                
+SET NOCOUNT ON; 
+	
+	DECLARE @FeatureActionID bigint,@I INT,@CNT INT,@Name NVARCHAR(MAX),@FeatureActionTypeID INT
+	DECLARE @Tab Table(ID INT IDENTITY(1,1),Name NVARCHAR(MAX),FeatureActionTypeID INT)
+	INSERT INTO @Tab (Name,FeatureActionTypeID) VALUES (''Delete'',4)
+	INSERT INTO @Tab (Name,FeatureActionTypeID) VALUES (''File_Create'',12)
+	INSERT INTO @Tab (Name,FeatureActionTypeID) VALUES (''File_Update'',14)
+	INSERT INTO @Tab (Name,FeatureActionTypeID) VALUES (''File_Delete'',15)
+	INSERT INTO @Tab (Name,FeatureActionTypeID) VALUES (''File_Download'',88)
+	INSERT INTO @Tab (Name,FeatureActionTypeID) VALUES (''ContinuousPrint'',514)
+	INSERT INTO @Tab (Name,FeatureActionTypeID) VALUES (''JV'',516)
+	INSERT INTO @Tab (Name,FeatureActionTypeID) VALUES (''Draft'',517)
+	INSERT INTO @Tab (Name,FeatureActionTypeID) VALUES (''HoldDoc'',518)
+	INSERT INTO @Tab (Name,FeatureActionTypeID) VALUES (''AssignVPT'',675)
+	INSERT INTO @Tab (Name,FeatureActionTypeID) VALUES (''InsertRow'',906)
+	INSERT INTO @Tab (Name,FeatureActionTypeID) VALUES (''Map'',915)
+
+	INSERT INTO @Tab (Name,FeatureActionTypeID) VALUES (''File_Read'',13)
+	INSERT INTO @Tab (Name,FeatureActionTypeID) VALUES (''CopyRow'',907)
+	INSERT INTO @Tab (Name,FeatureActionTypeID) VALUES (''PasteRow'',909)
+	INSERT INTO @Tab (Name,FeatureActionTypeID) VALUES (''RowDelete'',910)
+	INSERT INTO @Tab (Name,FeatureActionTypeID) VALUES (''RowMap'',911)
+	INSERT INTO @Tab (Name,FeatureActionTypeID) VALUES (''RowDetails'',912)
+	INSERT INTO @Tab (Name,FeatureActionTypeID) VALUES (''CopyWithHeader'',927)
+	INSERT INTO @Tab (Name,FeatureActionTypeID) VALUES (''CopyRef'',908)
+
+
+	SET @I=1
+	SELECT @CNT=COUNT(*) FROM @Tab
+	WHILE(@I<=@CNT)
+	BEGIN
+		SELECT @Name=Name,@FeatureActionTypeID=FeatureActionTypeID from @Tab where ID=@I 
+		IF NOT EXISTS (SELECT * FROM [ADM_FeatureAction] WITH(NOLOCK) WHERE [FeatureID]=@CostCenterID AND [Name]=@Name) 
+		BEGIN
+			INSERT INTO [ADM_FeatureAction] ([Name],[FeatureID],[FeatureActionTypeID],[ApplicationID],[GridShortCut],[Description],[Status],[CreatedDate],[CreatedBy])
+			VALUES(@Name,@CostCenterID,@FeatureActionTypeID,1,NULL,NULL,1,CONVERT(FLOAT,GETDATE()),''ADMIN'')
+			
+			SET @FeatureActionID=@@IDENTITY
+			
+			INSERT INTO [ADM_FeatureActionRoleMap]([RoleID],[FeatureActionID],[Description],[Status],[CreatedBy],[CreatedDate],[ModifiedBy],[ModifiedDate])
+			VALUES( 1,@FeatureActionID,@Name,1,''Admin'',CONVERT(FLOAT,GETDATE()),NULL,NULL)
+		END
+	SET @I=@I+1
+	END
+
+  COMMIT TRANSACTION
+--ROLLBACK TRANSACTION
+SELECT ErrorMessage,ErrorNumber FROM COM_ErrorMessages WITH(nolock)               
+WHERE ErrorNumber=100 AND LanguageID=@LangID              
+SET NOCOUNT OFF;                
+RETURN @CostCenterID                
+END TRY                
+BEGIN CATCH                
+ IF ERROR_NUMBER()=50000              
+ BEGIN
+	SELECT ErrorMessage,ErrorNumber FROM COM_ErrorMessages WITH(nolock)               
+	WHERE ErrorNumber=ERROR_MESSAGE() AND LanguageID=@LangID              
+ END              
+ ROLLBACK TRANSACTION              
+ SET NOCOUNT OFF                
+ RETURN -999                 
+END CATCH
+' 
+END
+GO

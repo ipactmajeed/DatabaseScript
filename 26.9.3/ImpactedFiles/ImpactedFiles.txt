@@ -1,0 +1,63 @@
+
+
+
+
+
+M	PactRevenUWebapi2.0/PactRevenUWebapi2.0/Controllers/CommonController.cs
+M	RevenUWeb/src/app/admin/mobile-preferences/MobilePreferencesViewModel.ts
+M	RevenUWeb/src/app/admin/mobile-preferences/mobile-preferences-customize/MobilePreferencesCustomize.component.html
+M	RevenUWeb/src/app/admin/mobile-preferences/mobile-preferences-customize/MobilePreferencesCustomize.component.ts
+M	RevenUWeb/src/app/inventory/add-product/AddProductScreenViewModel.ts
+M	RevenUWeb/src/app/property/bulk-invoice-posting/BulkInvoicePostingViewModel.ts
+M	RevenUWeb/src/app/reports/send-email-sms/SendEmailSMSViewModel.ts
+M	RevenUWeb/src/app/reports/send-email-sms/send-email-sms.component.scss
+M	RevenUWeb/src/app/reports/send-email-sms/send-email-sms.component.ts
+M	RevenUWeb/src/app/services/session-manager.service.ts
+M	RevenUWeb/src/app/shared/controls/data-widget/data-widget.component.ts
+M	RevenUWebWhiteTheme/src/app/admin/AddRoles/AddRoles.component.ts
+M	RevenUWebWhiteTheme/src/app/app.module.ts
+M	RevenUWebWhiteTheme/src/app/dashboard/dashboard.module.ts
+A	RevenUWebWhiteTheme/src/app/dashboard/home-dashboard/home-dashboard.component.html
+A	RevenUWebWhiteTheme/src/app/dashboard/home-dashboard/home-dashboard.component.scss
+A	RevenUWebWhiteTheme/src/app/dashboard/home-dashboard/home-dashboard.component.ts
+M	RevenUWebWhiteTheme/src/app/inventory/add-product/AddProductScreenViewModel.ts
+A	RevenUWebWhiteTheme/src/app/pages/home/details-panel/details-panel.html
+A	RevenUWebWhiteTheme/src/app/pages/home/details-panel/details-panel.scss
+A	RevenUWebWhiteTheme/src/app/pages/home/details-panel/details-panel.ts
+M	RevenUWebWhiteTheme/src/app/pages/home/header/PACTHeader.component.html
+M	RevenUWebWhiteTheme/src/app/pages/home/header/header.component.ts
+M	RevenUWebWhiteTheme/src/app/pages/home/home.component.scss
+M	RevenUWebWhiteTheme/src/app/pages/home/home.component.ts
+M	RevenUWebWhiteTheme/src/app/pages/home/home.view.component.html
+A	RevenUWebWhiteTheme/src/app/pages/home/hover-panel/hover-panel.html
+A	RevenUWebWhiteTheme/src/app/pages/home/hover-panel/hover-panel.scss
+A	RevenUWebWhiteTheme/src/app/pages/home/hover-panel/hover-panel.ts
+A	RevenUWebWhiteTheme/src/app/pages/home/list-group/list-group.html
+A	RevenUWebWhiteTheme/src/app/pages/home/list-group/list-group.scss
+A	RevenUWebWhiteTheme/src/app/pages/home/list-group/list-group.ts
+A	RevenUWebWhiteTheme/src/app/pages/home/list-item/list-item.html
+A	RevenUWebWhiteTheme/src/app/pages/home/list-item/list-item.scss
+A	RevenUWebWhiteTheme/src/app/pages/home/list-item/list-item.ts
+A	RevenUWebWhiteTheme/src/app/pages/home/ribbon-item/ribbon-item.html
+A	RevenUWebWhiteTheme/src/app/pages/home/ribbon-item/ribbon-item.scss
+A	RevenUWebWhiteTheme/src/app/pages/home/ribbon-item/ribbon-item.ts
+A	RevenUWebWhiteTheme/src/app/pages/home/search-list/search-list-group.ts
+A	RevenUWebWhiteTheme/src/app/pages/home/sidebar/sidebar.html
+A	RevenUWebWhiteTheme/src/app/pages/home/sidebar/sidebar.scss
+A	RevenUWebWhiteTheme/src/app/pages/home/sidebar/sidebar.ts
+M	RevenUWebWhiteTheme/src/app/property/bulk-invoice-posting/BulkInvoicePostingViewModel.ts
+M	RevenUWebWhiteTheme/src/app/property/contract/AddEditRenContractViewModel.ts
+M	RevenUWebWhiteTheme/src/app/reports/brs/BRSViewModel.ts
+M	RevenUWebWhiteTheme/src/app/reports/send-email-sms/SendEmailSMSViewModel.ts
+M	RevenUWebWhiteTheme/src/app/reports/send-email-sms/send-email-sms.component.scss
+M	RevenUWebWhiteTheme/src/app/reports/send-email-sms/send-email-sms.component.ts
+A	RevenUWebWhiteTheme/src/app/services/menu.service.ts
+M	RevenUWebWhiteTheme/src/app/shared/controls/Editors/DataGridComboBoxColumneditor.ts
+M	RevenUWebWhiteTheme/src/app/shared/controls/data-widget/data-widget.component.html
+M	RevenUWebWhiteTheme/src/app/shared/controls/data-widget/data-widget.component.ts
+A	RevenUWebWhiteTheme/src/app/shared/models/dasboard.model.ts
+M	RevenUWebWhiteTheme/src/app/shared/models/ribbon/RibbonGenerator.ts
+A	RevenUWebWhiteTheme/src/app/shared/models/riboon-model.ts
+M	RevenUWebWhiteTheme/src/scss/PACTUI/@theme/_base.scss
+A	RevenUWebWhiteTheme/src/scss/PACTUI/tailwind-imports.scss
+M	RevenUWebWhiteTheme/src/scss/PACTUI/variables.scss

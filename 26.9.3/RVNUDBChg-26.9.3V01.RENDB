@@ -1,0 +1,8 @@
+--Sajid
+Declare @ResID INT
+select @ResID=isnull(ResourceID,0) from ADM_CostCenterDef with(nolock) where CostCenterID=95 and SysTablename='REN_ContractParticulars' and SysColumnName='AfterDiscountAmount'
+if(@ResID>0)
+begin
+	IF EXISTS(SELECT ResourceName from COM_LanguageResources with(nolock) where  ResourceID=@ResID and ResourceData='After Discount Amount' and LanguageID=1)
+		Update COM_LanguageResources set ResourceData='After Discount Amt.' where ResourceID=@ResID and ResourceName='After Discount Amount' and LanguageID=1
+end
