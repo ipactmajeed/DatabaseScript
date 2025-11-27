@@ -1,0 +1,26 @@
+--CHARY
+
+CREATE TABLE [dbo].[COM_DocAuthorizeLogs](
+	[SeqNo] [int] IDENTITY(1,1) NOT NULL,
+	[DocDate] [float] NOT NULL,
+	[ActionType] [nvarchar](50) NOT NULL,
+	[CostCenterID] [int] NULL,
+	[DocID] [int] NULL,
+	[DocSeqNo] [int] NULL,
+	[ProductID] [int] NULL,
+	[AccountID] [int] NULL,
+	[Qty] [float] NULL,
+	[Rate] [float] NULL,
+	[Amount] [float] NULL,
+	[CreatedBy] [nvarchar](50) NOT NULL,
+	[CreatedDate] [float] NOT NULL,
+	[AuthorizedBy] [nvarchar](50) NOT NULL,
+ CONSTRAINT [PK_COM_DocAuthorizeLogs] PRIMARY KEY CLUSTERED 
+(
+	[SeqNo] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]
+) ON [PRIMARY]
+
+
+
+
