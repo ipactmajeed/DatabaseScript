@@ -1,0 +1,54 @@
+
+
+
+
+
+M	PactRevenUWebapi2.0/PactRevenUWebapi2.0/Controllers/PactRequestTokenController.cs
+M	PactRevenUWebapi2.0/PactRevenUWebapi2.0/Controllers/ReportController.cs
+M	RevenUWeb/src/app/common/BulkEdit/bulk-edit/BulkEditViewModel.ts
+M	RevenUWeb/src/app/common/posted-document/PostedDocumentViewModel.ts
+M	RevenUWeb/src/app/document/add-edit-document/AddEditDocumentViewModel.ts
+M	RevenUWeb/src/app/ess/add-edit-emp-master/AddEditEmpMasterViewModel.ts
+M	RevenUWeb/src/app/ess/final-settlement/final-settlement.component.ts
+M	RevenUWeb/src/app/services/session-manager.service.ts
+M	RevenUWeb/src/app/shared/controls/Fields/PactDatePicker.component.ts
+M	RevenUWeb/src/app/shared/controls/Fields/PactExtraFieldDate.component.ts
+M	RevenUWeb/src/app/shared/controls/PactGridView/PactGridView.component.ts
+M	RevenUWeb/src/app/shared/controls/data-widget/data-widget.component.ts
+M	RevenUWeb/src/app/shared/controls/view-filter/ViewFilterViewModel.ts
+M	RevenUWeb/src/scss/PACTUI/mobile.scss
+M	RevenUWebWhiteTheme/src/app/common/BulkEdit/bulk-edit/BulkEditViewModel.ts
+M	RevenUWebWhiteTheme/src/app/common/favorites/favorites.component.html
+M	RevenUWebWhiteTheme/src/app/common/favorites/favorites.component.ts
+A	RevenUWebWhiteTheme/src/app/common/favorites/favourites.component.scss
+M	RevenUWebWhiteTheme/src/app/common/tree-view-page/landingpage.component.html
+M	RevenUWebWhiteTheme/src/app/dashboard/dbview/DBViewViewModel.ts
+M	RevenUWebWhiteTheme/src/app/dashboard/home-dashboard/home-dashboard.component.html
+M	RevenUWebWhiteTheme/src/app/dashboard/home-dashboard/home-dashboard.component.scss
+M	RevenUWebWhiteTheme/src/app/dashboard/home-dashboard/home-dashboard.component.ts
+M	RevenUWebWhiteTheme/src/app/dashboard/widget-view/widget-view.component.html
+A	RevenUWebWhiteTheme/src/app/dashboard/widget-view/widget-view.component.scss
+M	RevenUWebWhiteTheme/src/app/dashboard/widget-view/widget-view.component.ts
+M	RevenUWebWhiteTheme/src/app/document/documents-list/documents-list.component.html
+M	RevenUWebWhiteTheme/src/app/ess/add-edit-emp-master/AddEditEmpMasterViewModel.ts
+M	RevenUWebWhiteTheme/src/app/pages/home/RibbonExtViewModel.ts
+M	RevenUWebWhiteTheme/src/app/pages/home/home.component.scss
+M	RevenUWebWhiteTheme/src/app/pages/home/home.view.component.html
+M	RevenUWebWhiteTheme/src/app/pages/home/hover-panel/hover-panel.ts
+M	RevenUWebWhiteTheme/src/app/pages/home/sidemenu/PACTMenu.component.html
+M	RevenUWebWhiteTheme/src/app/pages/home/sidemenu/sidebar.scss
+M	RevenUWebWhiteTheme/src/app/pages/home/sidemenu/sidemenu.component.ts
+A	RevenUWebWhiteTheme/src/app/pages/home/submenu/submenu.component.scss
+M	RevenUWebWhiteTheme/src/app/pages/home/submenu/submenu.component.ts
+M	RevenUWebWhiteTheme/src/app/pages/home/submenu/submenu.view.component.html
+M	RevenUWebWhiteTheme/src/app/services/menu.service.ts
+M	RevenUWebWhiteTheme/src/app/shared/controls/Fields/PactDatePicker.component.ts
+M	RevenUWebWhiteTheme/src/app/shared/controls/Fields/PactExtraFieldDate.component.ts
+M	RevenUWebWhiteTheme/src/app/shared/controls/tree/pact-tree/tree.component.html
+M	RevenUWebWhiteTheme/src/app/shared/models/ribbon/RibbonGenerator.ts
+M	RevenUWebWhiteTheme/src/scss/PACTUI/@theme/_base.scss
+M	RevenUWebWhiteTheme/src/scss/PACTUI/@theme/_page.scss
+M	RevenUWebWhiteTheme/src/scss/PACTUI/@theme/_tree.scss
+M	RevenUWebWhiteTheme/src/scss/PACTUI/Styles.scss
+A	RevenUWebWhiteTheme/src/scss/PACTUI/dashboard.scss
+M	RevenUWebWhiteTheme/src/scss/PACTUI/mobile.scss

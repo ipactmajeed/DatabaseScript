@@ -1,0 +1,23 @@
+
+-- Wajid
+
+DECLARE @FID BIGINT
+
+SET @FID=7
+IF NOT EXISTS(SELECT * FROM ADM_FeatureAction WHERE FeatureID=@FID AND Name='User Activate')
+BEGIN
+	INSERT INTO ADM_FeatureAction(Name,ResourceID,FeatureID,FeatureActionTypeID,ApplicationID,Status,CreatedDate,CreatedBy)    
+	SELECT N'User Activate', null,@FID,949,1,1,CONVERT(FLOAT,GETDATE()),N'Admin'
+	INSERT INTO [ADM_FeatureActionRoleMap]([RoleID],[FeatureActionID],[Status],[CreatedBy],[CreatedDate])
+	SELECT 1,[FeatureActionID],1,CreatedBy,CreatedDate FROM ADM_FeatureAction WITH(NOLOCK) 
+	WHERE FEATUREID=@FID and Name='User Activate'
+END
+
+IF NOT EXISTS(SELECT * FROM ADM_FeatureAction WHERE FeatureID=@FID AND Name='User DeActivate')
+BEGIN
+	INSERT INTO ADM_FeatureAction(Name,ResourceID,FeatureID,FeatureActionTypeID,ApplicationID,Status,CreatedDate,CreatedBy) 
+	SELECT N'User DeActivate', null,@FID,950,1,1,CONVERT(FLOAT,GETDATE()),N'Admin'
+	INSERT INTO [ADM_FeatureActionRoleMap]([RoleID],[FeatureActionID],[Status],[CreatedBy],[CreatedDate])
+	SELECT 1,[FeatureActionID],1,CreatedBy,CreatedDate FROM ADM_FeatureAction WITH(NOLOCK) 
+	WHERE FEATUREID=@FID and Name='User DeActivate'
+END

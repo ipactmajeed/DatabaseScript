@@ -1,0 +1,28 @@
+--CHARY
+
+IF EXISTS(SELECT name from sys.default_constraints where name='DF_INV_Product_CategoryID')
+	ALTER TABLE [dbo].[INV_Product] DROP CONSTRAINT [DF_INV_Product_CategoryID]
+
+IF EXISTS(SELECT name from sys.default_constraints where name='DF_INV_Product_DepartmentID')
+	ALTER TABLE [dbo].[INV_Product] DROP CONSTRAINT [DF_INV_Product_DepartmentID]
+
+ALTER TABLE [dbo].[INV_Product] ADD  CONSTRAINT [DF_INV_Product_CategoryID]  DEFAULT ((1)) FOR [CategoryID]
+ALTER TABLE [dbo].[INV_Product] ADD  CONSTRAINT [DF_INV_Product_DepartmentID]  DEFAULT ((1)) FOR [DepartmentID]
+
+UPDATE INV_Product SET CategoryID=1 WHERE CategoryID NOT IN(Select NodeID From COM_Category)
+UPDATE INV_Product SET DepartmentID=1 WHERE DepartmentID NOT IN(Select NodeID From COM_Department)
+
+IF NOT EXISTS(SELECT name from sys.foreign_keys where parent_object_id=object_id('INV_Product') AND referenced_object_id=object_id('COM_Category'))
+BEGIN
+	ALTER TABLE INV_Product
+	ADD CONSTRAINT FK_INV_Product_CategoryID FOREIGN KEY(CategoryID)
+	REFERENCES dbo.COM_Category(NodeID)
+END
+
+IF NOT EXISTS(SELECT name from sys.foreign_keys where parent_object_id=object_id('INV_Product') AND referenced_object_id=object_id('COM_Department'))
+BEGIN
+	ALTER TABLE INV_Product
+	ADD CONSTRAINT FK_INV_Product_DepartmentID FOREIGN KEY(DepartmentID)
+	REFERENCES dbo.COM_Department(NodeID)
+END
+

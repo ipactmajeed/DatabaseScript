@@ -1,0 +1,3 @@
+--Ibrahim
+
+UPDATE ADM_CostCenterDef SET SysColumnName='RoleLookUpID' WHERE CostCenterID=65 AND SysColumnName='RoleLookupID'
