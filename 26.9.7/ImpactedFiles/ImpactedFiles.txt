@@ -1,0 +1,41 @@
+
+
+
+
+
+M	PactRevenUWebapi2.0/PactRevenUWebapi2.0/Controllers/PactRequestTokenController.cs
+M	RevenUNestAPI/src/PACTAPI/Controllers/Accounting/Accounting.controller.ts
+M	RevenUNestAPI/src/PACTAPI/Controllers/Admin/admin.controller.ts
+M	RevenUNestAPI/src/PACTAPI/Controllers/BPrinting/BPrinting.controller.ts
+M	RevenUNestAPI/src/PACTAPI/Controllers/CRM/CRM.controller.ts
+M	RevenUNestAPI/src/PACTAPI/Controllers/CasesController/Cases.controller.ts
+M	RevenUNestAPI/src/PACTAPI/Controllers/Common/common.controller.ts
+M	RevenUNestAPI/src/PACTAPI/Controllers/Contracts/contracts.controller.ts
+M	RevenUNestAPI/src/PACTAPI/Controllers/Document/document.controller.ts
+M	RevenUNestAPI/src/PACTAPI/Controllers/ESS/ESS.controller.ts
+M	RevenUNestAPI/src/PACTAPI/Controllers/Inventory/Inventory.controller.ts
+M	RevenUNestAPI/src/PACTAPI/Controllers/PactRequestToken/pact-request-token.controller.ts
+M	RevenUNestAPI/src/PACTAPI/Controllers/PactWhatsapp/PactWhatsapp.controller.ts
+M	RevenUNestAPI/src/PACTAPI/Controllers/Rental/Rental.controller.ts
+M	RevenUNestAPI/src/PACTAPI/Controllers/Report/report.controller.ts
+M	RevenUNestAPI/src/PACTAPI/Modules/Admin/Admin.module.ts
+M	RevenUNestAPI/src/PACTAPI/Modules/Cases/Cases.module.ts
+M	RevenUNestAPI/src/PACTAPI/Modules/Document/document.module.ts
+M	RevenUNestAPI/src/PACTAPI/Services/Admin/admin.service.ts
+M	RevenUNestAPI/src/PACTAPI/Services/Common/common.service.ts
+M	RevenUNestAPI/src/PACTAPI/Services/Document/document.service.ts
+M	RevenUNestAPI/src/PACTAPI/Services/Report/report.service.ts
+M	RevenUNestAPI/src/PACTAPI/Services/accounts/accounts.service.ts
+M	RevenUNestAPI/src/common/Util.ts
+M	RevenUNestAPI/src/sql-executor/sql-executor.service.ts
+M	RevenUWeb/src/app/document/add-edit-document/AddEditDocumentViewModel.ts
+M	RevenUWeb/src/app/document/add-edit-document/VoucherGenerator.ts
+M	RevenUWeb/src/app/document/add-edit-document/document.component.html
+M	RevenUWeb/src/app/services/session-manager.service.ts
+M	RevenUWebWhiteTheme/src/app/common/tree-view-page/landingpage.component.html
+M	RevenUWebWhiteTheme/src/app/document/documents-list/documents-list.component.html
+M	RevenUWebWhiteTheme/src/scss/PACTUI/@theme/_page.scss
+M	RevenUWebWhiteTheme/src/scss/PACTUI/@theme/_tree.scss
+M	RevenUWebWhiteTheme/src/scss/PACTUI/dashboard.scss
+M	RevenUWebWhiteTheme/src/scss/PACTUI/slickgrid-styles.scss
+M	RevenUWebWhiteTheme/src/scss/PACTUI/variables.scss

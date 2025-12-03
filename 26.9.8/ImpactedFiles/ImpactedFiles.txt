@@ -1,0 +1,19 @@
+
+
+
+
+
+M	PactRevenUWebapi2.0/PactRevenUWebapi2.0/Controllers/ReportController.cs
+M	RevenUWeb/node_modules/ngx-material-timepicker/fesm2015/ngx-material-timepicker.js
+M	RevenUWeb/src/app/dashboard/dbview/dbview.component.html
+M	RevenUWeb/src/app/inventory/add-product/AddProductScreenViewModel.ts
+M	RevenUWeb/src/app/inventory/master-tabs/add-price-chart/AddPriceChartNewViewModel.ts
+M	RevenUWeb/src/app/inventory/master-tabs/add-price-chart/add-price-chart.component.html
+M	RevenUWeb/src/app/inventory/master-tabs/add-tax-chart/AddTaxChartNewViewModel.ts
+M	RevenUWeb/src/app/inventory/master-tabs/add-tax-chart/add-tax-chart.component.html
+M	RevenUWeb/src/app/property/master-tabs/property-deposits/PropertyDepositsViewModel.ts
+M	RevenUWeb/src/app/reports/StaticReports/ACC_GeneralLedger.ts
+M	RevenUWeb/src/app/reports/revenu-chart/RevenUChartViewModel.ts
+M	RevenUWeb/src/app/services/api/reports.service.ts
+M	RevenUWeb/src/app/services/session-manager.service.ts
+M	RevenUWeb/src/app/shared/controls/master-tabs/activity/ActivitiesViewModel.ts
