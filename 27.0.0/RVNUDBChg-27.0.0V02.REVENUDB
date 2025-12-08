@@ -1,0 +1,16 @@
+--Ibrahim
+
+DECLARE @ResID INT 
+SELECT @ResID=MAX([ResourceID])+1 from [com_languageresources] with(nolock)
+IF NOT EXISTS(SELECT * FROM COM_CostCenterPreferences WITH(NOLOCK) WHERE CostCenterID=3 AND Name='AllowDuplicateBarcode')
+BEGIN
+	INSERT INTO COM_CostCenterPreferences
+	SELECT 3,3,@ResID,'AllowDuplicateBarcode','False','False',NULL,'guid',NULL,'admin',CONVERT(FLOAT,GETDATE()),'admin',CONVERT(FLOAT,GETDATE())
+	
+	INSERT INTO COM_LanguageResources (ResourceID, ResourceName, LanguageID, LanguageName, ResourceData,FEATURE)
+	VALUES (@ResID, 'AllowDuplicateBarcode',1,'English', 'Allow Duplicate Barcode','Product')
+	INSERT INTO COM_LanguageResources (ResourceID, ResourceName, LanguageID, LanguageName, ResourceData,FEATURE)
+	VALUES (@ResID, 'AllowDuplicateBarcode',2,'Arabic', 'Allow Duplicate Barcode','Product')
+	INSERT INTO COM_LanguageResources (ResourceID, ResourceName, LanguageID, LanguageName, ResourceData,FEATURE)
+	VALUES (@ResID, 'AllowDuplicateBarcode',3,'Italian', 'Allow Duplicate Barcode','Product')
+END

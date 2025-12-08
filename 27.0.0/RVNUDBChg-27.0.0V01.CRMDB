@@ -1,0 +1,5 @@
+--Ibrahim
+
+
+update ADM_CostCenterDef set ColumnDataType='String' WHERE CostCenterID=86 AND UserColumnType='LISTBOX' 
+AND SysColumnName IN ('SourceLookUpID')

@@ -1,0 +1,40 @@
+
+
+
+
+
+M	PactRevenUWebapi2.0/PactRevenUWebapi2.0/Controllers/PactRequestTokenController.cs
+M	RevenUWeb/node_modules/ngx-material-timepicker/fesm2015/ngx-material-timepicker.js
+M	RevenUWeb/src/app/crm/add-edit-opportunity/AddEditOpportunity.ts
+M	RevenUWeb/src/app/crm/crmcalendar/CRMFullCalendar.component.ts
+M	RevenUWeb/src/app/crm/crmcalendar/crmcalendar.component.html
+M	RevenUWeb/src/app/crm/crmcalendar/crmcalendar.component.ts
+M	RevenUWeb/src/app/inventory/master-tabs/Kit/ProductKitViewModel.ts
+M	RevenUWeb/src/app/services/api/common.service.ts
+M	RevenUWeb/src/app/services/session-manager.service.ts
+M	RevenUWeb/src/app/shared/controls/master-tabs/activity/activities.component.html
+M	RevenUWeb/src/app/shared/models/controls/PactDatePickerData.ts
+M	RevenUWebWhiteTheme/src/app/common/posted-document/PostedDocumentViewModel.ts
+M	RevenUWebWhiteTheme/src/app/common/tree-view-page/landingpage.component.html
+M	RevenUWebWhiteTheme/src/app/crm/add-edit-opportunity/AddEditOpportunity.ts
+M	RevenUWebWhiteTheme/src/app/crm/crmcalendar/CRMFullCalendar.component.ts
+M	RevenUWebWhiteTheme/src/app/crm/crmcalendar/crmcalendar.component.html
+M	RevenUWebWhiteTheme/src/app/crm/crmcalendar/crmcalendar.component.ts
+M	RevenUWebWhiteTheme/src/app/dashboard/dbview/dbview.component.html
+M	RevenUWebWhiteTheme/src/app/document/add-edit-document/AddEditDocumentViewModel.ts
+M	RevenUWebWhiteTheme/src/app/document/documents-list/DocumentsListViewModel.ts
+M	RevenUWebWhiteTheme/src/app/inventory/add-product/AddProductScreenViewModel.ts
+M	RevenUWebWhiteTheme/src/app/inventory/master-tabs/add-price-chart/AddPriceChartNewViewModel.ts
+M	RevenUWebWhiteTheme/src/app/inventory/master-tabs/add-price-chart/add-price-chart.component.html
+M	RevenUWebWhiteTheme/src/app/inventory/master-tabs/add-tax-chart/AddTaxChartNewViewModel.ts
+M	RevenUWebWhiteTheme/src/app/inventory/master-tabs/add-tax-chart/add-tax-chart.component.html
+M	RevenUWebWhiteTheme/src/app/property/master-tabs/property-deposits/PropertyDepositsViewModel.ts
+M	RevenUWebWhiteTheme/src/app/reports/StaticReports/ACC_GeneralLedger.ts
+M	RevenUWebWhiteTheme/src/app/reports/revenu-chart/RevenUChartViewModel.ts
+M	RevenUWebWhiteTheme/src/app/shared/controls/PactGridView/PactGridView.component.ts
+M	RevenUWebWhiteTheme/src/app/shared/controls/master-tabs/activity/ActivitiesViewModel.ts
+M	RevenUWebWhiteTheme/src/app/shared/controls/master-tabs/activity/activities.component.html
+M	RevenUWebWhiteTheme/src/app/shared/controls/quick-view/quick-view.component.html
+M	RevenUWebWhiteTheme/src/app/shared/controls/view-filter/ViewFilterViewModel.ts
+M	RevenUWebWhiteTheme/src/app/shared/models/controls/PactDatePickerData.ts
+M	RevenUWebWhiteTheme/src/scss/PACTUI/@theme/_page.scss

@@ -1,0 +1,20 @@
+--Ibrahim
+
+DECLARE @ResID INT 
+SELECT @ResID=MAX([ResourceID])+1 from [com_languageresources] with(nolock)
+
+IF NOT EXISTS(SELECT * FROM [ACC_DepreciationMethods] WHERE Name='WDV_StraightLine')
+BEGIN
+	SET IDENTITY_INSERT [dbo].[ACC_DepreciationMethods] ON
+	IF NOT EXISTS(SELECT * FROM ACC_DepreciationMethods WITH(NOLOCK) WHERE Name='WDV_StraightLine')
+	INSERT [dbo].[ACC_DepreciationMethods] ([DepreciationMethodID], [ResourceID], [Name], [Description], [CreatedDate], [CreatedBy]) 
+	VALUES (6, @ResID, N'WDV_StraightLine', NULL, CONVERT(FLOAT,GETDATE()), N'ADMIN')	
+	SET IDENTITY_INSERT [dbo].[ACC_DepreciationMethods] OFF
+
+	INSERT INTO COM_LanguageResources (ResourceID, ResourceName, LanguageID, LanguageName, ResourceData,FEATURE)
+	VALUES (@ResID, 'WDV_StraightLine',1,'English', 'WDV_StraightLine','DepreciationMethods')
+	INSERT INTO COM_LanguageResources (ResourceID, ResourceName, LanguageID, LanguageName, ResourceData,FEATURE)
+	VALUES (@ResID, 'WDV_StraightLine',2,'Arabic', 'WDV_StraightLine_AR','DepreciationMethods')
+	INSERT INTO COM_LanguageResources (ResourceID, ResourceName, LanguageID, LanguageName, ResourceData,FEATURE)
+	VALUES (@ResID, 'WDV_StraightLine',3,'Italian', 'WDV_StraightLine_IT','DepreciationMethods')
+END
