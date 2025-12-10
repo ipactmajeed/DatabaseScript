@@ -1,0 +1,43 @@
+-- SHASHANK
+
+
+declare @CCColID BIGINT,@RId BIGINT
+SELECT @CCColID=MAX([CostCenterColID])+1 FROM ADM_CostCenterDef WITH(NOLOCK)
+SELECT @RId=MAX([ResourceID])+1 FROM [Com_LanguageResources]  WITH(NOLOCK)
+
+
+IF NOT EXISTS(SELECT Name From Sys.columns WHERE object_id=OBJECT_ID(N'COM_DocTextData') AND Name='dcAlpha7')
+		ALTER TABLE COM_DocTextData add dcAlpha7 NVARCHAR(MAX)
+IF NOT EXISTS(SELECT Name From Sys.columns WHERE object_id=OBJECT_ID(N'COM_DocTextData_History') AND Name='dcAlpha7')
+		ALTER TABLE COM_DocTextData_History add dcAlpha7 NVARCHAR(MAX)
+
+IF NOT EXISTS(SELECT * FROM ADM_CostCenterDef WITH(NOLOCK) WHERE CostCenterID=40060 AND SysColumnName='dcAlpha7')
+BEGIN	
+		
+	INSERT INTO [com_languageresources] ([ResourceID],[ResourceName],[LanguageID],[LanguageName],[ResourceData],[GUID],[Description],[CreatedBy],[CreatedDate],[ModifiedBy],[ModifiedDate],[FEATURE])
+VALUES(@RId,'dcAlpha7',1,'English','Type','A18AA097-DF5D-41CD-9AFF-22C66D20097A',NULL,'ADMIN',4.072966253163580e+004,NULL,NULL,'')
+
+INSERT INTO [com_languageresources] ([ResourceID],[ResourceName],[LanguageID],[LanguageName],[ResourceData],[GUID],[Description],[CreatedBy],[CreatedDate],[ModifiedBy],[ModifiedDate],[FEATURE])
+VALUES(@RId,'dcAlpha7',2,'Arabic','Type-AR','A18AA097-DF5D-41CD-9AFF-22C66D20097A',NULL,'ADMIN',4.072966253163580e+004,NULL,NULL,'')
+
+	SET IDENTITY_INSERT [dbo].[ADM_CostCenterDef] ON
+	INSERT INTO [ADM_CostCenterDef] ([CostCenterID],[CostCenterColID],[ResourceID],[CostCenterName],[SysTableName],[UserColumnName],[SysColumnName],[ColumnTypeSeqNumber],[UserColumnType],[ColumnDataType],[UserDefaultValue],[UserProbableValues],[ColumnOrder],[IsMandatory],[IsEditable],[IsVisible],[IsCostCenterUserDefined],[IsColumnUserDefined],[IsCCDeleted],[IsColumnDeleted],[ColumnCostCenterID],[ColumnCCListViewTypeID],[FetchMaxRows],[IsColumnGroup],[ColumnGroupNumber],[SectionSeqNumber],[SectionID],[SectionName],[RowNo],[ColumnNo],[ColumnSpan],[IsColumnInUse],[UIWidth],[CompanyGUID],[GUID],[Description],[CreatedBy],[CreatedDate],[ModifiedBy],[ModifiedDate],[IsUnique],[IsForeignKey],[ParentCostCenterID],[ParentCostCenterColID],[IsValidReportBuilderCol],[ParentCostCenterSysName],[ParentCostCenterColSysName],[ParentCCDefaultColID],[LinkData],[LocalReference],[Decimal],[TextFormat],[Filter],[IsRepeat],[LastValueVouchers],[IsnoTab],[dependancy],[dependanton],[IsTransfer],[DbFilter],[CrFilter],[ShowInQuickAdd],[QuickAddOrder],[Calculate],[Cformula],[IsReEvaluate],[IgnoreChar],[WaterMark])
+	VALUES(40060,@CCColID,@RId,'Topup Leaves','COM_DocTextData','Type','dcAlpha7',NULL,'Combobox','TEXT','',';Opening;CarryForward;TopUpOpening',0,0,1,1,0,1,0,0,0,0,NULL,0,NULL,12,2,'General',0,0,1,1,NULL,'CompanyGUID','1A3E50AD-D67A-4A90-A308-2A35693E2068',NULL,'ADMIN',4.076467853962191e+004,NULL,NULL,NULL,0,NULL,NULL,1,NULL,NULL,NULL,NULL,NULL,NULL,0,NULL,0,NULL,0,NULL,NULL,NULL,NULL,NULL,0,NULL,NULL,NULL,NULL,NULL,'')
+	SET IDENTITY_INSERT [dbo].[ADM_CostCenterDef] OFF
+
+END
+ELSE
+BEGIN
+	UPDATE ADM_CostCenterDef 
+	SET UserColumnName='Type',UserColumnType='Combobox',UserProbableValues=';Opening;CarryForward;TopUpOpening',
+	SectionID=2,SectionSeqNumber=12,SectionName='General',RowNo=0,ColumnNo=0,IsColumnInUse=1
+	WHERE CostCenterID=40060 AND SysColumnName='dcAlpha7'
+
+
+	update com_languageResources
+	set resourcedata=b.UserColumnName
+	from com_languageResources a
+	join ADM_CostCenterDef b on b.resourceid=a.resourceid and b.costcenterid=40060
+	where b.costcenterid=40060 and b.SysColumnName in ('dcAlpha7')
+
+END

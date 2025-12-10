@@ -1,0 +1,11 @@
+-- SHASHANK
+
+update b set ResourceData='Op Vacation Days'
+ from ADM_CostCenterDef a with(nolock)
+join COM_LanguageResources b with(nolock) on a.ResourceID=b.ResourceID
+where CostCenterID=50051 and SysColumnName='OpVacationDays' and LanguageID=1 and ResourceName='VacationDays' and ResourceData='Vacation Days'
+
+update b set ResourceData='Op Vacation Days-AR'
+ from ADM_CostCenterDef a with(nolock)
+join COM_LanguageResources b with(nolock) on a.ResourceID=b.ResourceID
+where CostCenterID=50051 and SysColumnName='OpVacationDays' and LanguageID=2 and ResourceName='VacationDays' and ResourceData='Vacation Days-AR'

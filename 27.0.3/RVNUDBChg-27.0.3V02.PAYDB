@@ -1,0 +1,7 @@
+-- SHASHANK
+
+update t set dcAlpha7 =case isnull(CommonNarration,'') when '#CarryForward#' then 'CarryForward'  when '#Opening#' then 'Opening' else '' end 
+ FROM INV_DocDetails I WITH(NOLOCK)
+JOIN COM_DocCCData CC WITH(NOLOCK) ON CC.InvDocDetailsID=I.InvDocDetailsID
+JOIN COM_DocTextData T WITH(NOLOCK) ON T.InvDocDetailsID=I.InvDocDetailsID
+WHERE t.tCostCenterID=40060
