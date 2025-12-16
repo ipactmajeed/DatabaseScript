@@ -1,0 +1,9 @@
+--Ibrahim
+
+	IF NOT EXISTS(SELECT * FROM ADM_CostCenterDef WHERE CostCenterID=83 and UserColumnName='Activity')
+BEGIN
+	INSERT INTO ADM_CostCenterDef (CostCenterID,ResourceID,CostCenterName,SysTableName,UserColumnName,SysColumnName,ColumnTypeSeqNumber,UserColumnType,ColumnDataType,UserDefaultValue,UserProbableValues,ColumnOrder,IsMandatory,IsEditable,IsVisible,IsCostCenterUserDefined,IsColumnUserDefined,IsCCDeleted,IsColumnDeleted,ColumnCostCenterID,ColumnCCListViewTypeID,FetchMaxRows,IsColumnGroup,ColumnGroupNumber,SectionSeqNumber,SectionID,SectionName,RowNo,ColumnNo,ColumnSpan,IsColumnInUse,UIWidth,CompanyGUID,GUID,Description,CreatedBy,CreatedDate,ModifiedBy,ModifiedDate,ParentCostCenterID,ParentCostCenterSysName,ParentCostCenterColSysName,ParentCCDefaultColID,IsForeignKey,ParentCostCenterColID)
+	SELECT 83,ResourceID,'Customers',SysTableName,UserColumnName,'CustomerID',ColumnTypeSeqNumber,UserColumnType,ColumnDataType,UserDefaultValue,UserProbableValues,ColumnOrder,IsMandatory,IsEditable,IsVisible,IsCostCenterUserDefined,IsColumnUserDefined,IsCCDeleted,IsColumnDeleted,ColumnCostCenterID,ColumnCCListViewTypeID,FetchMaxRows,IsColumnGroup,ColumnGroupNumber,SectionSeqNumber,SectionID,SectionName,RowNo,ColumnNo,ColumnSpan,IsColumnInUse,UIWidth,CompanyGUID,GUID,Description,CreatedBy,CreatedDate,ModifiedBy,ModifiedDate
+	,ParentCostCenterID,ParentCostCenterSysName,ParentCostCenterColSysName,ParentCCDefaultColID,IsForeignKey,ParentCostCenterColID
+	FROM ADM_CostCenterDef with(nolock) WHERE CostCenterID=86 and UserColumnName='Activity'
+END

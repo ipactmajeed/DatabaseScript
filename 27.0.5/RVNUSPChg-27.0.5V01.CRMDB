@@ -1,0 +1,184 @@
+--Ibrahim
+/****** Object:  StoredProcedure [dbo].[spCRM_GetOpportunity]    Script Date: 11-12-2025 15:54:37 ******/
+IF  EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[spCRM_GetOpportunity]') AND type in (N'P', N'PC'))
+DROP PROCEDURE [dbo].[spCRM_GetOpportunity]
+GO
+/****** Object:  StoredProcedure [dbo].[spCRM_GetOpportunity]    Script Date: 11-12-2025 15:54:37 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[spCRM_GetOpportunity]') AND type in (N'P', N'PC'))
+BEGIN
+EXEC dbo.sp_executesql @statement = N' 
+CREATE PROCEDURE [dbo].[spCRM_GetOpportunity]
+	@OpportunityID INT = 0,
+	@UserID INT,
+	@LangID int=1,
+	@RoleID INT= 0
+AS
+BEGIN TRANSACTION
+BEGIN TRY	
+SET NOCOUNT ON
+
+		SELECT Name,Value,CostCenterID from  COM_CostCenterPreferences with(nolock) WHERE CostCenterID=89 
+		UNION ALL
+		SELECT Name,Value,CostCenterID from  COM_CostCenterPreferences with(nolock) 
+		WHERE CostCenterID=86 AND Name in (''LinkDimension'',''CreateDocuments'')
+
+		SELECT O.OpportunityID,O.ContactID,L.SelectedModeID CustomerID, O.Mode,CASE WHEN O.SelectedModeID=0 THEN L.SelectedModeID ELSE O.SelectedModeID END SelectedModeID, O.DetailsContactID, O.Code, Convert(datetime,O.Date) as Date, O.StatusID, O.LeadID, O.CampaignID, O.Subject, O.Company, O.EstimatedRevenue, 
+		  O.CurrencyID, Convert(datetime,O.EstimatedCloseDate) as EstimatedCloseDate , O.ProbabilityLookUpID, O.RatingLookUpID, Convert(datetime, O.CloseDate)as CloseDate, O.ReasonLookUpID, O.Description, 
+		  O.CCOpportunityID,L.CCLeadID,
+		  O.Depth, O.ParentID, O.lft, O.rgt, O.IsGroup, O.CompanyGUID, O.GUID, O.CreatedBy, O.CreatedDate, O.ModifiedBy, O.ModifiedDate ,
+		  L.Mode LeadMode,O.WorkFlowID,O.WorkFlowLevel,dbo.fnGet_GetAssignedListForFeatures(CONVERT(nvarchar(300),89),@OpportunityID) AssignedTo 
+		FROM CRM_Opportunities O with(nolock) 
+		LEFT JOIN CRM_Leads L with(nolock) ON L.LeadID=O.LeadID where  O.OpportunityID=@OpportunityID
+	                     
+		select * ,convert(datetime,CreatedDate) as CDATE from CRM_Opportunities with(nolock) where IsGroup=1
+
+		select * from ADM_Features with(nolock) where IsEnabled=1 and featureID between 40001 and 40050
+		
+	 	IF(EXISTS(SELECT * FROM CRM_Activities with(nolock) WHERE CostCenterID=89 AND NodeID=@OpportunityID))
+			EXEC spCRM_GetFeatureByActvities @OpportunityID,89,'''',@UserID,@LangID  
+		ELSE
+			SELECT 1 WHERE 1<>1
+
+	DECLARE @Join NVARCHAR(MAX),@Select NVARCHAR(MAX),@Alpha NVARCHAR(MAX),@i INT,@Cnt INT,@CCID int,@TblName nvarchar(50),@Sql NVARCHAR(MAX)
+	declare @Tbl as table(ID int IDENTITY(1,1),CCID int,TableName nvarchar(50))
+	declare @Tbl2 as table(ID int IDENTITY(1,1),FldAlpha nvarchar(50))
+	insert into @Tbl
+	SELECT FeatureID,TableName FROM ADM_Features WITH(NOLOCK) WHERE FeatureID>=50000 AND FeatureID<=50050
+	select @i=1,@Cnt=count(*) from @Tbl
+	set @Join='''' 
+	set @Select=''''
+	while(@i<=@Cnt)
+	begin
+		select @CCID=CCID,@TblName=TableName from @Tbl where ID=@i	
+		set @Join=@Join+'' left join ''+@TblName+'' NID''+CONVERT(NVARCHAR,@CCID-50000)+'' with(nolock) on L.CCNID''+CONVERT(NVARCHAR,@CCID-50000)+''=
+		NID''+CONVERT(NVARCHAR,@CCID-50000)+''.NodeID''
+		
+	set @Select=@Select+'' ,NID''+CONVERT(NVARCHAR,@CCID-50000)+''.NAME as CCNID''+CONVERT(NVARCHAR,@CCID-50000)+'',L.CCNID''+CONVERT(NVARCHAR,@CCID-50000)+'' as CCNID''+CONVERT(NVARCHAR,@CCID-50000)+''_Key''
+
+		SET @i=@i+1
+	end
+	
+	set @Alpha=''''
+	set @Cnt=0
+	INSERT INTO @Tbl2
+	SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME=''CRM_ProductMapping'' AND COLUMN_NAME LIKE ''LDAlpha%''
+	UNION
+	SELECT SysColumnName FROM ADM_CostCenterDef WITH(NOLOCK) where CostCenterID=115 AND SysColumnName LIKE ''Alpha%''
+	
+	select @i=1,@Cnt=count(*) from @Tbl2
+	while(@i<=@Cnt)
+	begin
+		select @TblName=FldAlpha from @Tbl2 where ID=@i	
+		set @Alpha=@Alpha+'' ,''+CONVERT(NVARCHAR,@TblName)+'''' 
+		SET @i=@i+1
+	end
+	SET @Sql=''Select P.ProductName as ProductName,P.ProductCode, U.UnitName as UOM,U.UnitName,L.CostCenterID,L.Description,L.CRMProduct,L.ProductMapID,L.CCNodeID,L.ProductID,L.UOMID,L.CurrencyID,CUR.Name CurrName,L.Remarks,L.Quantity		
+	''+@Alpha+''	''+@Select+''
+      from CRM_ProductMapping L with(nolock)
+		Left JOIN INV_Product P with(nolock) on P.ProductID = L.ProductID
+		Left Join COM_UOM U with(nolock) on U.UOMID = L.UOMID
+		Left Join COM_Currency CUR with(nolock) on CUR.CurrencyID = L.CurrencyID
+		''+@Join+''
+		where L.CCNodeID =  ''+CONVERT(NVARCHAR,@OpportunityID)+'' and CostCenterID=89''
+
+		Exec sp_executesql @SQL 
+
+		select costcenterid from INV_DocDetails with(nolock) where DocID=(select top(1) DocID from CRM_OpportunityDocMap with(nolock) where OpportunityID=@OpportunityID)
+
+		SELECT     I.DocID, I.CostCenterID, I.VoucherNo, CONVERT(DATETIME, I.DocDate) AS DocDate, D.DocumentName, I.DocPrefix, I.DocNumber,I.Gross as Amount,C.Name,S.Status
+		FROM INV_DocDetails AS I with(nolock) 
+		INNER JOIN ADM_DocumentTypes AS D with(nolock) ON I.CostCenterID = D.CostCenterID 
+		INNER JOIN COM_Currency As C with(nolock) On I.CurrencyID=C.CurrencyID 
+		INNER JOIN COM_Status As S with(nolock) ON I.StatusID=S.StatusID
+		WHERE D.CostCenterID=(select costcenterid from INV_DocDetails with(nolock) where DocID=(select top(1) DocID from CRM_OpportunityDocMap with(nolock) where OpportunityID=@OpportunityID))
+		GROUP BY I.DocDate, I.VoucherNo, D.DocumentName, I.DocPrefix, I.DocNumber, I.DocID, I.CostCenterID,I.Gross,C.Name,S.Status
+				
+		--Getting data from Opportunities extended table
+		SELECT * FROM  CRM_OpportunitiesExtended WITH(NOLOCK) 
+		WHERE OpportunityID=@OpportunityID
+		
+		--Getting Notes
+		SELECT * FROM  COM_Notes WITH(NOLOCK) 
+		WHERE FeatureID=89 and  FeaturePK=@OpportunityID
+
+		--Getting Files
+		EXEC [spCOM_GetAttachments] 89,@OpportunityID,@UserID
+		
+			--Getting CostCenterMap
+		SELECT * FROM  COM_CCCCData WITH(NOLOCK) 
+		WHERE NodeID=@OpportunityID and CostCenterID=89
+		
+		SELECT L.*,CONVERT(DATETIME,[Date]) CDate,(SELECT TOP 1 [GUID]+''.''+FileExtension FROM COM_Files WITH(NOLOCK) WHERE FeatureID=7 AND IsProductImage=1 AND FileDescription=''USERPHOTO'' AND  FeaturePK=(select top 1 userid from adm_users with(nolock) where username=L.CreatedBy) ) Imagefilepath
+		FROM  CRM_Feedback L WITH(NOLOCK) WHERE L.CCNodeID=@OpportunityID and CCID=89
+		
+		select  FirstName,
+           MiddleName,
+           LastName,
+           SalutationID,
+           JobTitle,
+           Company,
+           StatusID,
+           Phone1,
+           Phone2,
+           Email1,
+           Fax,
+           Department,
+           RoleLookUpID,
+           Address1,
+           Address2,
+           Address3,
+           City,
+           State,
+           Zip,
+           Country,
+           Gender,
+           PreferredID,
+           PreferredName,
+           IsEmailOn,
+           IsBulkEmailOn,
+           IsMailOn,
+           IsPhoneOn,
+           IsFaxOn,
+           IsVisible,convert(datetime,Birthday)  as Birthday,convert(datetime,Anniversary)  as Anniversary ,Lo.Name Salutation
+           from CRM_Contacts with(nolock) LEFT JOIN Com_lookup Lo with(nolock) on Lo.NodeID=CRM_Contacts.SalutationID and LookUpType=20
+           where FeaturePK=@OpportunityID and Featureid=89  
+           
+           	--Getting Contacts
+		EXEC [spCom_GetFeatureWiseContacts] 89,@OpportunityID,1,1,1
+			--Getting Contacts
+		EXEC [spCom_GetFeatureWiseContacts] 89,@OpportunityID,2,1,1
+		
+		SELECT isnull(NodeID,0) FROM COM_CostCenterCostCenterMap with(nolock) WHERE  CostCenterID=83 AND ParentCostCenterID=89 AND PARENTNODEID=@OpportunityID
+		SELECT isnull(NodeID,0) FROM COM_CostCenterCostCenterMap with(nolock) WHERE  CostCenterID=2 AND ParentCostCenterID=89 AND PARENTNODEID=@OpportunityID
+
+		EXEC spCOM_CheckCostCentetWFApprove 83,@OpportunityID,@UserID,@RoleID,1	
+
+		--Getting CRMHistory 
+		EXEC [spCRM_GetHistoryList] 89,@OpportunityID,1,1
+
+COMMIT TRANSACTION
+SET NOCOUNT OFF;
+RETURN 1
+END TRY
+BEGIN CATCH  
+	--Return exception info [Message,Number,ProcedureName,LineNumber]  
+	IF ERROR_NUMBER()=50000
+	BEGIN
+		SELECT ErrorMessage,ErrorNumber FROM COM_ErrorMessages WITH(nolock) WHERE ErrorNumber=ERROR_MESSAGE() AND LanguageID=@LangID
+	END
+	ELSE
+	BEGIN
+		SELECT ErrorMessage, ERROR_MESSAGE() AS ServerMessage,ERROR_NUMBER() as ErrorNumber, ERROR_PROCEDURE()as ProcedureName, ERROR_LINE() AS ErrorLine
+		FROM COM_ErrorMessages WITH(nolock) WHERE ErrorNumber=-999 AND LanguageID=@LangID
+	END
+ROLLBACK TRANSACTION
+SET NOCOUNT OFF  
+RETURN -999   
+END CATCH  
+' 
+END
+GO

@@ -1,0 +1,28 @@
+
+
+
+
+
+M	PactRevenUWebapi2.0/PactRevenUWebapi2.0/Controllers/CommonController.cs
+M	RevenUWeb/src/app/common/favorites/FavoritesViewModel.ts
+M	RevenUWeb/src/app/dashboard/dbview/dbview.component.html
+M	RevenUWeb/src/app/document/add-edit-document/AddEditDocumentViewModel.ts
+M	RevenUWeb/src/app/ess/add-edit-emp-master/AddEditEmpMasterViewModel.ts
+M	RevenUWeb/src/app/ess/add-edit-emp-master/add-edit-emp-master.component.html
+M	RevenUWeb/src/app/inventory/add-product/AddProductScreenViewModel.ts
+M	RevenUWeb/src/app/inventory/quick-product/QuickAddProductViewModel.ts
+M	RevenUWeb/src/app/property/contract/AddEditRenContractViewModel.ts
+M	RevenUWeb/src/app/property/contract/add-edit-rental-contract.component.ts
+M	RevenUWeb/src/app/services/api/PactHttp.ts
+M	RevenUWeb/src/app/services/session-manager.service.ts
+M	RevenUWeb/src/app/shared/controls/tree/TreeViewModelNew.ts
+M	RevenUWeb/src/app/shared/models/ControlGenerator.ts
+M	RevenUWebWhiteTheme/src/app/document/documents-list/DocumentsListViewModel.ts
+M	RevenUWebWhiteTheme/src/app/reports/add-edit-filter-field/AddEditFilterFieldViewModel.ts
+M	RevenUWebWhiteTheme/src/app/reports/report-view/ReportViewModel.ts
+M	RevenUWebWhiteTheme/src/app/reports/report-view/report-view.component.ts
+M	RevenUWebWhiteTheme/src/app/reports/report-view/report.component.html
+M	RevenUWebWhiteTheme/src/app/reports/static-report-filter/StaticReportFilterViewModel.ts
+M	RevenUWebWhiteTheme/src/app/reports/static-report-filter/static-filter.component.html
+M	RevenUWebWhiteTheme/src/scss/PACTUI/@theme/_page.scss
+M	RevenUWebWhiteTheme/src/scss/PACTUI/@theme/_reports.scss

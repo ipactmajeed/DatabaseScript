@@ -1,0 +1,5 @@
+-- SHASHANK
+
+alter table COM_APIFieldsMapping add ContentType nvarchar(500) Null
+alter table COM_APIFieldsMapping add Accept nvarchar(500) Null
+alter table COM_APIFieldsMapping add IgnoreSSL nvarchar(50) Null

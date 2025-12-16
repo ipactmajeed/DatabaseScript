@@ -1,0 +1,2 @@
+--KHAJA
+update ADM_CostCenterDef set IsColumnInUse=0 where CostCenterID in (86,89) and SysColumnName in ('Anniversary','Birthday')

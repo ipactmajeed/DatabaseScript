@@ -1,0 +1,5 @@
+--Sajid
+IF EXISTS(SELECT SysColumnName FROM [ADM_CostCenterDef] WITH(NOLOCK) WHERE  CostCenterID=103 and SysColumnName='ExpectedEndDate')
+BEGIN
+	Delete from ADM_CostCenterDef where CostCenterID=103 and SysColumnName='ExpectedEndDate'
+END

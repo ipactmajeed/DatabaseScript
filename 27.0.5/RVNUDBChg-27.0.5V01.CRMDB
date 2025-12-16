@@ -1,0 +1,11 @@
+--Ibrahim
+
+DECLARE @TabOrder INT 
+
+SELECT @TabOrder = ISNULL(MAX(TABORDER),0) +1 FROM ADM_CostCenterTab WITH(NOLOCK) WHERE COSTCENTERID=89
+IF NOT EXISTS(SELECT * FROM ADM_CostCenterTab WITH(NOLOCK) where CostCenterID=89 AND CCTabName='CRM History' )
+BEGIN
+	 INSERT INTO ADM_CostCenterTab
+	 SELECT CCTabName,89,ResourceID,@TabOrder,1,IsTabUserDefined,@TabOrder,GroupVisible,QuickViewCCID,QuickViewID,CCIDValues,ReportXML 
+	 FROM ADM_CostCenterTab WITH(NOLOCK) where CostCenterID=86 AND CCTabName='CRM History' 
+END

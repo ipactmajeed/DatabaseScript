@@ -1,0 +1,6 @@
+--Sameer
+ if(not exists(select * from REN_FM_Mobile_Configuration WITH(NOLOCK) where Name='SurveyDocumentCCID'))
+begin
+INSERT INTO REN_FM_Mobile_Configuration ([Name],[Value],[Description],[CreatedBy],[CreatedDate],[ModifiedBy],[ModifiedDate],[ConfigValueType])
+VALUES ('SurveyDocumentCCID','','Survey Document CCID to get linking definition data to load survey and disable unneccessary feature actions','admin',CONVERT(FLOAT,GETDATE()),'Admin',CONVERT(FLOAT,GETDATE()),'string')
+end

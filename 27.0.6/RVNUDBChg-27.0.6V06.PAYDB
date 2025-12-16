@@ -1,0 +1,8 @@
+-- SHASHANK
+
+insert into pay_biometricconfig
+select 'APTMPunchEndDateTime','','APTMConfig',1,'45493.6983425926'
+union all
+select 'APTMRoot','','APTMConfig',1,'45493.6983425926'
+union all
+select 'ETMRoot','','ETMConfig',1,'45493.6983425926'

@@ -1,0 +1,372 @@
+-- Ikram
+GO
+/****** Object:  StoredProcedure [dbo].[spREN_SetCutofPosting]    Script Date: 15-12-2025 15:31:43 ******/
+IF  EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[spREN_SetCutofPosting]') AND type in (N'P', N'PC'))
+DROP PROCEDURE [dbo].[spREN_SetCutofPosting]
+GO
+/****** Object:  StoredProcedure [dbo].[spREN_SetCutofPosting]    Script Date: 15-12-2025 15:31:43 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[spREN_SetCutofPosting]') AND type in (N'P', N'PC'))
+BEGIN
+EXEC dbo.sp_executesql @statement = N'
+       
+CREATE  PROCEDURE [dbo].[spREN_SetCutofPosting]        
+	@ContractID INT,    
+	@cutofDate datetime,
+	@SNO nvarchar(max),
+	@ContractLocationID int,
+	@ContractDivisionID int,
+	@SysInfo NVARCHAR(500)='''', 
+	@AP NVARCHAR(10)='''',	
+	@CompanyGUID NVARCHAR(50),    
+	@UserName nvarchar(50),  
+	@RoleID INT,         
+	@UserID INT=0,          
+	@LangID int=1
+	AS          
+BEGIN TRANSACTION          
+BEGIN TRY            
+SET NOCOUNT ON;         
+        
+
+  declare @rentID int,@docid int,@depdim int,@Sql nvarchar(max),@ccid int,@amt float,@grsamt float,@dbAcc int,@crAcc int,@oldcc int
+  declare @return_value int,@Prefix nvarchar(max),@RcptCCID int,@actXMl nvarchar(max),@DocIDValue int,@CC nvarchar(max),@unitDim int
+  declare @i int,@cnt int,@pi int,@pcnt int,@numfields nvarchar(max),@PostJV bit
+
+  set @depdim=0  
+   select @depdim=Value from adm_globalpreferences WITH(NOLOCK)  
+   where Name=''DepositLinkDimension'' and Value is not null and Value<>'''' and ISNUMERIC(value)=1 
+ 
+	EXEC	@rentID = [dbo].[spADM_GetCostCenterNodeID]
+		@COSTCENTERID = @depdim,
+		@CostcenterName = N''Rent'',
+		@CompanyGUID = @CompanyGUID,
+		@UserName = @UserName,
+		@UserID = @UserID,
+		@RoleID = @RoleID,
+		@LangID = @LangID
+	
+	declare @tblPart table(id int identity(1,1),Type int,amt float)
+     declare @tab table(id int identity(1,1),invid int,ccid int,docid int,gross float,cr int,db int,unitid int)
+    
+	Select @unitDim=convert(int,value) from COM_CostCenterPreferences WITH(NOLOCK)
+	where name = ''LinkDocument'' AND COSTCENTERID = 93 and isnumeric(value)=1
+	
+	insert into @tblPart
+	SELECT  Type,sum(amount) FROM REN_CONTRACTDOCMAPPING a WITH(NOLOCK)
+	join acc_docdetails b WITH(NOLOCK) on a.docid=b.docid
+	where doctype=5 and contractid=@contractid
+	group by Type
+	
+	set @pi=0
+	select @pcnt=count(*) from @tblPart
+	WHILE(@pi<	@pcnt)
+	BEGIN
+  		set @pi=@pi+1
+		select @rentID=Type from @tblPart where id=@pi
+
+		set @Sql=''select a.InvDocDetailsID,CostCenterID,DocID,Gross,CreditAccount,DebitAccount,dcccnid''+convert(nvarchar(max),(@unitDim-50000))+'' from INV_DocDetails a WITH(NOLOCK)  
+			join com_docccdata b WITH(NOLOCK)  on a.InvDocDetailsID=b.InvDocDetailsID
+			where refccid=95 and refnodeid=''+convert(nvarchar(max),@contractid)+'' and Dcccnid''+convert(nvarchar(max),(@depdim-50000))+''= ''+convert(nvarchar(max),@rentID)
+		
+		delete from @tab
+		insert into @tab
+		exec(@Sql) 
+	
+		SELECT @amt= sum(amount) FROM REN_CONTRACTDOCMAPPING a WITH(NOLOCK)
+		join acc_docdetails b WITH(NOLOCK) on a.docid=b.docid
+		where doctype=5 and contractid=@contractid and Type=@rentID
+		set @oldcc=0
+		set @DocIDValue=0
+		select @DocIDValue=isnull(docid,0),@oldcc=CostcenterID from [REN_ContractDocMapping] WITH(NOLOCK)
+		where 	contractid=@contractid and [Type]=@rentID and doctype=15
+	
+		set @RcptCCID=0
+		select @RcptCCID=isnull(CONVERT(int,Value),0) from COM_CostCenterPreferences WITH(nolock)      
+		where CostCenterID=95 and Name=''ContractCutoffDoc'' 
+	
+		if(@DocIDValue>0 and @oldcc>0 and @RcptCCID>0 and @RcptCCID<>@oldcc)
+		BEGIN
+					set @oldcc=0
+				
+					SELECT @oldcc = COSTCENTERID FROM dbo.ACC_DocDetails   with(nolock)    
+					WHERE DOCID = @DocIDValue    
+					if(@oldcc>0)
+					BEGIN
+						EXEC @return_value = [dbo].[spDOC_DeleteAccDocument]      
+						   @CostCenterID = @oldcc,      
+						   @DocPrefix = '''',      
+						   @DocNumber = '''',  
+						   @DOCID = @DocIDValue,
+						   @SysInfo =@SysInfo, 
+						   @AP =@AP,      
+						   @UserID = 1,      
+						   @UserName = @UserName,      
+						   @LangID = 1,
+						   @RoleID=1
+					END
+				
+					set @DocIDValue=0
+			END
+		
+		 set @PostJV=0	
+		 set @oldcc=0
+		 select @oldcc=Value from COM_CostCenterPreferences WITH(NOLOCK)
+		 where CostCenterID=95 and Name =''ContractSalesInvoice'' and Value is not null and isnumeric(Value)=1 
+
+		 set @Sql='' if not exists(select 1 from INV_DocDetails a WITH(NOLOCK)  
+			join com_docccdata b WITH(NOLOCK)  on a.InvDocDetailsID=b.InvDocDetailsID
+			where refccid=95 and refnodeid=''+convert(nvarchar(max),@contractid)
+			+'' and Costcenterid=''+convert(nvarchar(max),@oldcc)+'' and Dcccnid''+convert(nvarchar(max),(@depdim-50000))+''= ''
+			+convert(nvarchar(max),@rentID)+'') set @PostJV=1 ''
+			exec Sp_executesql @Sql,N''@PostJV BIT OUTPUT'',@PostJV OUTPUT
+		 
+		 if exists(select * from COM_CCSchedules a WITH(NOLOCK)
+		 join @tab t on a.NodeID=t.docid
+		 where a.CostCenterID=t.ccid)
+			set @PostJV=1
+
+		 			
+		 if(@PostJV=1)
+		 BEGIN
+				set @grsamt=0
+				select @grsamt=isnull(sum(gross),0) from @tab t 
+				join COM_CCSchedules a WITH(NOLOCK) on a.NodeID=t.docid			 			 
+				 join COM_SchEvents s WITH(NOLOCK) on a.ScheduleID=s.ScheduleID
+				 where a.CostCenterID=t.ccid
+			
+				if(@grsamt<@amt)
+				BEGIN
+					set @amt= @amt-@grsamt
+					select @dbAcc=db,@crAcc=cr from @tab
+				END
+				ELSE
+				BEGIN
+					set @amt= @grsamt-@amt
+					select @dbAcc=cr,@crAcc=db from @tab
+				END
+			
+				if(@amt>0)
+				BEGIN
+				
+			
+					if(@RcptCCID is null or @RcptCCID=0)
+						raiserror(''Define Differnce posting document'',16,1)
+				
+					set @Prefix=''''
+					EXEC [sp_GetDocPrefix] '''',@cutofDate,@RcptCCID,@Prefix output,@contractid,0,0,95
+					
+					if(@dbAcc is null)
+					BEGIN
+						select @dbAcc=RentAccID from REN_Contract WITH(NOLOCK) where ContractID=@contractid
+					END
+
+					if(@crAcc is null)
+					BEGIN
+						select @crAcc=CreditAccID from REN_ContractParticulars WITH(NOLOCK) 
+						where ContractID=@contractid and CCNodeID=@rentID
+					END
+				
+					set @Sql=''<DocumentXML><Row><Transactions DocDetailsID="0"  DocSeqNo="1" Amount="''+convert(nvarchar,@amt)+''" AmtFc="''+convert(nvarchar,@amt)+''" CurrencyID="1" ExchangeRate="1" 
+						DebitAccount="-99" CreditAccount="''+convert(nvarchar,@crAcc)+''" ></Transactions> <Numeric /> <Alpha /> <CostCenters />  </Row>
+						<Row><Transactions DocDetailsID="0"  DocSeqNo="1" Amount="''+convert(nvarchar,@amt)+''" AmtFc="''+convert(nvarchar,@amt)+''" CurrencyID="1" ExchangeRate="1" 
+						DebitAccount="''+convert(nvarchar,@dbAcc)+''" CreditAccount="-99" ></Transactions> <Numeric /> <Alpha /> <CostCenters />  </Row></DocumentXML> ''
+				
+					set @actXMl=''<XML SysInfo="''+@sysinfo+''" AP="''+@AP+''" ></XML>''
+				
+					EXEC @return_value = [dbo].[spDOC_SetTempAccDocument]      
+							@CostCenterID = @RcptCCID,      
+							@DocID = @DocIDValue,      
+							@DocPrefix = @Prefix,      
+							@DocNumber =1,      
+							@DocDate = @cutofDate,      
+							@DueDate = NULL,      
+							@BillNo = @SNO,      
+							@InvDocXML = @Sql,      
+							@NotesXML = N'''',      
+							@AttachmentsXML = N'''',      
+							@ActivityXML  = @actXMl,     
+							@IsImport = 0,      
+							@LocationID = @ContractLocationID,      
+							@DivisionID = @ContractDivisionID,      
+							@WID = 0,      
+							@RoleID = @RoleID,      
+							@RefCCID = 95,    
+							@RefNodeid = @ContractID ,    
+							@CompanyGUID = @CompanyGUID,      
+							@UserName = @UserName,      
+							@UserID = @UserID,      
+							@LangID = @LangID   
+						
+							if(@return_value>0)
+							BEGIN
+								INSERT INTO  [REN_ContractDocMapping]([ContractID],[Type],[Sno],DocID,CostcenterID,IsAccDoc,DocType, ContractCCID)
+								values(@ContractID,@rentID,1,@return_value,@RcptCCID,1,15,95)		
+							
+								set @Sql=''''
+								select @Sql=@Sql+convert(nvarchar(max),AccDocDetailsID)+'','' from ACC_DocDetails WITH(NOLOCK)
+								where docid=@return_value
+							
+								set @Sql=substring(@Sql,0,len(@Sql))
+							
+								set @CC=''update COM_DocCCData set ''
+								select @CC =@CC +a.name+''=a.''+replace(a.name,''dc'','''')+'','' from sys.columns a
+								join sys.tables b on a.object_id=b.object_id
+								where b.name=''COM_DocCCData'' and a.name like ''dcCCNID%''
+								set @CC=substring(@CC,0,len(@CC))+'' from [COM_CCCCData] a with(nolock) ''
+								set @CC=@CC+'' where AccDocDetailsID in(''+@Sql+'') and CostCenterID=95 and NodeID=''+convert(nvarchar,@ContractID)
+								exec(@CC)
+							
+								set @CC=''update COM_DocCCData set 
+								 Dcccnid''+convert(nvarchar(max),(@depdim-50000))+''= ''+convert(nvarchar(max),@rentID)+''
+								 where AccDocDetailsID in(''+@Sql+'')''
+								exec(@CC)
+							END	
+				END	
+				ELSE if(@DocIDValue>0)
+				BEGIN
+						set @RcptCCID=0
+					
+						SELECT @RcptCCID = COSTCENTERID FROM dbo.ACC_DocDetails   with(nolock)    
+						WHERE DOCID = @DocIDValue    
+						if(@RcptCCID>0)
+						BEGIN
+							EXEC @return_value = [dbo].[spDOC_DeleteAccDocument]      
+							   @CostCenterID = @RcptCCID,      
+							   @DocPrefix = '''',      
+							   @DocNumber = '''',  
+							   @DOCID = @DocIDValue,
+							   @SysInfo =@SysInfo, 
+							   @AP =@AP,      
+							   @UserID = 1,      
+							   @UserName = @UserName,      
+							   @LangID = 1,
+							   @RoleID=1
+						END	   
+				END
+			
+		 END
+		 ELSE
+		 BEGIN
+			select @cnt=count(*) from @tab
+
+			set @numfields=''update COM_DocNumData set ''
+			select @numfields =@numfields +a.name+''=@amt,'' from sys.columns a  
+			join sys.tables b on a.object_id=b.object_id  
+			where b.name=''COM_DocNumData''  and a.name in(''dcNum51'',''dcCalcNum51'',''dcCalcNumFC51'')  
+			
+			if(@numfields=''update COM_DocNumData set '')
+				set @numfields=''''
+			ELSE
+			BEGIN
+				set @numfields =substring(@numfields,0,len(@numfields))
+				set @numfields =@numfields + '' where InvDocDetailsID=@dbAcc''
+			END
+			
+			if(@cnt>1)
+			BEGIN
+				 select @cnt=max(id),@i=min(id) from @tab
+				 set @i=@i-1
+				 while(@i<@cnt)
+				 BEGIN
+					set @i=@i+1
+					select @dbAcc=invid,@grsamt=gross,@crAcc=unitid from @tab where id= @i
+				
+						set @Sql=''SELECT @amt= isnull(sum(amount),0) FROM REN_CONTRACTDOCMAPPING a WITH(NOLOCK)
+						join acc_docdetails b WITH(NOLOCK) on a.docid=b.docid
+						join com_docccdata c WITH(NOLOCK)  on c.AccDocDetailsID=b.AccDocDetailsID
+						where doctype=5 and contractid=''+convert(nvarchar(max),@contractid)+'' and Type=''+convert(nvarchar(max),@rentID)+''  and dcccnid''+convert(nvarchar(max),(@unitDim-50000))+''=''+convert(nvarchar(max),@crAcc)
+						exec Sp_executesql @Sql,N''@amt float OUTPUT'',@amt OUTPUT
+
+					if(@grsamt>@amt)
+					BEGIN
+						 update INV_DocDetails
+						 set Rate=@amt,Gross=@amt,Grossfc=@amt
+						 where InvDocDetailsID=@dbAcc
+			
+						 update Acc_DocDetails
+						 set Amount=@amt,AmountFC=@amt
+						 where InvDocDetailsID=@dbAcc and Amount=@grsamt
+
+						 if(@numfields is not null and @numfields<>'''')
+						 BEGIN
+							exec Sp_executesql @numfields,N''@amt float,@dbAcc INT'',@amt,@dbAcc
+						 END
+
+					END
+				 END
+			END
+			ELSE
+			BEGIN
+				select @dbAcc=invid,@grsamt=gross,@crAcc=cr from @tab
+		
+				if(@grsamt>@amt)
+				BEGIN
+					 update INV_DocDetails
+					 set Rate=@amt,Gross=@amt,Grossfc=@amt
+					 where InvDocDetailsID=@dbAcc
+			
+					 update Acc_DocDetails
+					 set Amount=@amt,AmountFC=@amt
+					 where InvDocDetailsID=@dbAcc and Amount=@grsamt
+					 
+					 if(@numfields is not null and @numfields<>'''')
+					 BEGIN
+						exec Sp_executesql @numfields,N''@amt float,@dbAcc INT'',@amt,@dbAcc
+					END
+				END
+			END
+
+			if(@DocIDValue>0)
+			BEGIN
+					set @RcptCCID=0
+					
+					SELECT @RcptCCID = COSTCENTERID FROM dbo.ACC_DocDetails   with(nolock)    
+					WHERE DOCID = @DocIDValue    
+					if(@RcptCCID>0)
+					BEGIN
+							EXEC @return_value = [dbo].[spDOC_DeleteAccDocument]      
+							   @CostCenterID = @RcptCCID,      
+							   @DocPrefix = '''',      
+							   @DocNumber = '''',  
+							   @DOCID = @DocIDValue,
+							   @SysInfo =@SysInfo, 
+							   @AP =@AP,      
+							   @UserID = 1,      
+							   @UserName = @UserName,      
+							   @LangID = 1,
+							   @RoleID=1
+					END		   
+			END
+		
+		 END
+	 END
+COMMIT TRANSACTION	      
+RETURN 1
+END TRY            
+BEGIN CATCH    
+	
+	if(@return_value is null or  @return_value<>-999)     
+		ROLLBACK TRANSACTION      
+		
+		IF ERROR_NUMBER()=50000        
+		BEGIN 
+			IF ISNUMERIC(ERROR_MESSAGE())<>1			
+				SELECT ERROR_MESSAGE() ErrorMessage,ERROR_NUMBER() ErrorNumber
+			ELSE  
+				SELECT ErrorMessage,ErrorNumber FROM COM_ErrorMessages WITH(nolock)         
+				WHERE ErrorNumber=ERROR_MESSAGE() AND LanguageID=@LangID        
+		END   
+		ELSE		
+			SELECT ErrorMessage, ERROR_MESSAGE() AS ServerMessage,ERROR_NUMBER() as ErrorNumber, ERROR_PROCEDURE()as ProcedureName, ERROR_LINE() AS ErrorLine        
+			FROM COM_ErrorMessages WITH(nolock) WHERE ErrorNumber=-999 AND LanguageID=@LangID   
+	
+	SET NOCOUNT OFF            
+	RETURN -999
+END CATCH     
+	' 
+END
+GO

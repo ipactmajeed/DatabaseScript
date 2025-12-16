@@ -1,0 +1,7 @@
+--CHARY
+
+
+ALTER TABLE ADM_DashBoard
+ADD IsSectionWise BIT DEFAULT(0) NOT NULL,
+SectionsProp NVARCHAR(MAX)
+
