@@ -1,0 +1,46 @@
+
+
+
+
+
+M	PactRevenUWebapi2.0/PactRevenUWebapi2.0/Controllers/CommonController.cs
+M	RevenUWeb/node_modules/ts-sync-request/dist/ts-sync-request.d.ts
+M	RevenUWeb/node_modules/ts-sync-request/dist/ts-sync-request.js
+M	RevenUWeb/src/app/document/add-edit-document/AddEditDocumentViewModel.ts
+M	RevenUWeb/src/app/document/add-edit-document/VoucherGenerator.ts
+M	RevenUWeb/src/app/document/add-edit-document/add-edit-document.component.ts
+M	RevenUWeb/src/app/document/add-edit-document/document.component.html
+M	RevenUWeb/src/app/document/continuous-printing/ContinuousPrintViewModel.ts
+M	RevenUWeb/src/app/document/continuous-printing/continuous-printing.component.html
+M	RevenUWeb/src/app/document/payment-terms/PaymentTermsViewModel.ts
+M	RevenUWeb/src/app/document/update-field/update-field.component.html
+M	RevenUWeb/src/app/ess/Models/CommonMonthlyPayroll.ts
+M	RevenUWeb/src/app/ess/final-settlement/FinalSettlementViewModel.ts
+M	RevenUWeb/src/app/property/Unit/AddEditUnitsViewModel.ts
+M	RevenUWeb/src/app/services/api/PactHttp.ts
+M	RevenUWeb/src/app/services/api/common.service.ts
+M	RevenUWeb/src/app/services/session-manager.service.ts
+M	RevenUWeb/src/app/shared/controls/Fields/PactImage.component.ts
+M	RevenUWeb/src/app/shared/controls/Fields/PactImageSlider.component.ts
+M	RevenUWeb/src/app/shared/controls/Fields/PactImageView.component.ts
+M	RevenUWeb/src/app/shared/models/Util.ts
+M	RevenUWeb/src/app/shared/models/controls/PactImageControlData.ts
+M	RevenUWeb/src/app/shared/models/master-tabs/ViewAttachmentViewModel.ts
+M	RevenUWebWhiteTheme/src/app/common/favorites/favorites.component.html
+M	RevenUWebWhiteTheme/src/app/common/tree-view-page/tree-view-page.component.ts
+M	RevenUWebWhiteTheme/src/app/dashboard/dashboard.module.ts
+M	RevenUWebWhiteTheme/src/app/dashboard/dbview/DBViewViewModel.ts
+A	RevenUWebWhiteTheme/src/app/dashboard/dbview/dbview.component.scss
+M	RevenUWebWhiteTheme/src/app/dashboard/dbview/dbview.component.ts
+M	RevenUWebWhiteTheme/src/app/dashboard/home-dashboard/home-dashboard.component.html
+A	RevenUWebWhiteTheme/src/app/dashboard/main-dashboard/main-dashboard.component.html
+A	RevenUWebWhiteTheme/src/app/dashboard/main-dashboard/main-dashboard.component.scss
+A	RevenUWebWhiteTheme/src/app/dashboard/main-dashboard/main-dashboard.component.ts
+M	RevenUWebWhiteTheme/src/app/dashboard/widget-view/WidgetViewModel.ts
+M	RevenUWebWhiteTheme/src/app/dashboard/widget-view/widget-view.component.html
+M	RevenUWebWhiteTheme/src/app/dashboard/widget-view/widget-view.component.scss
+M	RevenUWebWhiteTheme/src/app/document/documents-list/DocumentsListViewModel.ts
+M	RevenUWebWhiteTheme/src/app/pages/home/RibbonExtViewModel.ts
+M	RevenUWebWhiteTheme/src/app/shared/grid/filter-pane/filter-pane.scss
+M	RevenUWebWhiteTheme/src/app/shared/models/dasboard.model.ts
+M	RevenUWebWhiteTheme/src/scss/PACTUI/report.scss

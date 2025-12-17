@@ -1,0 +1,3 @@
+--Sajid
+
+Update COM_CostCenterPreferences set CostCenterID=103,FeatureID=103 where Name='QuotLink'
