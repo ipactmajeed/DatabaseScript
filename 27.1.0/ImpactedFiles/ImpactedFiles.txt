@@ -1,0 +1,48 @@
+
+
+
+
+
+M	RevenUWeb/src/app/document/add-edit-document/add-edit-document.component.ts
+M	RevenUWeb/src/app/document/survey-document-selection/SurveyDocumentSelectionViewModel.ts
+M	RevenUWeb/src/app/pages/home/RibbonExtViewModel.ts
+M	RevenUWeb/src/app/property/contract/AddEditRenContractViewModel.ts
+M	RevenUWeb/src/app/services/session-manager.service.ts
+M	RevenUWeb/src/app/shared/controls/data-widget/data-widget.component.html
+M	RevenUWeb/src/app/shared/controls/data-widget/data-widget.component.ts
+M	RevenUWeb/src/main.ts
+M	RevenUWebWhiteTheme/src/app/common/tree-view-page/tree-view-page.component.ts
+M	RevenUWebWhiteTheme/src/app/crm/add-edit-lead/add-edit-lead.component.ts
+M	RevenUWebWhiteTheme/src/app/crm/add-edit-opportunity/add-edit-opportunity.component.ts
+M	RevenUWebWhiteTheme/src/app/dashboard/dbview/DBViewViewModel.ts
+M	RevenUWebWhiteTheme/src/app/dashboard/main-dashboard/main-dashboard.component.html
+M	RevenUWebWhiteTheme/src/app/dashboard/main-dashboard/main-dashboard.component.scss
+M	RevenUWebWhiteTheme/src/app/dashboard/main-dashboard/main-dashboard.component.ts
+M	RevenUWebWhiteTheme/src/app/dashboard/widget-view/widget-view.component.html
+M	RevenUWebWhiteTheme/src/app/dashboard/widget-view/widget-view.component.scss
+M	RevenUWebWhiteTheme/src/app/document/add-edit-document/add-edit-document.component.ts
+M	RevenUWebWhiteTheme/src/app/document/mobile-add-line/mobile-add-line.component.html
+M	RevenUWebWhiteTheme/src/app/ess/Models/CommonMonthlyPayroll.ts
+M	RevenUWebWhiteTheme/src/app/ess/consolidated-monthly-payroll/ConsolidatedMonthlyPayrollViewModel.ts
+M	RevenUWebWhiteTheme/src/app/pages/home/RibbonExtViewModel.ts
+M	RevenUWebWhiteTheme/src/app/reports/report-grid/ReportCellFormatter.ts
+M	RevenUWebWhiteTheme/src/app/reports/report-view/report-mat.scss
+M	RevenUWebWhiteTheme/src/app/reports/report-view/report-view.component.ts
+M	RevenUWebWhiteTheme/src/app/reports/report-view/report.component.html
+M	RevenUWebWhiteTheme/src/app/reports/send-email-sms/SendEmailSMSViewModel.ts
+M	RevenUWebWhiteTheme/src/app/services/api/PactHttp.ts
+M	RevenUWebWhiteTheme/src/app/services/api/common.service.ts
+M	RevenUWebWhiteTheme/src/app/shared/controls/data-widget/data-widget.component.html
+M	RevenUWebWhiteTheme/src/app/shared/controls/data-widget/data-widget.component.ts
+M	RevenUWebWhiteTheme/src/app/shared/controls/master-tabs/Assign/view-CCMapping.component.ts
+M	RevenUWebWhiteTheme/src/app/shared/controls/master-tabs/address/view-address.component.ts
+M	RevenUWebWhiteTheme/src/app/shared/controls/master-tabs/attachment/ViewAttachments.html
+M	RevenUWebWhiteTheme/src/app/shared/controls/master-tabs/contacts/view-contacts.component.ts
+M	RevenUWebWhiteTheme/src/app/shared/controls/master-tabs/notes/view-notes.component.ts
+M	RevenUWebWhiteTheme/src/app/shared/directives/gridStyles.directive.ts
+M	RevenUWebWhiteTheme/src/app/shared/grid/filter-pane/filter-pane.html
+M	RevenUWebWhiteTheme/src/app/shared/grid/filter-pane/filter-pane.scss
+M	RevenUWebWhiteTheme/src/app/shared/models/Util.ts
+M	RevenUWebWhiteTheme/src/main.ts
+M	RevenUWebWhiteTheme/src/scss/PACTUI/@theme/_page.scss
+M	RevenUWebWhiteTheme/src/scss/PACTUI/@theme/_tree.scss

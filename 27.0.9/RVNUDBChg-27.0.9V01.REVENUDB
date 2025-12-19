@@ -1,0 +1,15 @@
+--Sajid
+declare @RId BIGINT
+SELECT @RId=MAX([ResourceID])+1 FROM [Com_LanguageResources] WITH(NOLOCK)
+
+IF NOT EXISTS(SELECT value FROM ADM_GlobalPreferences WITH(NOLOCK) WHERE  [Name]='ShowDocumentTitle')
+begin
+	INSERT INTO [com_languageresources] ([ResourceID],[ResourceName],[LanguageID],[LanguageName],[ResourceData],[GUID],[Description],[CreatedBy],[CreatedDate],[ModifiedBy],[ModifiedDate],[FEATURE])
+	VALUES(@RId,'ShowDocumentTitle',1,'English','Show Document Title','A18AA097-DF5D-41CD-9AFF-22C66D20097A',NULL,'ADMIN',4.072966253163580e+004,NULL,NULL,'')
+	
+	INSERT INTO [com_languageresources] ([ResourceID],[ResourceName],[LanguageID],[LanguageName],[ResourceData],[GUID],[Description],[CreatedBy],[CreatedDate],[ModifiedBy],[ModifiedDate],[FEATURE])
+	VALUES(@RId,'ShowDocumentTitle',2,'Arabic','Show Document Title-AR','A18AA097-DF5D-41CD-9AFF-22C66D20097A',NULL,'ADMIN',4.072966253163580e+004,NULL,NULL,'')
+	
+	Insert into ADM_GlobalPreferences(ResourceID, Name, Value, DefaultValue, GUID, Description, CreatedBy, CreatedDate, ModifiedBy, ModifiedDate, PreferenceTypeName, PrefRowOrder, PrefColOrder, PrefValueType, Version)
+	SELECT @RID,'ShowDocumentTitle','False','False','GUID','DESC','ADMIN',convert(float,getdate()),'ADMIN',convert(float,getdate()),'POS',25,0,'CheckBox',NULL
+end
