@@ -1,0 +1,5 @@
+--Subhani
+
+ALTER TABLE ADM_GridView ADD IsDefault BIT
+
+ALTER TABLE ADM_GridView ADD AccountView nvarchar(max)

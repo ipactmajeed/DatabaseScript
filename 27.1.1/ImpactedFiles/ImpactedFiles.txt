@@ -1,0 +1,21 @@
+
+
+
+
+
+M	RevenUWeb/src/app/document/add-edit-document/AddEditDocumentViewModel.ts
+M	RevenUWeb/src/app/reports/StaticReports/ACC_GeneralLedger.ts
+M	RevenUWeb/src/app/services/session-manager.service.ts
+M	RevenUWeb/src/app/shared/controls/Fields/VoucherNo/voucher-no.component.html
+M	RevenUWebWhiteTheme/src/app/common/tree-view-page/landingpage.component.html
+M	RevenUWebWhiteTheme/src/app/common/tree-view-page/tree-view-page.component.ts
+M	RevenUWebWhiteTheme/src/app/dashboard/main-dashboard/main-dashboard.component.scss
+M	RevenUWebWhiteTheme/src/app/dashboard/widget-view/widget-view.component.scss
+M	RevenUWebWhiteTheme/src/app/reports/add-edit-filter/AddEditFilterViewModel.ts
+M	RevenUWebWhiteTheme/src/app/reports/add-edit-filter/filter.component.html
+M	RevenUWebWhiteTheme/src/app/shared/controls/master-tabs/history-dialog/history-dialog.component.html
+M	RevenUWebWhiteTheme/src/app/shared/controls/quick-view/QuickViewScreenViewModel.ts
+M	RevenUWebWhiteTheme/src/app/shared/controls/tree/TreeViewModelNew.ts
+M	RevenUWebWhiteTheme/src/app/shared/directives/gridStyles.directive.ts
+M	RevenUWebWhiteTheme/src/main.ts
+M	RevenUWebWhiteTheme/src/scss/PACTUI/@theme/_page.scss
