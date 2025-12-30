@@ -1,0 +1,3 @@
+--Subhani
+
+UPDATE ADM_REVENUREPORTS SET StaticReportType=337 WHERE ReportID=337

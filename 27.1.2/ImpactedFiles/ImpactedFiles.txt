@@ -1,0 +1,30 @@
+
+
+
+
+
+M	RevenUWeb/src/app/admin/AddUsers/AddUsersViewModel.ts
+M	RevenUWeb/src/app/ess/add-edit-emp-master/AddEditEmpMasterViewModel.ts
+M	RevenUWeb/src/app/services/session-manager.service.ts
+M	RevenUWebWhiteTheme/src/app/accounting/add-edit-account/add-edit-account.component.html
+M	RevenUWebWhiteTheme/src/app/common/tree-view-page/landingpage.component.html
+M	RevenUWebWhiteTheme/src/app/dashboard/main-dashboard/main-dashboard.component.html
+M	RevenUWebWhiteTheme/src/app/dashboard/main-dashboard/main-dashboard.component.scss
+M	RevenUWebWhiteTheme/src/app/dashboard/main-dashboard/main-dashboard.component.ts
+M	RevenUWebWhiteTheme/src/app/dashboard/widget-view/WidgetViewModel.ts
+M	RevenUWebWhiteTheme/src/app/dashboard/widget-view/widget-view.component.html
+M	RevenUWebWhiteTheme/src/app/dashboard/widget-view/widget-view.component.scss
+M	RevenUWebWhiteTheme/src/app/dashboard/widget-view/widget-view.component.ts
+M	RevenUWebWhiteTheme/src/app/document/add-edit-document/document.component.html
+M	RevenUWebWhiteTheme/src/app/inventory/add-product/add-product.component.html
+M	RevenUWebWhiteTheme/src/app/reports/report-view/report.component.html
+M	RevenUWebWhiteTheme/src/app/shared/controls/Fields/PactAttachment.component.ts
+M	RevenUWebWhiteTheme/src/app/shared/controls/master-screen/ScreenGenerator.html
+M	RevenUWebWhiteTheme/src/app/shared/controls/tree/pact-tree/tree.component.html
+M	RevenUWebWhiteTheme/src/app/shared/models/ControlGenerator.ts
+M	RevenUWebWhiteTheme/src/app/shared/models/dasboard.model.ts
+M	RevenUWebWhiteTheme/src/scss/PACTUI/@theme/_page.scss
+M	RevenUWebWhiteTheme/src/scss/PACTUI/@theme/_tree.scss
+M	RevenUWebWhiteTheme/src/scss/PACTUI/dashboard.scss
+M	RevenUWebWhiteTheme/src/scss/PACTUI/slickgrid-styles.scss
+M	RevenUWebWhiteTheme/src/scss/PACTUI/variables.scss

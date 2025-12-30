@@ -1,0 +1,3 @@
+--Ikram
+alter table COM_DimensionMappings add DebitAccount int
+alter table COM_DimensionMappings add CreditAccount int

@@ -1,0 +1,21 @@
+-- Wajid
+
+if Not exists (select ConfigId from ADM_WebConfig with(nolock) where [Name] ='AIUrl')
+Begin
+INSERT INTO [dbo].[ADM_WebConfig]
+           ([Name]
+           ,[Value]
+           ,[CreatedBy]
+           ,[CreateDate]
+           ,[ModifiedBy]
+           ,[ModifiedDate]
+           ,[IsVerified])
+     VALUES
+           ('AIUrl'
+           ,'http://127.0.0.1:8000'
+           ,'admin'
+           ,CONVERT(float, getdate())
+           ,null
+           ,null
+           ,'Yes')
+End

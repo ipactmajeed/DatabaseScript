@@ -1,0 +1,81 @@
+--Subhani
+GO
+/****** Object:  StoredProcedure [dbo].[spINV_SetProductBundle]    Script Date: 24-12-2025 12:20:39 ******/
+IF  EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[spINV_SetProductBundle]') AND type in (N'P', N'PC'))
+DROP PROCEDURE [dbo].[spINV_SetProductBundle]
+GO
+/****** Object:  StoredProcedure [dbo].[spINV_SetProductBundle]    Script Date: 24-12-2025 12:20:39 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[spINV_SetProductBundle]') AND type in (N'P', N'PC'))
+BEGIN
+EXEC dbo.sp_executesql @statement = N'
+CREATE procedure [dbo].[spINV_SetProductBundle] 
+	@BundleXML NVARCHAR(MAX), 
+	@ProductID INT,  
+	@CompanyGUID NVARCHAR(50), 
+	@UserName NVARCHAR(50),
+	@UserID INT,
+	@LangID INT=1 
+AS  
+BEGIN TRANSACTION
+BEGIN TRY  
+SET NOCOUNT ON;  
+	--Declaration Section  
+	DECLARE @Dt FLOAT,@XML xml  
+	
+	SET @Dt=CONVERT(FLOAT,GETDATE())--Setting Current Date  
+
+	--Check for manadatory paramters    
+	IF(@ProductID < 1 and @ProductID>-10000)
+	BEGIN   	    
+		RAISERROR(''-100'',16,1)   		    
+	END   
+	
+	IF @BundleXML IS NOT NULL OR @BundleXML<>''''
+	BEGIN
+		SET @XML=@BundleXML
+	
+		 DELETE FROM [INV_ProductBundles]  
+		 WHERE ParentProductID=@ProductID 
+
+		--INSERT PRODUCTS INTO A BUNDLE
+		INSERT INTO [INV_ProductBundles]([ParentProductID],[ProductID],Quantity,UNIT,Rate,LinkType,[GUID],[CreatedBy],[CreatedDate],CompanyGUID,Remarks,ModifierName,MinSelect,MaxSelect)
+		SELECT @ProductID,X.value(''@Product'',''INT''),X.value(''@Qty'',''FLOAT''),X.value(''@Unit'',''INT''),X.value(''@Rate'',''FLOAT''),X.value(''@LINK'',''INT''),NEWID(),@UserName,@Dt,@CompanyGUID,X.value(''@Remarks'',''NVARCHAR(MAX)''),
+		ISNULL(X.value(''@ModifierName'',''NVARCHAR(MAX)''),''''),ISNULL(X.value(''@MinSelect'',''INT''),0),ISNULL(X.value(''@MaxSelect'',''INT''),0)
+		from @XML.nodes(''/XML/Row'') as Data(X)
+
+		----UPDATE PRODUCT KIT SIZE
+
+		--UPDATE INV_PRODUCT SET KitSize = X.value(''@KitSize'',''FLOAT'')
+		--from @XML.nodes(''/XML/Row'') as Data(X) WHERE PRODUCTID=@ProductID
+
+	END
+COMMIT TRANSACTION       
+SET NOCOUNT OFF;  
+RETURN @ProductID  
+END TRY
+BEGIN CATCH  
+	IF ERROR_NUMBER()=50000
+	BEGIN		
+		SELECT ErrorMessage,ErrorNumber FROM COM_ErrorMessages WITH(NOLOCK) WHERE ErrorNumber=ERROR_MESSAGE() AND LanguageID=@LangID
+	END
+	ELSE IF ERROR_NUMBER()=547
+	BEGIN
+		SELECT ErrorMessage, ERROR_MESSAGE() AS ServerMessage,ERROR_NUMBER() as ErrorNumber, ERROR_PROCEDURE()as ProcedureName, ERROR_LINE() AS ErrorLine FROM COM_ErrorMessages WITH(nolock)
+		WHERE ErrorNumber=-110 AND LanguageID=@LangID
+	END
+	ELSE
+	BEGIN
+		SELECT ErrorMessage, ERROR_MESSAGE() AS ServerMessage,ERROR_NUMBER() as ErrorNumber, ERROR_PROCEDURE()as ProcedureName, ERROR_LINE() AS ErrorLine
+		FROM COM_ErrorMessages WITH(NOLOCK) WHERE ErrorNumber=-999 AND LanguageID=@LangID
+	END
+ROLLBACK TRANSACTION
+SET NOCOUNT OFF  
+RETURN -999   
+END CATCH
+' 
+END
+GO
