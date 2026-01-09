@@ -1,0 +1,65 @@
+--Khaja
+GO
+/****** Object:  UserDefinedFunction [dbo].[fnGetMissingDocuments]    Script Date: 07-01-2026 09:43:45 ******/
+IF  EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[fnGetMissingDocuments]') AND type in (N'FN', N'IF', N'TF', N'FS', N'FT'))
+DROP FUNCTION [dbo].[fnGetMissingDocuments]
+GO
+/****** Object:  UserDefinedFunction [dbo].[fnGetMissingDocuments]    Script Date: 07-01-2026 09:43:45 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[fnGetMissingDocuments]') AND type in (N'FN', N'IF', N'TF', N'FS', N'FT'))
+BEGIN
+execute dbo.sp_executesql @statement = N'CREATE FUNCTION [dbo].[fnGetMissingDocuments] 
+(
+	@CostCenterID bigint,
+	@IsInventory bit,
+	@DocPrefix nvarchar(50),
+	@Min bigint,
+	@Max bigint
+)
+RETURNS nvarchar(MAX)
+AS
+BEGIN
+		set @Min=@Min+1
+		
+		if @Min=@Max
+			RETURN ''''
+
+		-- Declare the return variable here
+		DECLARE @Result nvarchar(MAX)=''''
+		DECLARE @Tbl AS TABLE(DocNumber INT primary key)
+		DECLARE @Tblind AS TABLE(DocNumber INT primary key)
+
+		set @Min=@Min-1
+
+		INSERT INTO @Tblind
+		SELECT TOP(@Max-@Min+1) ROW_NUMBER() OVER (ORDER BY (SELECT NULL))+@Min-1
+		FROM sys.all_objects a
+		CROSS JOIN sys.all_objects b
+
+		IF(@IsInventory=1)
+			INSERT INTO @Tbl
+			SELECT T.DocNumber from @Tblind T
+			LEFT JOIN INV_DocDetails D with(nolock) ON D.CostCenterID=@CostCenterID and D.DocPrefix=@DocPrefix and D.DocNumber=T.DocNumber
+			WHERE D.DocNumber IS NULL
+			group by T.DocNumber
+			ORDER BY DocNumber		
+		ELSE
+			INSERT INTO @Tbl
+			SELECT T.DocNumber from @Tblind T
+			LEFT JOIN ACC_DocDetails D with(nolock) ON D.CostCenterID=@CostCenterID and D.DocPrefix=@DocPrefix and D.DocNumber=T.DocNumber
+			WHERE D.DocNumber IS NULL
+			group by T.DocNumber
+			ORDER BY DocNumber	
+
+		select @Result=stuff((select '',''+convert(nvarchar(max),DocNumber) from @Tblind 
+		for xml path('''')),1,1,'''')
+			
+		RETURN @Result
+END
+' 
+END
+
+GO
