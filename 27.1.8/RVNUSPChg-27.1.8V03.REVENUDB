@@ -1,0 +1,55 @@
+--CHARY
+
+/****** Object:  Trigger [trg_AfterDelete_INVDocDetails]    Script Date: 31-12-2025 10:48:04 ******/
+IF  EXISTS (SELECT * FROM sys.triggers WHERE object_id = OBJECT_ID(N'[dbo].[trg_AfterDelete_INVDocDetails]'))
+DROP TRIGGER [dbo].[trg_AfterDelete_INVDocDetails]
+GO
+/****** Object:  Trigger [dbo].[trg_AfterDelete_INVDocDetails]    Script Date: 31-12-2025 10:48:04 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+IF NOT EXISTS (SELECT * FROM sys.triggers WHERE object_id = OBJECT_ID(N'[dbo].[trg_AfterDelete_INVDocDetails]'))
+EXEC dbo.sp_executesql @statement = N'
+CREATE TRIGGER [dbo].[trg_AfterDelete_INVDocDetails]
+   ON  [dbo].[INV_DocDetails]
+   AFTER DELETE
+AS 
+BEGIN
+	SET NOCOUNT ON;
+
+    INSERT INTO COM_DocAudit(CostCenterID, DocID, VoucherNo,DocSeqNo, ActionType, ActionBy, ActionDateTime,SourceApp,WorkStation,IPAddress)
+	SELECT d.CostCenterID,d.DocID,d.VoucherNo,d.DocSeqNo,''Delete'',SUSER_SNAME(),GETDATE(),APP_NAME(),HOST_NAME(),
+	CAST(CONNECTIONPROPERTY(''client_net_address'') AS nvarchar(50))
+	FROM deleted d
+
+END
+' 
+GO
+
+/****** Object:  Trigger [trg_AfterDelete_ACCDocDetails]    Script Date: 31-12-2025 10:48:04 ******/
+IF  EXISTS (SELECT * FROM sys.triggers WHERE object_id = OBJECT_ID(N'[dbo].[trg_AfterDelete_ACCDocDetails]'))
+DROP TRIGGER [dbo].[trg_AfterDelete_ACCDocDetails]
+GO
+/****** Object:  Trigger [dbo].[trg_AfterDelete_ACCDocDetails]    Script Date: 31-12-2025 10:48:04 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+IF NOT EXISTS (SELECT * FROM sys.triggers WHERE object_id = OBJECT_ID(N'[dbo].[trg_AfterDelete_ACCDocDetails]'))
+EXEC dbo.sp_executesql @statement = N'
+CREATE TRIGGER [dbo].[trg_AfterDelete_ACCDocDetails]
+   ON  [dbo].[ACC_DocDetails]
+   AFTER DELETE
+AS 
+BEGIN
+	SET NOCOUNT ON;
+
+    INSERT INTO COM_DocAudit(CostCenterID, DocID, VoucherNo,DocSeqNo, ActionType, ActionBy, ActionDateTime,SourceApp,WorkStation,IPAddress)
+	SELECT d.CostCenterID,d.DocID,d.VoucherNo,d.DocSeqNo,''Delete'',SUSER_SNAME(),GETDATE(),APP_NAME(),HOST_NAME(),
+	CAST(CONNECTIONPROPERTY(''client_net_address'') AS nvarchar(50))
+	FROM deleted d
+
+END
+' 
+GO

@@ -1,0 +1,83 @@
+-- Wajid
+
+/****** Object:  StoredProcedure [dbo].[sp_SetFieldAlignment]    Script Date: 29-12-2025 18:59:47 ******/
+IF  EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[sp_SetFieldAlignment]') AND type in (N'P', N'PC'))
+DROP PROCEDURE [dbo].[sp_SetFieldAlignment]
+GO
+/****** Object:  StoredProcedure [dbo].[sp_SetFieldAlignment]    Script Date: 29-12-2025 18:59:47 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[sp_SetFieldAlignment]') AND type in (N'P', N'PC'))
+BEGIN
+EXEC dbo.sp_executesql @statement = N'-- =============================================
+-- Author:		Wajid
+-- Create date: 03/Dec/2025
+-- Description:	Insert Value in adm_CostCenterDef Table and field alignment
+-- =============================================
+CREATE PROCEDURE [dbo].[sp_SetFieldAlignment] 
+	@AcionHistoryID INT,
+	@CostCenterID bigint,		
+	@ActionXML nvarchar(max),
+	@UserName nvarchar(100), 
+	@UserID INT=0,
+	@LangID int=1
+AS
+BEGIN TRANSACTION  
+BEGIN TRY  
+SET NOCOUNT ON;
+		--Declaration Section
+		DECLARE @Dt float
+
+		SET @Dt=convert(float,getdate())--Setting Current Date
+		
+			
+
+		SET @AcionHistoryID=SCOPE_IDENTITY()
+			--To get inserted record primary key
+
+		DECLARE @XML XML
+			  --Inserts Multiple Attachments      
+	  IF (@ActionXML IS NOT NULL AND @ActionXML <> '''')      
+	  BEGIN      
+	   SET @XML=@ActionXML      
+     
+      
+	   --If Action is MODIFY then update Fields ColumnSpan and  and column
+	   UPDATE ADM_CostCenterDef      
+	   SET ColumnSpan=X.value(''@ColumnSpan'',''int''),      
+		ColumnNo=X.value(''@ColumnNo'',''int''),      
+		RowNo=X.value(''@RowNo'',''int''),
+		SectionSeqNumber=X.value(''@SectionSeqNumber'',''int''),      
+		ModifiedBy=@UserName,      
+		ModifiedDate=@Dt   
+   
+	   FROM ADM_CostCenterDef C  with(nolock)      
+	   INNER JOIN @XML.nodes(''/Fields/Field'') as Data(X)        
+	   ON convert(INT,X.value(''@CostCenterColID'',''INT''))=C.CostCenterColID      
+	   WHERE X.value(''@CostCenterColID'',''bigint'')= C.CostCenterColID      
+   
+		     
+	  END   
+
+
+COMMIT TRANSACTION  
+SET NOCOUNT OFF;  
+SELECT ErrorMessage,ErrorNumber FROM COM_ErrorMessages WITH(nolock) 
+WHERE ErrorNumber=100 AND LanguageID=@LangID  
+RETURN @AcionHistoryID  
+END TRY  
+BEGIN CATCH  
+	--Return exception info [Message,Number,ProcedureName,LineNumber]  
+	
+	SELECT ErrorMessage, ERROR_MESSAGE() AS ServerMessage,ERROR_NUMBER() as ErrorNumber, ERROR_PROCEDURE()as ProcedureName, ERROR_LINE() AS ErrorLine
+	FROM COM_ErrorMessages WITH(nolock) WHERE ErrorNumber=-999 AND LanguageID=@LangID
+
+	ROLLBACK TRANSACTION
+	SET NOCOUNT OFF  
+	RETURN -999   
+END CATCH
+' 
+END
+GO

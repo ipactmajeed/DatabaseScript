@@ -1,0 +1,20 @@
+
+--CHARY
+
+ALTER TABLE COM_Currency
+ADD NmResourceID INT,ChResourceID INT
+
+
+--Ikram
+declare @Rid int
+select @Rid=MAX(ResourceID) from COM_LanguageResources 
+
+set @Rid=@Rid+1
+
+INSERT INTO [com_languageresources] ([ResourceID],[ResourceName],[LanguageID],[LanguageName],[ResourceData],[GUID],[Description],[CreatedBy],[CreatedDate],[ModifiedBy],[ModifiedDate],[FEATURE])
+VALUES(@Rid,'AvgRateEval',1,'English','AvgRate Evaluation','A18AA097-DF5D-41CD-9AFF-22C66D20097A',NULL,'ADMIN',4.072966253163580e+004,NULL,NULL,'')
+
+
+INSERT INTO [com_documentpreferences] ([CostCenterID],[DocumentTypeID],[DocumentType],[ResourceID],[PreferenceTypeID],[PreferenceTypeName],[PrefValueType],[PrefName],[PrefValue],[PrefDefalutValue],[IsPrefValid],[PrefColOrder],[PrefRowOrder],[UnderGroupBox],[CompanyGUID],[GUID],[Description],[CreatedBy],[CreatedDate],[ModifiedBy],[ModifiedDate])
+select 0,0,0,@RID,1,'General','CheckBox','AvgRateEval','False','False',1,1,55,NULL,'guid','guid',NULL,'admin',convert(float,getdate()),'admin',convert(float,getdate())
+

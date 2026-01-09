@@ -1,0 +1,206 @@
+--khaja
+GO
+/****** Object:  StoredProcedure [dbo].[spRPT_StockBalance]    Script Date: 30-12-2025 11:43:48 ******/
+IF  EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[spRPT_StockBalance]') AND type in (N'P', N'PC'))
+DROP PROCEDURE [dbo].[spRPT_StockBalance]
+GO
+/****** Object:  StoredProcedure [dbo].[spRPT_StockBalance]    Script Date: 30-12-2025 11:43:48 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[spRPT_StockBalance]') AND type in (N'P', N'PC'))
+BEGIN
+EXEC dbo.sp_executesql @statement = N'-- =============================================  
+-- Author:  Adil  
+-- Create date: 04 Oct 2011  
+-- Description: Get a rec & iss qty
+-- EXAMPLE:
+-- [spRPT_StockBalance] 2,NULL,''27 sep 2010'',''30 sep 2012''
+-- =============================================  
+CREATE procedure [dbo].[spRPT_StockBalance]
+	@BalanceType BIT,--0 For Closing, 1 For Opening
+	@LocationWHERE NVARCHAR(MAX)='''',
+	@FromDate DATETIME,
+	@ToDate DATETIME,
+	@IncludeUpPostedDocs BIT,
+	@CurrencyType INT,
+	@CurrencyID INT=0,
+	@IsOuputCall INT=0,
+	@Level INT=0,
+	@FCWithExchRate FLOAT=0,
+	@Bal FLOAT OUTPUT
+AS  
+SET NOCOUNT ON;  
+
+	DECLARE @TblProducts AS TABLE(ProductID INT)
+	DECLARE @SPInvoice cursor, @nStatusOuter int
+	DECLARE @ProductID INT,@SQL NVARCHAR(MAX),@TagSQL NVARCHAR(MAX),@From nvarchar(20),@To nvarchar(20),@UnAppSQL nvarchar(50)
+	DECLARE @Qty FLOAT,@AvgRate FLOAT,@StockValue FLOAT,@COGS FLOAT,@CurrWHERE nvarchar(30),@ValColumn nvarchar(20),@SortTransactionsBy nvarchar(50)
+
+	set @From=convert(nvarchar,convert(float,@FromDate))
+	set @To=convert(nvarchar,convert(float,@ToDate))
+	
+	SET @TagSQL=''''
+	
+	IF @LocationWHERE IS NOT NULL AND @LocationWHERE<>''''
+		SET @TagSQL='' INNER JOIN COM_DocCCData DCC WITH(nolock) ON DCC.InvDocDetailsID=D.InvDocDetailsID''+@LocationWHERE
+	ELSE
+		SET @LocationWHERE=''''
+		
+	IF @BalanceType=0 and exists (SELECT 1 FROM ADM_FinancialYears with(nolock) where InvClose=1 and ToDate=convert(int,@ToDate))
+	BEGIN
+		SET @SQL=''
+		SELECT @Bal=sum(DCC.BalValue)
+		FROM INV_ProductClose DCC WITH(NOLOCK)
+		INNER JOIN INV_Product P WITH(NOLOCK) ON P.ProductID=DCC.ProductID
+		WHERE DCC.CloseDate=''+convert(nvarchar,convert(int,@ToDate))+@LocationWHERE
+		EXEC sp_executesql @SQL,N''@Bal float output'',@Bal OUTPUT
+		select @Bal Balance
+		
+		IF (@Level>0)
+		BEGIN
+			SET @SQL=REPLACE(REPLACE(@SQL,''@Bal=sum(DCC.BalValue)'',''GT.ProductID,GT.ProductName,sum(DCC.BalValue) Balance''),''WHERE'',''JOIN (SELECT GP.ProductID,GP.ProductName,GP.Lft,GP.Rgt 
+	FROM INV_Product GP WITH(NOLOCK) 
+	WHERE GP.Depth=''+CONVERT(NVARCHAR,@Level)+'') AS GT ON P.Lft BETWEEN GT.Lft AND GT.Rgt WHERE'')+'' 
+			GROUP BY GT.ProductID,GT.ProductName
+			HAVING SUM(DCC.StockValue)<>0''
+			EXEC (@SQL)
+		END
+		ELSE 
+			SELECT 1 Balance WHERE 1<>1
+		
+		return 1
+	END
+	
+	IF @IncludeUpPostedDocs=0
+		SET @UnAppSQL='' AND D.StatusID=369''
+	ELSE
+		SET @UnAppSQL=''''
+	
+	IF @CurrencyID>0
+	BEGIN
+		SET @ValColumn=''D.StockValueFC''
+		SET @CurrWHERE='' AND D.CurrencyID=''+CONVERT(NVARCHAR,@CurrencyID)
+	END
+	ELSE
+	BEGIN
+		IF @CurrencyType=1
+			SET @ValColumn=''D.StockValueBC''
+		ELSE
+			SET @ValColumn=''D.StockValue''
+
+		SET @CurrWHERE=''''
+
+		IF(@FCWithExchRate>0)
+			SET @ValColumn=''D.StockValue/''+CONVERT(NVARCHAR,@FCWithExchRate)
+	END
+	
+	IF @BalanceType=1 AND EXISTS (SELECT 1 FROM PACT2C.dbo.ADM_Company WITH(NOLOCK) WHERE DBIndex=CONVERT(INT,REPLACE(DB_NAME(),''PACT2C'','''')) AND AccountingDate=@From)
+	BEGIN
+		SET @SQL=''SELECT @Bal=sum(''+@ValColumn+'')
+		FROM Inv_DocDetails D WITH(NOLOCK)''+@TagSQL+''
+		INNER JOIN INV_Product P WITH(NOLOCK) ON P.ProductID=D.ProductID
+		WHERE D.DocumentType=3 AND P.ProductTypeId<>6 AND P.ProductTypeId<>10 ''+@UnAppSQL+@CurrWHERE
+		
+		EXEC sp_executesql @SQL,N''@Bal float output'',@Bal OUTPUT
+		select @Bal Balance
+		
+		IF (@Level>0)
+		BEGIN
+			SET @SQL=REPLACE(REPLACE(@SQL,''@Bal=sum(''+@ValColumn+'')'',''GT.ProductID,GT.ProductName,sum(''+@ValColumn+'') Balance''),''WHERE'',''JOIN (SELECT GP.ProductID,GP.ProductName,GP.Lft,GP.Rgt 
+			FROM INV_Product GP WITH(NOLOCK) 
+			WHERE GP.Depth=''+CONVERT(NVARCHAR,@Level)+'') AS GT ON P.Lft BETWEEN GT.Lft AND GT.Rgt WHERE'')+'' 
+			GROUP BY GT.ProductID,GT.ProductName
+			HAVING SUM(D.StockValue)<>0''
+			EXEC (@SQL)
+		END
+		ELSE 
+			SELECT 1 Balance WHERE 1<>1
+		return 1
+	END
+
+	IF @BalanceType=1
+	BEGIN
+		SET @SQL=''SELECT D.ProductID
+		FROM Inv_DocDetails D WITH(NOLOCK)''+@TagSQL+''
+		INNER JOIN INV_Product P WITH(NOLOCK) ON P.ProductID=D.ProductID
+		WHERE (D.VoucherType=1 OR D.VoucherType=-1) AND D.IsQtyIgnored=0 
+		AND P.IsGroup=0 AND P.ProductTypeId<>6 AND P.ProductTypeId<>10 and (D.DocDate<''+@From+'' OR (D.DocumentType=3 AND D.DocDate<=''+@To+''))''+@UnAppSQL+@CurrWHERE+''
+		GROUP BY D.ProductID
+		HAVING sum(VoucherType*UOMConvertedQty)>0''
+		--print(@SQL)
+		INSERT INTO @TblProducts
+		EXEC(@SQL)
+	END
+	ELSE
+	BEGIN
+		SET @SQL=''SELECT D.ProductID
+		FROM Inv_DocDetails D WITH(NOLOCK)''+@TagSQL+''
+		INNER JOIN INV_Product P WITH(NOLOCK) ON P.ProductID=D.ProductID
+		WHERE (D.VoucherType=1 OR D.VoucherType=-1) AND D.IsQtyIgnored=0 
+		AND P.IsGroup=0 AND P.ProductTypeId<>6 AND P.ProductTypeId<>10 and D.DocDate<=''+@To+@UnAppSQL+@CurrWHERE+''
+		GROUP BY D.ProductID
+		HAVING sum(VoucherType*UOMConvertedQty)>0''
+		--print(@SQL)
+		INSERT INTO @TblProducts
+		EXEC(@SQL)
+		--PRINT(@SQL)
+	END
+	
+	SET @SortTransactionsBy=''''
+	IF EXISTS (SELECT 1 FROM [ADM_GlobalPreferences] WITH(NOLOCK) WHERE Name=''SortAvgRate'' AND Value=''True'') 
+	AND EXISTS (SELECT 1 FROM [ADM_GlobalPreferences] WITH(NOLOCK) WHERE Name=''AvgRateBasedOn'' AND Value IS NOT NULL AND Value<>'''')
+		SELECT @SortTransactionsBy=Value FROM [ADM_GlobalPreferences] WITH(NOLOCK) WHERE Name=''AvgRateBasedOn''
+	
+	SET @SPInvoice = cursor for 
+	SELECT ProductID FROM @TblProducts
+	--SELECT ProductID,ValuationID FROM INV_Product WHERE IsGroup=0
+	
+	
+	DECLARE @Tbl AS TABLE(ProductID INT,Qty FLOAT,AvgRate FLOAT,StockValue FLOAT)
+	
+	OPEN @SPInvoice 
+	SET @nStatusOuter = @@FETCH_STATUS
+	
+	FETCH NEXT FROM @SPInvoice Into @ProductID
+	SET @nStatusOuter = @@FETCH_STATUS
+	
+	WHILE(@nStatusOuter <> -1)
+	BEGIN
+
+		EXEC [spRPT_AvgRate] @BalanceType,@ProductID,@LocationWHERE,'''',@FromDate,@ToDate,@IncludeUpPostedDocs,0,@CurrencyType,@CurrencyID,@SortTransactionsBy,@FCWithExchRate,0,@Qty OUTPUT,@AvgRate OUTPUT,@StockValue OUTPUT,@COGS OUTPUT
+		
+		IF @Qty>0
+		BEGIN
+			INSERT INTO @Tbl(ProductID,Qty,AvgRate,StockValue)
+			VALUES(@ProductID,@Qty,@AvgRate,@StockValue)
+		END
+	--	select @ProductID
+	
+	--print(@ProductID)
+	
+		FETCH NEXT FROM @SPInvoice Into @ProductID
+		SET @nStatusOuter = @@FETCH_STATUS
+	END
+	
+	SELECT @Bal=SUM(StockValue) FROM @Tbl
+		
+	IF @IsOuputCall=0
+		SELECT @Bal Balance
+	ELSE 
+		SELECT 1 Balance WHERE 1<>1
+	
+	IF (@Level>0)
+		SELECT GT.ProductID,GT.ProductName,SUM(D.StockValue) Balance FROM @Tbl D
+		INNER JOIN INV_Product P WITH(NOLOCK) ON P.ProductID=D.ProductID
+		JOIN (SELECT GP.ProductID,GP.ProductName,GP.Lft,GP.Rgt 
+		FROM INV_Product GP WITH(NOLOCK) 
+		WHERE GP.Depth=@Level) AS GT ON P.Lft BETWEEN GT.Lft AND GT.Rgt
+		GROUP BY GT.ProductID,GT.ProductName
+		HAVING SUM(D.StockValue)<>0
+	ELSE 
+		SELECT 1 Balance WHERE 1<>1
+' 
+END
+GO

@@ -1,0 +1,60 @@
+
+
+
+
+
+M	PactRevenUWebapi2.0/PactRevenUWebapi2.0/Controllers/CommonController.cs
+M	PactRevenUWebapi2.0/PactRevenUWebapi2.0/Controllers/PactRequestTokenController.cs
+M	PactRevenUWebapi2.0/PactRevenUWebapi2.0/Controllers/ReportController.cs
+M	PactRevenUWebapi2.0/PactRevenUWebapi2.0/PactRevenUWebapi2.0.csproj
+D	PactRevenUWebapi2.0/PactRevenUWebapi2.0/obj/Release/Package/PackageTmp/Views/Shared/_Layout.cshtml
+D	PactRevenUWebapi2.0/PactRevenUWebapi2.0/obj/Release/Package/PackageTmp/bin/PACT.COMMON.dll
+D	PactRevenUWebapi2.0/PactRevenUWebapi2.0/obj/Release/Package/PackageTmp/bin/PACT.DBHandler.dll
+D	PactRevenUWebapi2.0/PactRevenUWebapi2.0/obj/Release/Package/PackageTmp/bin/PACT.MODEL.dll
+D	PactRevenUWebapi2.0/PactRevenUWebapi2.0/obj/Release/Package/PackageTmp/bin/PACT.Service.dll
+D	PactRevenUWebapi2.0/PactRevenUWebapi2.0/obj/Release/Package/PackageTmp/bin/PACT.VIEWMODEL.Base.dll
+D	PactRevenUWebapi2.0/PactRevenUWebapi2.0/obj/Release/Package/PackageTmp/bin/PACT.VIEWMODEL.Crm.dll
+D	PactRevenUWebapi2.0/PactRevenUWebapi2.0/obj/Release/Package/PackageTmp/bin/PACT.VIEWMODEL.Payroll.dll
+D	PactRevenUWebapi2.0/PactRevenUWebapi2.0/obj/Release/Package/PackageTmp/bin/PACT.VIEWMODEL.Prd.dll
+D	PactRevenUWebapi2.0/PactRevenUWebapi2.0/obj/Release/Package/PackageTmp/bin/PACT.VIEWMODEL.Rental.dll
+D	PactRevenUWebapi2.0/PactRevenUWebapi2.0/obj/Release/Package/PackageTmp/bin/PACT.VIEWMODEL.Reports.dll
+D	PactRevenUWebapi2.0/PactRevenUWebapi2.0/obj/Release/Package/PackageTmp/bin/PACT.VIEWMODEL.dll
+D	PactRevenUWebapi2.0/PactRevenUWebapi2.0/obj/Release/Package/PackageTmp/bin/PactRevenUWebapi2.0.dll
+D	PactRevenUWebapi2.0/PactRevenUWebapi2.0/obj/Release/Package/PackageTmp/bin/PactRevenUWebapi2.0.pdb
+D	PactRevenUWebapi2.0/PactRevenUWebapi2.0/obj/Release/Package/PackageTmp/bin/WPFToolkit.Extended.dll
+D	PactRevenUWebapi2.0/PactRevenUWebapi2.0/obj/Release/Package/PackageTmp/bin/WPFToolkit.dll
+D	PactRevenUWebapi2.0/PactRevenUWebapi2.0/obj/Release/PactRevenUWebapi2.0.csproj.CopyComplete
+D	PactRevenUWebapi2.0/PactRevenUWebapi2.0/obj/Release/PactRevenUWebapi2.0.csproj.CoreCompileInputs.cache
+D	PactRevenUWebapi2.0/PactRevenUWebapi2.0/obj/Release/PactRevenUWebapi2.0.csproj.FileListAbsolute.txt
+D	PactRevenUWebapi2.0/PactRevenUWebapi2.0/obj/Release/PactRevenUWebapi2.0.dll
+D	PactRevenUWebapi2.0/PactRevenUWebapi2.0/obj/Release/PactRevenUWebapi2.0.pdb
+M	RevenUWeb/src/app/app.component.ts
+M	RevenUWeb/src/app/common/tree-view-page/tree-view-page.component.ts
+M	RevenUWeb/src/app/document/add-edit-document/AddEditDocumentViewModel.ts
+M	RevenUWeb/src/app/document/add-edit-document/add-edit-document.component.ts
+M	RevenUWeb/src/app/document/post-document/PostDocumentViewModel.ts
+M	RevenUWeb/src/app/document/survey-document-selection/SurveyDocumentSelectionViewModel.ts
+M	RevenUWeb/src/app/ess/Models/CommonMonthlyPayroll.ts
+M	RevenUWeb/src/app/pages/home/home.component.ts
+M	RevenUWeb/src/app/pages/login-screen/LoginScreenViewModel.ts
+M	RevenUWeb/src/app/reports/StaticReports/PAY_Reports.ts
+M	RevenUWeb/src/app/reports/costcenter-picker/CostCenterPicker.ts
+M	RevenUWeb/src/app/reports/re-order-level/ReOrderLevelNewViewModel.ts
+M	RevenUWeb/src/app/reports/report-view/IPrefetchFilter.ts
+M	RevenUWeb/src/app/reports/report-view/ReportViewModel.ts
+M	RevenUWeb/src/app/reports/static-report-filter/StaticReportFilterViewModel.ts
+M	RevenUWeb/src/app/services/base.service.ts
+M	RevenUWeb/src/app/services/session-manager.service.ts
+M	RevenUWeb/src/app/shared/controls/Editors/DataGridComboBoxColumneditor.ts
+M	RevenUWeb/src/app/shared/controls/Fields/PactRadioBox.component.ts
+A	RevenUWeb/src/app/shared/data-filter/engine/filter-engine.service.ts
+A	RevenUWeb/src/app/shared/data-filter/extensions/array-filter.extension.service.ts
+A	RevenUWeb/src/app/shared/data-filter/models/filter.types.ts
+A	RevenUWeb/src/app/shared/data-filter/parser/expression-parser.service.ts
+A	RevenUWeb/src/app/shared/data-filter/parser/tokenizer.service.ts
+M	RevenUWeb/src/app/shared/models/ControlGenerator.ts
+M	RevenUWebWhiteTheme/src/app/document/bill-wise/BillWiseViewModel.ts
+M	RevenUWebWhiteTheme/src/app/document/bill-wise/bill-wise.component.html
+M	RevenUWebWhiteTheme/src/app/shared/chat/chat.component.html
+M	RevenUWebWhiteTheme/src/app/shared/chat/chat.component.scss
+M	RevenUWebWhiteTheme/src/app/shared/chat/chat.component.ts

@@ -1,0 +1,494 @@
+--Ibrahim
+/****** Object:  StoredProcedure [dbo].[spADM_SetPriceChartNew]    Script Date: 29-12-2025 16:05:58 ******/
+IF  EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[spADM_SetPriceChartNew]') AND type in (N'P', N'PC'))
+DROP PROCEDURE [dbo].[spADM_SetPriceChartNew]
+GO
+/****** Object:  StoredProcedure [dbo].[spADM_GetCostCenterDetails]    Script Date: 29-12-2025 16:05:58 ******/
+IF  EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[spADM_GetCostCenterDetails]') AND type in (N'P', N'PC'))
+DROP PROCEDURE [dbo].[spADM_GetCostCenterDetails]
+GO
+/****** Object:  StoredProcedure [dbo].[spADM_GetCostCenterDetails]    Script Date: 29-12-2025 16:05:58 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[spADM_GetCostCenterDetails]') AND type in (N'P', N'PC'))
+BEGIN
+EXEC dbo.sp_executesql @statement = N'
+-- =============================================  
+-- Author:  Ikram  
+-- Create date: 1 Nov 2011  
+-- Description: read Cost Center or group  
+-- Example :    
+-- [spADM_GetCostCenterDetails] 11,1,1   
+-- =============================================  
+CREATE procedure [dbo].[spADM_GetCostCenterDetails]   
+		@CostCenterID INT=0, 
+		@FieldName nvarchar(MAX),
+		@UserID INT,
+		@LangID INT=1
+AS  
+
+BEGIN TRY  
+SET NOCOUNT ON;
+		 
+		--Declaration Section
+		DECLARE @Table nvarchar(50),@SQL nvarchar(max) 
+
+		--SP Required Parameters Check
+		IF @CostCenterID=0 
+		BEGIN
+			RAISERROR(''-100'',16,1)
+		END
+
+		--To get costcenter table name
+		SELECT @Table=TableName FROM ADM_Features WITH(NOLOCK) WHERE FeatureID=@CostCenterId
+
+		IF @CostCenterId=2
+		BEGIN
+			IF(@FieldName<>'''')
+			BEGIN 
+				SET @SQL=''SELECT AccountID NodeID,AccountName Name, AccountCode Code,AccountTypeID,''+@FieldName+''
+				 FROM ''+@Table+'' WITH(nolock) ''
+			END
+			ELSE
+				SET @SQL=''SELECT AccountID NodeID,AccountName Name, AccountCode Code,AccountTypeID FROM ''+@Table+'' WITH(nolock) ''
+		END
+		ELSE IF @CostCenterId=3
+		BEGIN		
+			IF(@FieldName<>'''')
+			BEGIN 
+				SET @SQL=''SELECT P.ProductID NodeID,P.ProductName Name, P.ProductCode Code,''+@FieldName+''
+				 FROM ''+@Table+'' P WITH(nolock) '' 
+				if(@FieldName  LIKE ''%Alpha%'')
+					SET @SQL=@SQL+'' LEFT JOIN INV_ProductExtended E WITH(NOLOCK) ON P.PRODUCTID=E.PRODUCTID'' 
+			END
+			ELSE
+				SET @SQL=''SELECT ProductID NodeID,ProductName Name, ProductCode Code, ProductTypeID PrdTypeID FROM ''+@Table+'' WITH(nolock) ''
+		END
+		ELSE IF @CostCenterId=5
+			SET @SQL=''SELECT FeatureID NodeID,Name,Name Code FROM ''+@Table+'' WITH(nolock) ''
+		ELSE IF @CostCenterId=6
+			SET @SQL=''SELECT RoleID NodeID,Name Name,Name Code FROM ''+@Table+'' WITH(nolock) ''
+		ELSE IF @CostCenterId=7
+			SET @SQL=''SELECT UserID NodeID,UserName Name,UserName Code FROM ''+@Table+'' WITH(nolock) ''
+		ELSE IF @CostCenterId=92
+			SET @SQL=''SELECT NodeID,Name,Code FROM ''+@Table+'' WITH(nolock) ''
+		ELSE IF @CostCenterId=93
+			SET @SQL=''SELECT UnitID NodeID,Name,Code FROM ''+@Table+'' WITH(nolock) ''
+		ELSE IF @CostCenterId=94
+			SET @SQL=''SELECT TenantID NodeID,FirstName Name,TenantCode Code FROM ''+@Table+'' WITH(nolock) ''
+		ELSE IF @CostCenterId=11
+			SET @SQL=''SELECT U.UOMID NodeID,U.UnitName Name, U.UnitName Code, P.ProductCode, P.ProductName,U.ProductID PrdIDUOM,P.ProductID FROM Com_UOM U WITH(nolock) 
+			LEFT JOIN INV_PRODUCT P WITH (NOLOCK) ON U.UOMID=P.UOMID
+			UNION
+			SELECT U.UOMID NodeID,U.UnitName Name, U.UnitName Code, P.ProductCode, P.ProductName,U.ProductID PrdIDUOM,P.ProductID FROM Com_UOM U WITH(nolock) 
+			LEFT JOIN INV_PRODUCT P WITH (NOLOCK) ON U.ProductID=P.ProductID''
+		ELSE IF @CostCenterId=12
+			SET @SQL=''SELECT CurrencyID NodeID,Name Name, Symbol Code,ExchangeRate FROM ''+@Table+'' WITH(nolock) ''
+		ELSE IF @CostCenterId=71
+			SET @SQL=''SELECT ResourceID NodeID,ResourceName Name, ResourceCode Code FROM ''+@Table+'' WITH(nolock) ''
+		ELSE IF @CostCenterId=77
+			SET @SQL=''SELECT PostingGroupID NodeID,PostGroupName Name,PostGroupCode Code FROM ''+@Table+'' WITH(nolock) ''
+		ELSE IF @CostCenterId=72
+			SET @SQL=''SELECT AssetID NodeID,AssetName Name,AssetCode Code FROM ''+@Table+'' WITH(nolock) ''
+		ELSE IF @CostCenterId=76
+			SET @SQL=''SELECT BOMID NodeID,BOMName Name,BOMCode Code FROM ''+@Table+'' WITH(nolock) ''
+		ELSE IF @CostCenterId=83
+			SET @SQL=''SELECT CustomerID NodeID,CustomerName Name,CustomerCode Code FROM ''+@Table+'' WITH(nolock) ''
+		ELSE IF @CostCenterId=95
+			SET @SQL=''SELECT ContractID NodeID,SNO Name,SNO Code FROM ''+@Table+'' WITH(nolock) ''
+		ELSE IF @CostCenterId=101
+			SET @SQL=''SELECT BudgetDefID NodeID,BudgetName Name FROM ''+@Table+'' WITH(nolock) ''
+		ELSE IF @CostCenterId>=50001
+		BEGIN	
+			IF EXISTS (select Name from sys.columns where Name=''CurrencyID'' and object_id=object_id(@Table))	
+			BEGIN
+				IF(@FieldName IS NULL OR @FieldName='''')
+					SET @FieldName=''T.CurrencyID Curr,(SELECT ExchangeRate FROM COM_Currency CU WITH(NOLOCK) where CU.CurrencyID = T.CurrencyID) Exch''
+				ELSE
+					SET @FieldName=@FieldName+'',T.CurrencyID Curr,(SELECT ExchangeRate FROM COM_Currency CU WITH(NOLOCK) where CU.CurrencyID = T.CurrencyID) Exch''
+			END
+			
+			IF(@FieldName<>'''')
+			BEGIN 
+				SET @SQL=''SELECT T.NodeID,T.Name,T.Code,''+@FieldName+''
+				 FROM ''+@Table+'' T WITH(nolock) '' 
+			END
+			ELSE
+				SET @SQL=''SELECT T.NodeID,T.Name,T.Code FROM ''+@Table+'' T WITH(nolock) ''
+		END
+		ELSE
+			SET @SQL=''SELECT NodeID,Name, Code FROM ''+@Table+'' WITH(nolock) ''
+		PRINT (@SQL)
+		EXEC(@SQL)  
+
+
+SET NOCOUNT OFF;
+RETURN 1
+END TRY
+BEGIN CATCH  
+		--Return exception info [Message,Number,ProcedureName,LineNumber]  
+		IF ERROR_NUMBER()=50000
+		BEGIN
+			SELECT ErrorMessage,ErrorNumber FROM COM_ErrorMessages WITH(NOLOCK) WHERE ErrorNumber=ERROR_MESSAGE() AND LanguageID=@LangID
+		END
+		ELSE
+		BEGIN
+			SELECT ErrorMessage, ERROR_MESSAGE() AS ServerMessage,ERROR_NUMBER() as ErrorNumber, ERROR_PROCEDURE()as ProcedureName, ERROR_LINE() AS ErrorLine
+			FROM COM_ErrorMessages WITH(NOLOCK) WHERE ErrorNumber=-999 AND LanguageID=@LangID
+		END
+
+SET NOCOUNT OFF  
+RETURN -999   
+END CATCH
+' 
+END
+GO
+/****** Object:  StoredProcedure [dbo].[spADM_SetPriceChartNew]    Script Date: 29-12-2025 16:05:58 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[spADM_SetPriceChartNew]') AND type in (N'P', N'PC'))
+BEGIN
+EXEC dbo.sp_executesql @statement = N'
+CREATE PROCEDURE [dbo].[spADM_SetPriceChartNew]
+	@ProfileID INT,
+	@ProfileName NVARCHAR(max)=null,
+	@SelectedNodeID INT,
+	@IsGroup bit,
+	@PriceXML NVARCHAR(MAX)=null,
+	@DeleteXML NVARCHAR(MAX)=null,
+	@PriceType smallint,
+	@IsImport bit=0,
+	@CompanyGUID NVARCHAR(50)=null,
+	@UserName NVARCHAR(50),
+	@RoleID INT,
+	@LangID int=1
+AS  
+BEGIN TRANSACTION  
+BEGIN TRY  
+SET NOCOUNT ON;
+		--Declaration Section  
+		DECLARE @Dt FLOAT ,@XML XML,@HasAccess BIT,@SQL nvarchar(max),@HistoryStatus nvarchar(max),@Audit NVARCHAR(100),@CostCenterID INT
+		DECLARE @Tbl1 TABLE(ID INT IDENTITY(1,1),CCID INT)
+		DECLARE @Tbl2 TABLE(ID INT IDENTITY(1,1),CCNodeID INT)
+		DECLARE @TblXML TABLE(ID INT IDENTITY(1,1),ProductID INT,WEF DATETIME,CCID NVARCHAR(500),CCNodeID NVARCHAR(500),
+			PurchaseRate FLOAT,PurchaseRateA FLOAT,PurchaseRateB FLOAT,PurchaseRateC FLOAT,
+			PurchaseRateD FLOAT,PurchaseRateE FLOAT,PurchaseRateF FLOAT,PurchaseRateG FLOAT,
+			SellingRate FLOAT,SellingRateA FLOAT,SellingRateB FLOAT,SellingRateC FLOAT,
+			SellingRateD FLOAT,SellingRateE FLOAT,SellingRateF FLOAT,SellingRateG FLOAT)
+	
+	set @CostCenterID=40
+	set @Dt=convert(float,getdate())
+	SET @XML=@PriceXML
+	
+	if(@ProfileID=0)
+	set @HistoryStatus=''Add''
+	else
+	set @HistoryStatus=''Update''  
+	IF(@IsImport=1 and @ProfileID>0)
+	BEGIN
+	
+		SET @SQL =''delete from [COM_CCPrices] where PriceCCID in (select C.PriceCCID from [COM_CCPrices] C WITH(nolock)
+		join @XML.nodes(''''/XML/Row'''') as Data(X) on C.profileid=''+CONVERT(NVARCHAR,@ProfileID)+'' and C.ProductID = ISNULL(X.value(''''@ProductID'''',''''INT''''),0) 
+		and c.WEF=CONVERT(FLOAT,X.value(''''@WEF'''',''''DATETIME'''')) and c.TillDate=CONVERT(FLOAT,X.value(''''@TillDate'''',''''DATETIME'''')) and
+		PurchaseRate=ISNULL(X.value(''''@PurchaseRate'''',''''FLOAT''''),0) and PurchaseRateA=ISNULL(X.value(''''@PurchaseRateA'''',''''FLOAT''''),0) and
+		PurchaseRateB=ISNULL(X.value(''''@PurchaseRateB'''',''''FLOAT''''),0) and PurchaseRateC=ISNULL(X.value(''''@PurchaseRateC'''',''''FLOAT''''),0) and
+		PurchaseRateD=ISNULL(X.value(''''@PurchaseRateD'''',''''FLOAT''''),0) and PurchaseRateE=ISNULL(X.value(''''@PurchaseRateE'''',''''FLOAT''''),0) and
+		PurchaseRateF=ISNULL(X.value(''''@PurchaseRateF'''',''''FLOAT''''),0) and PurchaseRateG=ISNULL(X.value(''''@PurchaseRateG'''',''''FLOAT''''),0) and
+		SellingRate=ISNULL(X.value(''''@SellingRate'''',''''FLOAT''''),0) and SellingRateA=ISNULL(X.value(''''@SellingRateA'''',''''FLOAT''''),0) and
+		SellingRateB=ISNULL(X.value(''''@SellingRateB'''',''''FLOAT''''),0) and SellingRateC=ISNULL(X.value(''''@SellingRateC'''',''''FLOAT''''),0) and
+		SellingRateD=ISNULL(X.value(''''@SellingRateD'''',''''FLOAT''''),0) and SellingRateE=ISNULL(X.value(''''@SellingRateE'''',''''FLOAT''''),0) and
+		SellingRateF=ISNULL(X.value(''''@SellingRateF'''',''''FLOAT''''),0) and SellingRateG=ISNULL(X.value(''''@SellingRateG'''',''''FLOAT''''),0) and
+		ReorderLevel=ISNULL(X.value(''''@ReorderLevel'''',''''FLOAT''''),0) and ReorderQty=ISNULL(X.value(''''@ReorderQty'''',''''FLOAT''''),0) and
+		MaxInventoryLevel=ISNULL(X.value(''''@MaxInventoryLevel'''',''''FLOAT''''),0) and ReorderMinOrderQty=ISNULL(X.value(''''@ReorderMinOrderQty'''',''''FLOAT''''),0) and
+		ReorderMaxOrderQty=ISNULL(X.value(''''@ReorderMaxOrderQty'''',''''FLOAT''''),0) ''
+		
+		select @SQL=@SQL+'' AND C.''+name+''=ISNULL(X.value(''''@''+REPLACE(name,''NID'','''')+'''''',''''INT''''),0)'' 
+		from sys.columns WITH(NOLOCK)
+		where object_id=object_id(''COM_CCPrices'') and name LIKE ''ccnid%''
+		
+		SET @SQL=@SQL+'')''
+		EXEC sp_executesql @SQL,N''@XML XML'',@XML
+	END
+	
+	
+	IF @ProfileID=0--NEW
+	BEGIN
+		DECLARE @lft INT,@rgt INT,@Selectedlft INT,@Selectedrgt INT,@Depth int,@ParentID INT
+		DECLARE @SelectedIsGroup bit
+
+		IF EXISTS (SELECT ProfileID FROM COM_CCPricesDefn WITH(nolock) WHERE ProfileName=@ProfileName) 
+			RAISERROR(''-112'',16,1) 
+			
+		if @SelectedNodeID=0
+			set @SelectedNodeID=-1
+
+		--To Set Left,Right And Depth of Record
+		SELECT @SelectedIsGroup=IsGroup,@Selectedlft =lft,@Selectedrgt=rgt,@ParentID=ParentID,@Depth=Depth
+		from COM_CCPricesDefn with(NOLOCK) where ProfileID=@SelectedNodeID
+
+		--IF No Record Selected or Record Doesn''t Exist
+		IF(@SelectedIsGroup is null) 
+			select @SelectedNodeID=ProfileID,@SelectedIsGroup=IsGroup,@Selectedlft =lft,@Selectedrgt=rgt,@ParentID=ParentID,@Depth=Depth
+			from COM_CCPricesDefn with(NOLOCK) where ParentID =0
+					
+		IF(@SelectedIsGroup = 1)--Adding Node Under the Group
+		BEGIN
+			UPDATE COM_CCPricesDefn SET rgt = rgt + 2 WHERE rgt > @Selectedlft;
+			UPDATE COM_CCPricesDefn SET lft = lft + 2 WHERE lft > @Selectedlft;
+			SET @lft =  @Selectedlft + 1
+			SET @rgt =	@Selectedlft + 2
+			SET @ParentID = @SelectedNodeID
+			SET @Depth = @Depth + 1
+		END
+		ELSE IF(@SelectedIsGroup = 0)--Adding Node at Same level
+		BEGIN
+			UPDATE COM_CCPricesDefn SET rgt = rgt + 2 WHERE rgt > @Selectedrgt;
+			UPDATE COM_CCPricesDefn SET lft = lft + 2 WHERE lft > @Selectedrgt;
+			SET @lft =  @Selectedrgt + 1
+			SET @rgt =	@Selectedrgt + 2 
+		END
+		ELSE  --Adding Root
+		BEGIN
+				SET @lft =  1
+				SET @rgt =	2 
+				SET @Depth = 0
+				SET @ParentID =0
+				SET @IsGroup=1
+		END
+		
+		-- Insert statements for procedure here
+		INSERT INTO COM_CCPricesDefn(ProfileName,PriceType,
+						[IsGroup],[Depth],[ParentID],[lft],[rgt],
+						[CompanyGUID],[GUID],[CreatedBy],[CreatedDate])
+						VALUES
+						(@ProfileName,@PriceType,
+						@IsGroup,@Depth,@ParentID,@lft,@rgt,
+						@CompanyGUID,newid(),@UserName,@Dt)
+		--To get inserted record primary key
+		SET @ProfileID=SCOPE_IDENTITY()
+			
+		SET @SQL =''INSERT INTO COM_CCPrices
+       ([ProfileID],[ProfileName],[ProductID],UOMID,[WEF],PriceType,[AccountID],CurrencyID
+	   ,PurchaseRate,PurchaseRateA,PurchaseRateB,PurchaseRateC,PurchaseRateD,PurchaseRateE,PurchaseRateF,PurchaseRateG
+	   ,SellingRate,SellingRateA,SellingRateB,SellingRateC,SellingRateD,SellingRateE,SellingRateF,SellingRateG,
+       ReorderLevel,ReorderQty,[CompanyGUID],[GUID],[CreatedBy],[CreatedDate],TillDate,Remarks,MaxInventoryLevel,ReorderMinOrderQty,ReorderMaxOrderQty,InvDocdetailsID''
+       
+		select @SQL=@SQL+'',[''+name+'']'' 
+		from sys.columns 
+		where object_id=object_id(''COM_CCPrices'') and name LIKE ''ccnid%''
+				
+		SET @SQL =@SQL+'') 
+		SELECT ''+CONVERT(NVARCHAR,@ProfileID)+'',''''''+@ProfileName+'''''',ISNULL(X.value(''''@ProductID'''',''''INT''''),0),ISNULL(X.value(''''@UOMID'''',''''INT''''),0),CONVERT(FLOAT,X.value(''''@WEF'''',''''DATETIME'''')),ISNULL(X.value(''''@Type'''',''''smallint''''),0),
+		ISNULL(X.value(''''@AccountID'''',''''INT''''),0),ISNULL(X.value(''''@CurrencyID'''',''''INT''''),0),
+		ISNULL(X.value(''''@PurchaseRate'''',''''FLOAT''''),0),ISNULL(X.value(''''@PurchaseRateA'''',''''FLOAT''''),0),ISNULL(X.value(''''@PurchaseRateB'''',''''FLOAT''''),0),ISNULL(X.value(''''@PurchaseRateC'''',''''FLOAT''''),0),ISNULL(X.value(''''@PurchaseRateD'''',''''FLOAT''''),0),ISNULL(X.value(''''@PurchaseRateE'''',''''FLOAT''''),0),ISNULL(X.value(''''@PurchaseRateF'''',''''FLOAT''''),0),ISNULL(X.value(''''@PurchaseRateG'''',''''FLOAT''''),0),
+		ISNULL(X.value(''''@SellingRate'''',''''FLOAT''''),0),ISNULL(X.value(''''@SellingRateA'''',''''FLOAT''''),0),ISNULL(X.value(''''@SellingRateB'''',''''FLOAT''''),0),ISNULL(X.value(''''@SellingRateC'''',''''FLOAT''''),0),ISNULL(X.value(''''@SellingRateD'''',''''FLOAT''''),0),ISNULL(X.value(''''@SellingRateE'''',''''FLOAT''''),0),ISNULL(X.value(''''@SellingRateF'''',''''FLOAT''''),0),ISNULL(X.value(''''@SellingRateG'''',''''FLOAT''''),0),
+		ISNULL(X.value(''''@ReorderLevel'''',''''FLOAT''''),0),ISNULL(X.value(''''@ReorderQty'''',''''FLOAT''''),0),
+		''''''+@CompanyGUID+'''''',NEWID(),''''''+@UserName+'''''',CONVERT(FLOAT,GETDATE()),CONVERT(FLOAT,X.value(''''@TillDate'''',''''DATETIME'''')),X.value(''''@Remarks'''',''''nvarchar(max)''''),
+		ISNULL(X.value(''''@MaxInventoryLevel'''',''''FLOAT''''),0) ,ISNULL(X.value(''''@ReorderMinOrderQty'''',''''FLOAT''''),0),ISNULL(X.value(''''@ReorderMaxOrderQty'''',''''FLOAT''''),0) ''
+		select @SQL=@SQL+'',ISNULL(X.value(''''@InvDocDetailsID'''',''''INT''''),0) ''
+		select @SQL=@SQL+'',ISNULL(X.value(''''@''+REPLACE(name,''NID'','''')+'''''',''''INT''''),0)'' 
+		from sys.columns 
+		where object_id=object_id(''COM_CCPrices'') and name LIKE ''ccnid%''
+				
+		SET @SQL =@SQL+'' FROM @XML.nodes(''''/XML/Row'''') as Data(X)''
+		print @SQL
+		EXEC sp_executesql @SQL,N''@XML XML'',@XML
+		UPDATE CC SET CC.InvDocdetailsID=INV.InvDocdetailsID from COM_CCPrices CC  WITH(NOLOCK) ,INV_DocDetails INV  WITH(NOLOCK) WHERE INV.VoucherNo=CC.Profilename 
+			and INV.Docseqno=CC.InvDocdetailsID and CC.InvDocdetailsID>0
+			
+	END
+	ELSE
+	BEGIN--EDIT
+		--Dont Check Go For New Inserts If its is coming from search
+		IF @ProfileID!=-100
+		BEGIN
+			IF EXISTS (SELECT ProfileID FROM COM_CCPricesDefn WITH(nolock) WHERE ProfileName=@ProfileName AND ProfileID!=@ProfileID) 
+			RAISERROR(''-112'',16,1) 
+			
+			UPDATE COM_CCPricesDefn
+			SET ProfileName=@ProfileName,PriceType=@PriceType,[GUID]=newid(),ModifiedBy=@UserName,ModifiedDate=@Dt
+			WHERE ProfileID=@ProfileID
+						
+			SET @SQL =''INSERT INTO COM_CCPrices
+       ([ProfileID],[ProfileName],[ProductID],UOMID,[WEF],PriceType,[AccountID],CurrencyID
+	   ,PurchaseRate,PurchaseRateA,PurchaseRateB,PurchaseRateC,PurchaseRateD,PurchaseRateE,PurchaseRateF,PurchaseRateG
+	   ,SellingRate,SellingRateA,SellingRateB,SellingRateC,SellingRateD,SellingRateE,SellingRateF,SellingRateG,
+       ReorderLevel,ReorderQty,[CompanyGUID],[GUID],[CreatedBy],[CreatedDate],TillDate,Remarks,MaxInventoryLevel,ReorderMinOrderQty,ReorderMaxOrderQty,InvDocdetailsID''
+       
+		select @SQL=@SQL+'',[''+name+'']'' 
+		from sys.columns 
+		where object_id=object_id(''COM_CCPrices'') and name LIKE ''ccnid%''
+				
+		SET @SQL =@SQL+'') 
+		SELECT ''+CONVERT(NVARCHAR,@ProfileID)+'',''''''+@ProfileName+'''''',ISNULL(X.value(''''@ProductID'''',''''INT''''),0),ISNULL(X.value(''''@UOMID'''',''''INT''''),0),CONVERT(FLOAT,X.value(''''@WEF'''',''''DATETIME'''')),ISNULL(X.value(''''@Type'''',''''smallint''''),0),
+		ISNULL(X.value(''''@AccountID'''',''''INT''''),0),ISNULL(X.value(''''@CurrencyID'''',''''INT''''),0),
+		ISNULL(X.value(''''@PurchaseRate'''',''''FLOAT''''),0),ISNULL(X.value(''''@PurchaseRateA'''',''''FLOAT''''),0),ISNULL(X.value(''''@PurchaseRateB'''',''''FLOAT''''),0),ISNULL(X.value(''''@PurchaseRateC'''',''''FLOAT''''),0),ISNULL(X.value(''''@PurchaseRateD'''',''''FLOAT''''),0),ISNULL(X.value(''''@PurchaseRateE'''',''''FLOAT''''),0),ISNULL(X.value(''''@PurchaseRateF'''',''''FLOAT''''),0),ISNULL(X.value(''''@PurchaseRateG'''',''''FLOAT''''),0),
+		ISNULL(X.value(''''@SellingRate'''',''''FLOAT''''),0),ISNULL(X.value(''''@SellingRateA'''',''''FLOAT''''),0),ISNULL(X.value(''''@SellingRateB'''',''''FLOAT''''),0),ISNULL(X.value(''''@SellingRateC'''',''''FLOAT''''),0),ISNULL(X.value(''''@SellingRateD'''',''''FLOAT''''),0),ISNULL(X.value(''''@SellingRateE'''',''''FLOAT''''),0),ISNULL(X.value(''''@SellingRateF'''',''''FLOAT''''),0),ISNULL(X.value(''''@SellingRateG'''',''''FLOAT''''),0),
+		ISNULL(X.value(''''@ReorderLevel'''',''''FLOAT''''),0),ISNULL(X.value(''''@ReorderQty'''',''''FLOAT''''),0),
+		''''''+@CompanyGUID+'''''',NEWID(),''''''+@UserName+'''''',CONVERT(FLOAT,GETDATE()),CONVERT(FLOAT,X.value(''''@TillDate'''',''''DATETIME'''')),X.value(''''@Remarks'''',''''nvarchar(max)''''),
+		ISNULL(X.value(''''@MaxInventoryLevel'''',''''FLOAT''''),0) ,ISNULL(X.value(''''@ReorderMinOrderQty'''',''''FLOAT''''),0),ISNULL(X.value(''''@ReorderMaxOrderQty'''',''''FLOAT''''),0) ''
+		select @SQL=@SQL+'',ISNULL(X.value(''''@InvDocDetailsID'''',''''INT''''),0) ''
+		select @SQL=@SQL+'',ISNULL(X.value(''''@''+REPLACE(name,''NID'','''')+'''''',''''INT''''),0)'' 
+		from sys.columns 
+		where object_id=object_id(''COM_CCPrices'') and name LIKE ''ccnid%''
+				
+		SET @SQL =@SQL+'' FROM @XML.nodes(''''/XML/Row'''') as Data(X)
+		WHERE X.value(''''@PriceCCID'''',''''INT'''') IS NULL''
+		
+		EXEC sp_executesql @SQL,N''@XML XML'',@XML
+			
+		END
+		
+		select  X.value(''@PriceCCID'',''INT'') PriceCCID,
+		CONVERT(FLOAT,X.value(''@WEF'',''DATETIME'')) WEF,
+			ISNULL(X.value(''@Type'',''smallint''),0) PriceType,
+			ISNULL(X.value(''@PurchaseRate'',''FLOAT''),0) PurchaseRate,
+			ISNULL(X.value(''@PurchaseRateA'',''FLOAT''),0) PurchaseRateA,
+			ISNULL(X.value(''@PurchaseRateB'',''FLOAT''),0) PurchaseRateB,
+			ISNULL(X.value(''@PurchaseRateC'',''FLOAT''),0) PurchaseRateC,
+			ISNULL(X.value(''@PurchaseRateD'',''FLOAT''),0) PurchaseRateD,
+			ISNULL(X.value(''@PurchaseRateE'',''FLOAT''),0) PurchaseRateE,
+			ISNULL(X.value(''@PurchaseRateF'',''FLOAT''),0) PurchaseRateF,
+			ISNULL(X.value(''@PurchaseRateG'',''FLOAT''),0) PurchaseRateG,
+			ISNULL(X.value(''@SellingRate'',''FLOAT''),0) SellingRate,
+			ISNULL(X.value(''@SellingRateA'',''FLOAT''),0) SellingRateA,
+			ISNULL(X.value(''@SellingRateB'',''FLOAT''),0) SellingRateB,
+			ISNULL(X.value(''@SellingRateC'',''FLOAT''),0) SellingRateC,
+			ISNULL(X.value(''@SellingRateD'',''FLOAT''),0) SellingRateD,
+			ISNULL(X.value(''@SellingRateE'',''FLOAT''),0) SellingRateE,
+			ISNULL(X.value(''@SellingRateF'',''FLOAT''),0) SellingRateF,
+			ISNULL(X.value(''@SellingRateG'',''FLOAT''),0) SellingRateG,
+			ISNULL(X.value(''@ReorderLevel'',''FLOAT''),0) ReorderLevel,
+			ISNULL(X.value(''@ReorderQty'',''FLOAT''),0) ReorderQty,
+			CONVERT(FLOAT,X.value(''@TillDate'',''DATETIME'')) TillDate,
+			X.value(''@Remarks'',''nvarchar(max)'') Remarks,
+			ISNULL(X.value(''@MaxInventoryLevel'',''FLOAT''),0) MaxInventoryLevel,
+			ISNULL(X.value(''@ReorderMinOrderQty'',''FLOAT''),0) ReorderMinOrderQty,
+			ISNULL(X.value(''@ReorderMaxOrderQty'',''FLOAT''),0) ReorderMaxOrderQty,
+			ISNULL(X.value(''@UOMID'',''FLOAT''),0) UOMID
+		INTO #PTAB	
+		FROM   @XML.nodes(''/XML/Row'') as Data(X) 
+		WHERE X.value(''@PriceCCID'',''INT'') IS NOT NULL 
+		
+		UPDATE P
+		SET P.ProfileName=@ProfileName,P.WEF=PT.WEF,
+			P.PriceType=PT.PriceType,
+			P.PurchaseRate=PT.PurchaseRate,
+			P.PurchaseRateA=PT.PurchaseRateA,
+			P.PurchaseRateB=PT.PurchaseRateB,
+			P.PurchaseRateC=PT.PurchaseRateC,
+			P.PurchaseRateD=PT.PurchaseRateD,
+			P.PurchaseRateE=PT.PurchaseRateE,
+			P.PurchaseRateF=PT.PurchaseRateF,
+			P.PurchaseRateG=PT.PurchaseRateG,
+			P.SellingRate=PT.SellingRate,
+			P.SellingRateA=PT.SellingRateA,
+			P.SellingRateB=PT.SellingRateB,
+			P.SellingRateC=PT.SellingRateC,
+			P.SellingRateD=PT.SellingRateD,
+			P.SellingRateE=PT.SellingRateE,
+			P.SellingRateF=PT.SellingRateF,
+			P.SellingRateG=PT.SellingRateG,
+			P.ReorderLevel=PT.ReorderLevel,
+			P.ReorderQty=PT.ReorderQty,
+			P.TillDate=PT.TillDate,
+			P.Remarks=PT.Remarks,
+			P.MaxInventoryLevel=PT.MaxInventoryLevel,
+			P.ReorderMinOrderQty=PT.ReorderMinOrderQty,
+			P.ReorderMaxOrderQty=PT.ReorderMaxOrderQty,
+			p.UOMID=PT.UOMID
+		FROM COM_CCPrices P with(nolock)
+		join #PTAB PT WITH(NOLOCK) on P.PriceCCID=PT.PriceCCID
+		
+		DROP TABLE #PTAB
+		
+		UPDATE CC SET CC.InvDocdetailsID=INV.InvDocdetailsID from COM_CCPrices CC  WITH(NOLOCK),INV_DocDetails INV  WITH(NOLOCK) WHERE INV.VoucherNo=CC.Profilename 
+				and INV.Docseqno=CC.InvDocdetailsID and CC.InvDocdetailsID>0
+
+		--Delete Rows
+		IF @DeleteXML IS NOT NULL AND @DeleteXML!=''''
+		BEGIN
+			SET @XML=@DeleteXML
+			DELETE FROM COM_CCPrices
+			WHERE PriceCCID IN (SELECT X.value(''@ID'',''INT'') FROM @XML.nodes(''/XML/Row'') as Data(X))
+			
+		END
+	END
+
+	--INSERT INTO HISTROY
+
+	SELECT @Audit=Value FROM COM_CostCenterPreferences WITH(NOLOCK) WHERE CostCenterID=@CostCenterId and Name=''AuditTrial''
+	IF(@Audit IS NOT NULL AND @Audit=''True'')
+	begin
+	declare @Cols nvarchar(max)=''''
+	SELECT @Cols=@Cols+ STUFF( (Select ''[''+a.name+''] ''+'','' FOR XML PATH('''') ),1,0,'''')
+	from Sys.Columns a 
+	WHERE object_id=OBJECT_ID(''COM_CCPrices'') and a.COLUMN_ID <=32
+	ORDER BY a.column_id 
+	
+	set @Cols=substring(@Cols,1,(len(@Cols)-1))
+
+	declare @Cols1 nvarchar(max)='''',@Cols2 nvarchar(max)
+	SELECT @Cols1=@Cols1+ STUFF( (Select ''[''+a.name+''] ''+'','' FOR XML PATH('''') ),1,0,'''')
+	from Sys.Columns a 
+	WHERE object_id=OBJECT_ID(''COM_CCPrices'') and a.COLUMN_ID > 32
+	ORDER BY a.column_id
+	
+	set @Cols1=substring(@Cols1,1,(len(@Cols1)-1))
+	
+	
+	  
+		--set @Cols2=''insert into [COM_CCPrices_History]  (''+@Cols+'',[Historystatus],[modifiedby],[modifieddate],''+@Cols1+'')     
+		--select ''+@Cols+'',''''''+@HistoryStatus+'''''',''''''+@UserName+'''''',convert(float,(GETDATE())),''+@Cols1+'' FROM COM_CCPrices WITH(NOLOCK) WHERE ProfileID=''+convert(nvarchar,@ProfileID)+''''
+
+		EXEC [spCOM_SaveHistory]  
+		@CostCenterID = 40,    
+		@NodeID =@ProfileID,
+		@HistoryStatus =@HistoryStatus,
+		@UserName=@UserName,
+		@DT=@DT
+
+		--exec sp_executesql @Cols2
+		end
+	--END INTO HISTROY
+	
+	--Added to set default inactive if action exists
+	SET @HasAccess=dbo.fnCOM_HasAccess(@RoleID,40,156)
+	if(@HasAccess!=0)
+		update COM_CCPricesDefn set statusid=2 where profileid=@ProfileID
+
+	--To Set Used CostCenters with Group Check
+	EXEC [spADM_SetPriceTaxUsedCC] 1,@ProfileID,1
+	
+COMMIT TRANSACTION  
+--ROLLBACK TRANSACTION
+
+SELECT ErrorMessage,ErrorNumber FROM COM_ErrorMessages WITH(nolock) 
+WHERE ErrorNumber=100 AND LanguageID=@LangID     
+SET NOCOUNT OFF;  
+RETURN @ProfileID  
+END TRY
+BEGIN CATCH  
+	--Return exception info [Message,Number,ProcedureName,LineNumber]  
+	IF ERROR_NUMBER()=50000
+	BEGIN
+		SELECT ErrorMessage,ErrorNumber FROM COM_ErrorMessages WITH(NOLOCK) WHERE ErrorNumber=ERROR_MESSAGE() AND LanguageID=@LangID
+	END
+	ELSE
+	BEGIN
+		SELECT ErrorMessage, ERROR_MESSAGE() AS ServerMessage,ERROR_NUMBER() as ErrorNumber, ERROR_PROCEDURE()as ProcedureName, ERROR_LINE() AS ErrorLine
+		FROM COM_ErrorMessages WITH(NOLOCK) WHERE ErrorNumber=-999 AND LanguageID=@LangID
+	END
+ROLLBACK TRANSACTION
+SET NOCOUNT OFF  
+RETURN -999   
+END CATCH
+
+
+' 
+END
+GO

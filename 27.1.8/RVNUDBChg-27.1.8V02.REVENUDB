@@ -1,0 +1,27 @@
+--CHARY
+
+DECLARE @CurID INT,@Nm NVARCHAR(100),@Ch NVARCHAR(100),@ResID INT
+DECLARE CUR CURSOR FOR 
+Select CurrencyID,Name,Change FROM COM_Currency WITH(NOLOCK)
+OPEN CUR
+FETCH NEXT FROM CUR INTO @CurID,@Nm,@Ch
+WHILE @@FETCH_STATUS=0
+BEGIN
+	SELECT @ResID=MAX(ResourceID)+1 FROM COM_LanguageResources a WITH(NOLOCK)
+	    
+	INSERT INTO COM_LanguageResources	
+	Select @ResID,@Nm,1,'English',@Nm,NULL,NULL,NULL,NULL,NULL,NULL,'CurrencyName'
+	UNION ALL
+	Select @ResID,@Nm,2,'Arabic',@Nm,NULL,NULL,NULL,NULL,NULL,NULL,'CurrencyName'
+
+	INSERT INTO COM_LanguageResources	
+	Select @ResID+1,@Ch,1,'English',@Ch,NULL,NULL,NULL,NULL,NULL,NULL,'CurrencyChange'
+	UNION ALL
+	Select @ResID+1,@Ch,2,'Arabic',@Ch,NULL,NULL,NULL,NULL,NULL,NULL,'CurrencyChange'
+
+	UPDATE COM_Currency SET NmResourceID=@ResID,ChResourceID=@ResID+1 WHERE CurrencyID=@CurID
+
+FETCH NEXT FROM CUR INTO @CurID,@Nm,@Ch
+END
+CLOSE CUR
+DEALLOCATE CUR
