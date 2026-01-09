@@ -1,0 +1,33 @@
+--CHARY
+
+declare @featureActionID bigint,@i int,@cnt int,@ccid int,@RID bigint
+declare @tab table(id int identity(1,1),ccid int,ccname nvarchar(200))
+insert into @tab
+select costcenterid,DocumentName from ADM_DocumentTypes WITH(NOLOCK) where DocumentType=38
+
+select @RID=MAX(ResourceID)+1 from COM_LanguageResources WITH(NOLOCK)
+
+INSERT INTO [Com_LanguageResources] ([ResourceID],[ResourceName],[LanguageID],[LanguageName],[ResourceData],[GUID],[Description],[CreatedBy],[CreatedDate],[ModifiedBy],[ModifiedDate],[FEATURE])
+VALUES(@RID,'PrintClosingReport',1,'English','Print Closing Report','Documents',NULL,'1',4.000000000000000e+001,NULL,NULL,'POS')
+
+INSERT INTO [Com_LanguageResources] ([ResourceID],[ResourceName],[LanguageID],[LanguageName],[ResourceData],[GUID],[Description],[CreatedBy],[CreatedDate],[ModifiedBy],[ModifiedDate],[FEATURE])
+VALUES(@RID,'PrintClosingReport',2,'Arabic','Print Closing Report-AR','Documents',NULL,'1',4.000000000000000e+001,NULL,NULL,'POS')
+
+select @cnt=count(id) from @tab
+set @i=0
+while (@i<@cnt)
+begin
+	set @i=@i+1
+	
+	select @ccid=ccid from @tab where id=@i
+	
+	INSERT INTO [adm_featureaction] ([Name],[ResourceID],[FeatureID],[FeatureActionTypeID],[ApplicationID],[GridShortCut],[Description],[Status],[CreatedDate],[CreatedBy])
+	VALUES('PrintClosingReport',@RID,@ccid,865,1,NULL,NULL,1,CONVERT(FLOAT,GETDATE()),'ADMIN')
+	SET @FeatureActionID=@@IDENTITY
+	INSERT INTO [ADM_FeatureActionRoleMap]([RoleID],[FeatureActionID],[Description],[Status],[CreatedBy],[CreatedDate],[ModifiedBy],[ModifiedDate])
+	SELECT  RoleID,@FeatureActionID,'PrintClosingReport',1,'Admin',CONVERT(FLOAT,GETDATE()),NULL,NULL 
+	from ADM_FeatureActionRoleMap WITH(NOLOCK) where FeatureActionID in (select FeatureActionID from ADM_FeatureAction WITH(NOLOCK) where Name='Day Close' and FeatureID=@ccid)
+	
+END	
+
+

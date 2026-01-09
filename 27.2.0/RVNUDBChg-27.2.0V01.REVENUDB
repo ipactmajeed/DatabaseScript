@@ -1,0 +1,9 @@
+--Sameer
+if(not exists(select 1 from sys.columns where name = 'RefCCID' and Object_ID=Object_ID('dbo.ADM_Assign')))
+begin
+	ALTER TABLE ADM_Assign ADD RefCCID int default(0) NOT NULL;
+end
+if(not exists(select 1 from sys.columns where name = 'RefNodeID' and Object_ID=Object_ID('dbo.ADM_Assign')))
+begin
+	ALTER TABLE ADM_Assign ADD RefNodeID int default(0) NOT NULL;
+end

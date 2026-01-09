@@ -1,0 +1,21 @@
+-- Wajid
+
+if Not exists (select ConfigId from ADM_WebConfig with(nolock) where [Name] ='UseColumnSpan')
+Begin
+INSERT INTO [dbo].[ADM_WebConfig]
+           ([Name]
+           ,[Value]
+           ,[CreatedBy]
+           ,[CreateDate]
+           ,[ModifiedBy]
+           ,[ModifiedDate]
+           ,[IsVerified])
+     VALUES
+           ('UseColumnSpan'
+           ,'YES'
+           ,'admin'
+           ,CONVERT(float, getdate())
+           ,null
+           ,null
+           ,'Yes')
+End

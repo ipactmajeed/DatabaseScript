@@ -1,0 +1,8 @@
+-- SHASHANK
+
+declare @sQ nvarchar(500)
+select @sQ=stuff((select ','+ convert(varchar,CostCenterColID) from ADM_CostCenterDef WITH(NOLOCK) 
+where costcenterid=40062 and syscolumnname in ('dcAlpha19','dcAlpha20','dcAlpha21') order by CostCenterColID FOR XML path('')),1,1,'')
+
+if(@sQ is not null and len(@sQ)>1)
+	update ADM_DocFunctions set  OpParams=OpParams+@sQ+',' where costcenterid=40062 and SpName='spPAY_ExtGetNoofDays'
