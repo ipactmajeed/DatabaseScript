@@ -1,0 +1,33 @@
+--Subhani
+
+ALTER TABLE ADM_DashBoard ADD ResourceID bigint
+
+DECLARE @TAB TABLE(ID INT IDENTITY(1,1),DashBoardID int,DashBoardName NVARCHAR(500))
+
+DECLARE @I INT,@CNT INT,@DNAME NVARCHAR(500),@ResID INT,@DID INT 
+
+insert into @TAB
+select DashBoardID,DashBoardName from ADM_DashBoard WITH(NOLOCK) group by DashBoardID,DashBoardName
+
+SELECT @ResID=MAX([ResourceID])+1 from [com_languageresources] with(nolock)
+
+select @I=1,@Cnt=count(*) from @TAB
+
+WHILE(@I<=@Cnt)
+BEGIN
+	
+	SELECT @DNAME=DashBoardName,@DID=DashBoardID from @TAB where id=@I
+	--SELECT @DNAME,@DID
+
+	INSERT INTO COM_LanguageResources (ResourceID, ResourceName, LanguageID, LanguageName, ResourceData,FEATURE)
+	VALUES (@ResID,@DNAME,1,'English',@DNAME,'DashBoard')
+	INSERT INTO COM_LanguageResources (ResourceID, ResourceName, LanguageID, LanguageName, ResourceData,FEATURE)
+	VALUES (@ResID,@DNAME,2,'Arabic',@DNAME,'DashBoard')
+	INSERT INTO COM_LanguageResources (ResourceID, ResourceName, LanguageID, LanguageName, ResourceData,FEATURE)
+	VALUES (@ResID,@DNAME,3,'Italian',@DNAME,'DashBoard')
+
+	UPDATE ADM_DashBoard SET ResourceID=@ResID WHERE DashBoardID=@DID
+
+	SET @ResID=@ResID+1
+	SET @I=@I+1
+END

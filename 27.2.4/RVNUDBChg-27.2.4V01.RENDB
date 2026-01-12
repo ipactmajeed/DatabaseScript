@@ -1,0 +1,47 @@
+--Sajid
+IF EXISTS (Select Name from ADM_FeatureAction with(nolock) where FeatureActionTypeID=129 and FeatureID=103)
+	Update ADM_FeatureAction set Name='Export Quotation Print' where FeatureActionTypeID=129 and FeatureID=103
+
+
+
+
+--Ikram
+declare @rid bigint,@resID int
+select @rid=max([RibbonViewID])+1 from [ADM_RibbonView] WITH(NOLOCK)
+
+select @resID=MAX(ResourceID) from COM_LanguageResources 
+
+
+set @resID=@resID+1
+
+INSERT INTO [com_languageresources] ([ResourceID],[ResourceName],[LanguageID],[LanguageName],[ResourceData],[GUID],[Description],[CreatedBy],[CreatedDate],[ModifiedBy],[ModifiedDate],[FEATURE])
+VALUES(@resID,'Contract Final Settlement',1,'English','Contract Final Settlement','A18AA097-DF5D-41CD-9AFF-22C66D20097A',NULL,'ADMIN',4.072966253163580e+004,NULL,NULL,'')
+
+
+INSERT [dbo].[ADM_RibbonView] ([RibbonViewID], [TabID], [GroupID], [DrpID], [TabName], [GroupName], [DrpName],[TabResourceID], [GroupResourceID], [DrpResourceID], [TabOrder], [GroupOrder], [FeatureID], [FeatureActionID], [FeatureActionResourceID], [FeatureActionName], [TabKeyTip], [GroupKeyTip], [DrpKeyTip], [ButtonKeyTip], [IsEnabled], [ScreenName], [ScreenResourceID], [ImageType], [ImagePath], [DrpImage], [ToolTipTitleResourceID], [ToolTipTitle], [ToolTipImg], [ToolTipDescResourceID], [ToolTipDesc], [RoleID], [UserID], [UserName], [CompanyGUID], [GUID], [Description], [CreatedBy], [CreatedDate], [ModifiedBy], [ModifiedDate], [DisplayName], [DisplayNameResourceID], [ColumnOrder], [ShowInWeb], [IsMobile], [AppPath], [ShowInMobile], [Version], [IsOffLine], [WebIcon]) 
+select @rid, [TabID], [GroupID], NULL, [TabName], [GroupName], N'Contract Final Settlement', [TabResourceID], [GroupResourceID], NULL, [TabOrder], [GroupOrder], 95, 235,@resID , N'Contract Final Settlement', [TabKeyTip], [GroupKeyTip], NULL, N'F', 1, N'Contract Final Settlement', @resID, 1, N'ACC_FA.png', N'ACC_FA.png', @resID, N'Contract Final Settlement', N'ACC_FA.png', @resID, N'Contract Final Settlement', 1, 1, N'Admin', N'CompanyGUID', N'026B4D65-76BF-4476-804A-8E82FC06A720', N'Contract Final Settlement', N'Admin', 44770.979784722222, NULL, NULL, N'Contract Final Settlement', @resID, 0, 1, 0, NULL, 0, NULL, NULL, NULL
+from [ADM_RibbonView] WITH(NOLOCK)
+where [FeatureActionID]=190
+
+
+
+
+set @resID=@resID+1
+
+INSERT INTO [com_languageresources] ([ResourceID],[ResourceName],[LanguageID],[LanguageName],[ResourceData],[GUID],[Description],[CreatedBy],[CreatedDate],[ModifiedBy],[ModifiedDate],[FEATURE])
+VALUES(@resID,'Contract Final Settlement',1,'English','Report','A18AA097-DF5D-41CD-9AFF-22C66D20097A',NULL,'ADMIN',4.072966253163580e+004,NULL,NULL,'')
+
+insert into COM_CostCenterPreferences(CostCenterID,FeatureID,ResourceID,Name,Value,GUID,CreatedBy,CreatedDate,DefaultValue)
+values(95,95,@resID,'ExtfinalSttlmtReport','209','guid','admin',22,'209')
+
+set identity_insert adm_featureaction ON
+insert into adm_featureaction(FeatureActionID,Name,FeatureID,FeatureActionTypeID,ApplicationID,CreatedDate,CreatedBy)
+values(235,'Contract Final Settlement',95,233,1,22,'Admin')
+insert into adm_featureaction(FeatureActionID,Name,FeatureID,FeatureActionTypeID,ApplicationID,CreatedDate,CreatedBy)
+values(207,'Override Termination profile',95,234,1,22,'Admin')
+set identity_insert adm_featureaction OFF
+
+insert into adm_featureactionrolemap(RoleID,FeatureActionID,CreatedBy,CreatedDate)
+values(1,235,'admin',22)
+insert into adm_featureactionrolemap(RoleID,FeatureActionID,CreatedBy,CreatedDate)
+values(1,207,'admin',22)

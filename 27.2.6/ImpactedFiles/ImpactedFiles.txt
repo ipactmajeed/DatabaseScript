@@ -1,0 +1,56 @@
+
+
+
+
+
+M	PactRevenUWebapi2.0/PactRevenUWebapi2.0/Controllers/AdminController.cs
+M	PactRevenUWebapi2.0/PactRevenUWebapi2.0/Controllers/PactRequestTokenController.cs
+M	PactRevenUWebapi2.0/PactRevenUWebapi2.0/PactRevenUWebapi2.0.csproj
+D	PactRevenUWebapi2.0/PactRevenUWebapi2.0/obj/Release/Package/PackageTmp/Views/Shared/_Layout.cshtml
+D	PactRevenUWebapi2.0/PactRevenUWebapi2.0/obj/Release/Package/PackageTmp/bin/PACT.COMMON.dll
+D	PactRevenUWebapi2.0/PactRevenUWebapi2.0/obj/Release/Package/PackageTmp/bin/PACT.DBHandler.dll
+D	PactRevenUWebapi2.0/PactRevenUWebapi2.0/obj/Release/Package/PackageTmp/bin/PACT.MODEL.dll
+D	PactRevenUWebapi2.0/PactRevenUWebapi2.0/obj/Release/Package/PackageTmp/bin/PACT.Service.dll
+D	PactRevenUWebapi2.0/PactRevenUWebapi2.0/obj/Release/Package/PackageTmp/bin/PACT.VIEWMODEL.Base.dll
+D	PactRevenUWebapi2.0/PactRevenUWebapi2.0/obj/Release/Package/PackageTmp/bin/PACT.VIEWMODEL.Crm.dll
+D	PactRevenUWebapi2.0/PactRevenUWebapi2.0/obj/Release/Package/PackageTmp/bin/PACT.VIEWMODEL.Payroll.dll
+D	PactRevenUWebapi2.0/PactRevenUWebapi2.0/obj/Release/Package/PackageTmp/bin/PACT.VIEWMODEL.Prd.dll
+D	PactRevenUWebapi2.0/PactRevenUWebapi2.0/obj/Release/Package/PackageTmp/bin/PACT.VIEWMODEL.Rental.dll
+D	PactRevenUWebapi2.0/PactRevenUWebapi2.0/obj/Release/Package/PackageTmp/bin/PACT.VIEWMODEL.Reports.dll
+D	PactRevenUWebapi2.0/PactRevenUWebapi2.0/obj/Release/Package/PackageTmp/bin/PACT.VIEWMODEL.dll
+D	PactRevenUWebapi2.0/PactRevenUWebapi2.0/obj/Release/Package/PackageTmp/bin/PactRevenUWebapi2.0.dll
+D	PactRevenUWebapi2.0/PactRevenUWebapi2.0/obj/Release/Package/PackageTmp/bin/PactRevenUWebapi2.0.pdb
+D	PactRevenUWebapi2.0/PactRevenUWebapi2.0/obj/Release/Package/PackageTmp/bin/WPFToolkit.Extended.dll
+D	PactRevenUWebapi2.0/PactRevenUWebapi2.0/obj/Release/Package/PackageTmp/bin/WPFToolkit.dll
+D	PactRevenUWebapi2.0/PactRevenUWebapi2.0/obj/Release/PactRevenUWebapi2.0.csproj.CopyComplete
+D	PactRevenUWebapi2.0/PactRevenUWebapi2.0/obj/Release/PactRevenUWebapi2.0.csproj.CoreCompileInputs.cache
+D	PactRevenUWebapi2.0/PactRevenUWebapi2.0/obj/Release/PactRevenUWebapi2.0.csproj.FileListAbsolute.txt
+D	PactRevenUWebapi2.0/PactRevenUWebapi2.0/obj/Release/PactRevenUWebapi2.0.dll
+D	PactRevenUWebapi2.0/PactRevenUWebapi2.0/obj/Release/PactRevenUWebapi2.0.pdb
+M	RevenUNestAPI/src/PACTAPI/Controllers/Admin/admin.controller.ts
+M	RevenUNestAPI/src/PACTAPI/Controllers/CRM/CRM.controller.ts
+M	RevenUNestAPI/src/PACTAPI/Controllers/CasesController/Cases.controller.ts
+M	RevenUNestAPI/src/PACTAPI/Controllers/Common/common.controller.ts
+M	RevenUNestAPI/src/PACTAPI/Controllers/ESS/ESS.controller.ts
+M	RevenUNestAPI/src/PACTAPI/Controllers/Report/report.controller.ts
+M	RevenUNestAPI/src/PACTAPI/Services/Admin/admin.service.ts
+M	RevenUNestAPI/src/PACTAPI/Services/CRM/crm.service.ts
+M	RevenUNestAPI/src/PACTAPI/Services/Cases/Cases.service.ts
+M	RevenUNestAPI/src/PACTAPI/Services/Common/common.service.ts
+M	RevenUNestAPI/src/PACTAPI/Services/ESS/ESS.service.ts
+M	RevenUNestAPI/src/PACTAPI/Services/Report/report.service.ts
+M	RevenUNestAPI/src/auth/dto/api-object.ts
+M	RevenUNestAPI/src/common/APIBase.ts
+M	RevenUNestAPI/src/common/DBHandler.ts
+M	RevenUWeb/src/app/common/costcenter/MoveCostCenter/MoveAccountViewModel.ts
+M	RevenUWeb/src/app/crm/master-tabs/products/LeadsProductViewModel.ts
+M	RevenUWeb/src/app/document/assign-report/AssignReportViewModel.ts
+M	RevenUWeb/src/app/reports/StaticReports/ACC_GeneralLedger.ts
+M	RevenUWeb/src/app/reports/StaticReports/INV_StockLedger.ts
+M	RevenUWeb/src/app/reports/add-edit-filter-field/AddEditFilterFieldViewModel.ts
+M	RevenUWeb/src/app/services/api/admin.service.ts
+M	RevenUWeb/src/app/services/session-manager.service.ts
+M	RevenUWeb/src/assets/i18n/en.json
+M	RevenUWeb/src/assets/i18n/fa.json
+M	RevenUWebWhiteTheme/src/app/document/add-edit-document/AddEditDocumentViewModel.ts
+M	RevenUWebWhiteTheme/src/app/reports/report-view/ReportViewModel.ts

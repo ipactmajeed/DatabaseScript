@@ -1,0 +1,38 @@
+--Subhani
+
+DECLARE @DFTotalYear nvarchar(100),@DFBasedOnValue nvarchar(100),@SQL nvarchar(max)
+SET @SQL=''
+
+SELECT @DFBasedOnValue=a.name from sys.default_constraints a
+join sys.columns c on c.column_id=a.parent_column_id AND c.object_id=a.parent_object_id
+where parent_object_id=object_id('ACC_DeprBook') AND c.name='BasedOnValue'
+
+SELECT @DFTotalYear=a.name from sys.default_constraints a
+join sys.columns c on c.column_id=a.parent_column_id AND c.object_id=a.parent_object_id
+where parent_object_id=object_id('ACC_AssetClass') AND c.name='TotalYears'
+
+
+select @DFBasedOnValue,@DFTotalYear
+
+IF EXISTS(SELECT name from sys.default_constraints where name=@DFTotalYear)
+BEGIN
+	SET @SQL ='ALTER TABLE [dbo].[ACC_AssetClass] DROP CONSTRAINT '+ @DFTotalYear
+	EXEC(@SQL)
+END
+
+IF EXISTS(SELECT name from sys.default_constraints where name=@DFBasedOnValue)
+BEGIN
+	SET @SQL ='ALTER TABLE [dbo].[ACC_DeprBook] DROP CONSTRAINT '+ @DFBasedOnValue
+	EXEC(@SQL)
+END
+
+
+ALTER TABLE [dbo].[ACC_AssetClass] ALTER COLUMN TotalYears NVARCHAR(500)
+
+ALTER TABLE [dbo].[ACC_DeprBook] ALTER COLUMN BasedOnValue NVARCHAR(500)
+
+
+ALTER TABLE [dbo].[ACC_AssetClass] ADD  CONSTRAINT [DF_ACC_AssetClass_TotalYears]  DEFAULT ((1)) FOR [TotalYears]
+ALTER TABLE [dbo].[ACC_DeprBook] ADD  CONSTRAINT [DF_ACC_DeprBook_BasedOnValue]  DEFAULT ((1)) FOR [BasedOnValue]
+
+

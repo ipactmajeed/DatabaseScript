@@ -1,0 +1,3 @@
+-- SHASHANK
+
+delete from ADM_DocFunctions where CostCenterID=40099 and SpName='spPAY_UpdateDailyAttDates'
