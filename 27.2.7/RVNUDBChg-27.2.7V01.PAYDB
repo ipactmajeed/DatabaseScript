@@ -1,0 +1,14 @@
+--SHASHANK
+
+
+declare @RId BIGINT
+SELECT @RId=MAX([ResourceID])+1 FROM [Com_LanguageResources] 
+
+INSERT INTO [com_languageresources] ([ResourceID],[ResourceName],[LanguageID],[LanguageName],[ResourceData],[GUID],[Description],[CreatedBy],[CreatedDate],[ModifiedBy],[ModifiedDate],[FEATURE])
+VALUES(@RId,'AllowAttendanceAnywhereifOnDutyPosted',1,'English','Allow Attendance Anywhere if OnDuty Posted','A18AA097-DF5D-41CD-9AFF-22C66D20097A',NULL,'ADMIN',4.072966253163580e+004,NULL,NULL,'')
+
+INSERT INTO [com_languageresources] ([ResourceID],[ResourceName],[LanguageID],[LanguageName],[ResourceData],[GUID],[Description],[CreatedBy],[CreatedDate],[ModifiedBy],[ModifiedDate],[FEATURE])
+VALUES(@RId,'AllowAttendanceAnywhereifOnDutyPosted',2,'Arabic','Allow Attendance Anywhere if OnDuty Posted-AR','A18AA097-DF5D-41CD-9AFF-22C66D20097A',NULL,'ADMIN',4.072966253163580e+004,NULL,NULL,'')
+
+Insert into ADM_GlobalPreferences(ResourceID, Name, Value, DefaultValue, GUID, Description, CreatedBy, CreatedDate, ModifiedBy, ModifiedDate, PreferenceTypeName, PrefRowOrder, PrefColOrder, PrefValueType, Version)
+SELECT @RID,'AllowAttendanceAnywhereifOnDutyPosted','False','False','GUID','DESC','ADMIN',45039,'ADMIN',45039,'Payroll',112,0,'CheckBox',NULL

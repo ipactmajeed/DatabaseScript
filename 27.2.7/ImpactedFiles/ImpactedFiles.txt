@@ -1,0 +1,27 @@
+
+
+
+
+
+M	PactRevenUWebapi2.0/PactRevenUWebapi2.0/Controllers/CommonController.cs
+M	RevenUWeb/src/app/document/add-edit-document/AddEditDocumentViewModel.ts
+M	RevenUWeb/src/app/ess/Check-In-Out-Widget/check-in-out-widget.component.ts
+M	RevenUWeb/src/app/property/Unit/AddEditUnitsViewModel.ts
+M	RevenUWeb/src/app/reports/StaticReports/ACC_GeneralLedger.ts
+M	RevenUWeb/src/app/reports/report-view/IPrefetchFilter.ts
+M	RevenUWeb/src/app/services/session-manager.service.ts
+A	RevenUWebWhiteTheme/src/app/dashboard/aging-widget/aging-widget.html
+A	RevenUWebWhiteTheme/src/app/dashboard/aging-widget/aging-widget.scss
+A	RevenUWebWhiteTheme/src/app/dashboard/aging-widget/aging-widget.ts
+M	RevenUWebWhiteTheme/src/app/dashboard/dashboard.module.ts
+A	RevenUWebWhiteTheme/src/app/dashboard/slab-chart/slab-chart.html
+A	RevenUWebWhiteTheme/src/app/dashboard/slab-chart/slab-chart.scss
+A	RevenUWebWhiteTheme/src/app/dashboard/slab-chart/slab-chart.ts
+M	RevenUWebWhiteTheme/src/app/dashboard/widget-view/WidgetViewModel.ts
+M	RevenUWebWhiteTheme/src/app/dashboard/widget-view/widget-view.component.html
+M	RevenUWebWhiteTheme/src/app/dashboard/widget-view/widget-view.component.scss
+M	RevenUWebWhiteTheme/src/app/dashboard/widget-view/widget-view.component.ts
+A	RevenUWebWhiteTheme/src/app/services/api/aging-data.service.ts
+A	RevenUWebWhiteTheme/src/app/shared/Pipes/currency-format.pipe.ts
+A	RevenUWebWhiteTheme/src/app/shared/Pipes/date-format.pipe.ts
+A	RevenUWebWhiteTheme/src/app/shared/Pipes/percentage.pipe.ts

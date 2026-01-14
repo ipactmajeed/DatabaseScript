@@ -1,0 +1,3 @@
+-- SHASHANK
+
+update adm_costcenterdef set sectionID=2 where costcenterid=40089 and SysColumnName in ('dcAlpha33','dcAlpha34')

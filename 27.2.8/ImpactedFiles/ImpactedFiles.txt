@@ -1,0 +1,20 @@
+
+
+
+
+
+M	PactRevenUWebapi2.0/PactRevenUWebapi2.0/Controllers/PactRequestTokenController.cs
+M	RevenUWeb/src/app/assetmanagement/asset-management/AssetManagement.ts
+M	RevenUWeb/src/app/document/add-edit-document/AddEditDocumentViewModel.ts
+M	RevenUWeb/src/app/pages/login-screen/LoginScreenViewModel.ts
+M	RevenUWeb/src/app/property/termination/TerminationViewViewModel.ts
+M	RevenUWeb/src/app/property/termination/termination.component.html
+A	RevenUWeb/src/app/reports/StaticReports/Pay_Report.ts
+M	RevenUWeb/src/app/reports/report-view/ReportViewModel.ts
+M	RevenUWeb/src/app/services/api/common.service.ts
+M	RevenUWeb/src/app/services/session-manager.service.ts
+M	RevenUWeb/src/assets/config.json
+M	RevenUWebWhiteTheme/src/app/app.module.ts
+M	RevenUWebWhiteTheme/src/app/shared/chat/chat.component.html
+M	RevenUWebWhiteTheme/src/app/shared/chat/chat.component.ts
+M	RevenUWebWhiteTheme/src/app/shared/shared.module.ts

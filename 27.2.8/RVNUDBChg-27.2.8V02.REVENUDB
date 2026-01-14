@@ -1,0 +1,36 @@
+--Sajid
+if Not exists (select ConfigId from ADM_WebConfig with(nolock) where [Name] ='EIDPdfURL')
+Begin
+INSERT INTO [dbo].[ADM_WebConfig]
+           ([Name]
+           ,[Value]
+           ,[CreatedBy]
+           ,[CreateDate]
+           ,[ModifiedBy]
+           ,[ModifiedDate])
+     VALUES
+           ('EIDPdfURL'
+           ,'http://pactshj.fortiddns.com:314/api/analyze'
+           ,'admin'
+           ,CONVERT(float, getdate())
+           ,null
+           ,null)
+End
+
+if Not exists (select ConfigId from ADM_WebConfig with(nolock) where [Name] ='ChequePdfURL')
+Begin
+INSERT INTO [dbo].[ADM_WebConfig]
+           ([Name]
+           ,[Value]
+           ,[CreatedBy]
+           ,[CreateDate]
+           ,[ModifiedBy]
+           ,[ModifiedDate])
+     VALUES
+           ('ChequePdfURL'
+           ,'http://pactshj.fortiddns.com:81/extract'
+           ,'admin'
+           ,CONVERT(float, getdate())
+           ,null
+           ,null)
+End
