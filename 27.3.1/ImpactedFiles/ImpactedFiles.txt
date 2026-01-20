@@ -1,0 +1,11 @@
+
+
+
+
+
+M	RevenUWeb/src/app/document/add-edit-document/VoucherGenerator.ts
+M	RevenUWeb/src/app/reports/StaticReports/ACC_GeneralLedger.ts
+M	RevenUWeb/src/app/services/session-manager.service.ts
+M	RevenUWeb/src/app/shared/models/controls/PactGridViewModel.ts
+M	RevenUWebWhiteTheme/src/app/reports/report-view/IPrefetchFilter.ts
+M	RevenUWebWhiteTheme/src/app/shared/controls/quick-view/QuickViewScreenViewModel.ts

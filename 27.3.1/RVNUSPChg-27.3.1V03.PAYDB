@@ -1,0 +1,561 @@
+-- SHASHANK
+
+/****** Object:  StoredProcedure [dbo].[spPAY_RptVacationDays]    Script Date: 19-01-2026 11:36:19 ******/
+IF  EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[spPAY_RptVacationDays]') AND type in (N'P', N'PC'))
+DROP PROCEDURE [dbo].[spPAY_RptVacationDays]
+GO
+/****** Object:  StoredProcedure [dbo].[spPAY_RptVacationDays]    Script Date: 19-01-2026 11:36:19 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[spPAY_RptVacationDays]') AND type in (N'P', N'PC'))
+BEGIN
+EXEC dbo.sp_executesql @statement = N'CREATE procedure [dbo].[spPAY_RptVacationDays]
+@Date DateTime,
+@EmpWhere NVARCHAR(MAX),
+@Flag INT=0,
+@Type INT=1,
+@ToDate DATETIME,
+@UserID Int=1,
+@LangID Int=1
+AS
+Begin
+SET NOCOUNT ON;
+
+--START-- Variable Declaration
+DECLARE @I INT,@CNT INT,@EmpNode INT,@Grade Int,@AssingedDimVacDays Int,@AssingedLeaveType INT,@COMPONENTIDSNO Int,@TMONTHS Int,@CreditDaysCalculation Int,@TMP INT,@RC1 Int
+Declare @DimVacDays float,@BelowSixMonthsDays float,@BelowOneYearDays float,@TotalDays float,@OPVACATIONDAYS FLOAT,@OPVACATIONSALARY FLOAT,@VacationMonthsDiff float,@VACDAYSPERMONTH float,@MonthlyNoofDays float,@LEAVESTAKEN FLOAT,@LeavesTakenEncash FLOAT,@LeavesTakenEncashSUM FLOAT,@LOPDAYS FLOAT,@PaidDays FLOAT,@ExcessDays FLOAT
+
+DECLARE @sQ NVARCHAR(MAX),@CalculateVacDayforVacationPeriod Varchar(3),@ConsiderLOPwhilecalculatingCreditdays Varchar(3),@ConsiderExcessdaysasLOP Varchar(3),@Perdaysalarycalculations Varchar(50),@GradewiseVacationPref Varchar(5),@CalcVacdaysuptoLastMonth Varchar(5),@DCNUMFILED Varchar(10),@SYCOLNAME Varchar(15),@STRQRY Varchar(MAX),@AccrueVacationDaysPref nvarchar(5),@VACDAYSPERIOD Varchar(20)
+
+DECLARE @OPLeavesAsOn DateTime,@PayrollDate DATETIME,@ActDOJ DateTime ,@DocMonth DateTime,@DOJ DateTime,@VACATIONSTARTMONTH DateTime,@MONT1 DateTime,@MONT2 DateTime,@ActualVacDate DateTime
+DECLARE @K INT,@ACVDAYS FLOAT,@DonotshownegitiveOPvacationdays NVARCHAR(10),@FDate datetime,@TDate datetime,@BDays float,@VTD datetime,@BAL FLOAT,@MaxCarryForwardDays FLOAT
+--END-- Variable Declaration
+
+--START-- TEMP TABLES
+DECLARE @EMPDETAILS TABLE(ID INT IDENTITY,NodeID INT,Code NVARCHAR(MAX),Name NVARCHAR(MAX),OPLeavesAsOn DATETIME,OPVacationDays FLOAT,DOJ DATETIME,VacationPeriod VARCHAR(20),VacDaysPerMonth FLOAT,VacDaysPeriod VARCHAR(20),Grade INT,CDOJ DATETIME)
+Declare @GetAvlblLeaves TABLE(Id Int Identity(1,1),AssignedLeaves INT,AvailableLeaves DECIMAL(9,2),FDate DateTime,TDate DateTime,MaxEncashLeaves Float,MaxLeaves Float,ActualAvailableLeaves float)
+Declare @MonthDays TABLE(ID INT Identity(1,1),EMPNODE INT,FDATE DateTime,TDATE DateTime,TOTALDAYS FLOAT,ACTUALDAYS FLOAT,DAYS float,LEAVESTAKEN FLOAT,LOPDAYS FLOAT,EncashDays FLOAT,BALANCE FLOAT,DAYSASON float)
+DECLARE @VACTABLE TABLE(ID INT IDENTITY,EmployeeID INT,OpeningDays FLOAT,CreditedDays FLOAT,LeavesTaken FLOAT,EncashDays FLOAT,Balance Float,PaidDays FLOAT,ExcessDays FLOAT,MaxCarryForwardDays FLOAT)
+--END-- TEMP TABLES
+--VMDD
+DECLARE @VacMgmtDocID INT, @IsDefineDaysExists BIT
+CREATE TABLE #VMDD(FromMonth INT,ToMonth INT,DaysPerMonth FLOAT,ApplyToPrevMonths NVARCHAR(50),WEF DATETIME)
+CREATE TABLE #VacMonthWiseAllotedDays(ID INT Identity(1,1),VacMonth DateTime,AllotedDays FLOAT,Yearly FLOAT)
+--VMDD
+
+--SET TO FIRST DAY FOR THE GIVEN DATE
+SET @PayrollDate=DATEADD(MONTH,DATEDIFF(MONTH,0,CONVERT(DATETIME,@Date)),0)
+
+--START:LOADING PREFERENCES
+SELECT @DonotshownegitiveOPvacationdays=ISNULL(VALUE,''False'') FROM ADM_GlobalPreferences WITH(NOLOCK) WHERE Name=''DonotshownegitiveOPvacationdays''
+SELECT @GradewiseVacationPref=ISNULL(VALUE,''False'') FROM ADM_GlobalPreferences WITH(NOLOCK) WHERE NAME=''GradeWiseVacation''
+SELECT @CalcVacDaysuptoLastMonth=ISNULL(VALUE,''False'') FROM ADM_GlobalPreferences WITH(NOLOCK) WHERE Name=''CalcVacDaysuptolastmonth''
+SELECT @AccrueVacationDaysPref=ISNULL(VALUE,''False'') FROM ADM_GlobalPreferences WITH(NOLOCK) WHERE Name=''AccrueVacationDays''
+
+IF(@Flag=1 OR @Flag=2)
+	SET @CalcVacDaysuptoLastMonth=''False''
+-- END:LOADING PREFERENCES
+
+--START-- DOCUMENTS DATA
+SELECT a.voucherno,a.InvDocDetailsID,d.dcAlpha1,d.dcAlpha2,d.dcAlpha3,b.dcCCNID51,ISNULL(CONVERT(FLOAT, d.dcAlpha11), 0) as ExcessDays,CONVERT(FLOAT,ISNULL(d.dcAlpha10,0)) as PaidDays 
+INTO #TBL3
+FROM INV_DocDetails a WITH(NOLOCK) 
+JOIN COM_DocCCData b WITH(NOLOCK) ON b.InvDocDetailsID=a.InvDocDetailsID
+JOIN COM_DocTextData d WITH(NOLOCK) ON d.InvDocDetailsID=a.InvDocDetailsID
+WHERE  d.tCostCenterID=40072 and a.StatusID=369
+
+SELECT CC.DCCCNID53,ISNULL(TD.DCALPHA3,''0'') DCALPHA3, ISNULL(TD.DCALPHA4,''0'') DCALPHA4,ISNULL(TD.DCALPHA9,''NO'') DCALPHA9, ISNULL(TD.DCALPHA8,''NO'') DCALPHA8,ISNULL(TD.DCALPHA15,''NO'') DCALPHA15,ISNULL(TD.DCALPHA16,''(FIELD/30)'') DCALPHA16,ISNULL(dcAlpha5,0) dcAlpha5,ISNULL(dcAlpha1,0) dcAlpha1,ISNULL(TD.DCALPHA18,''1'') DCALPHA18,ID.DocID INTO #TVM
+FROM INV_DOCDETAILS ID WITH(NOLOCK) 
+JOIN COM_DOCTEXTDATA TD WITH(NOLOCK) ON ID.INVDOCDETAILSID=TD.INVDOCDETAILSID 
+JOIN COM_DOCCCDATA CC WITH(NOLOCK) ON ID.INVDOCDETAILSID=CC.INVDOCDETAILSID
+WHERE TD.tCOSTCENTERID=40061
+
+--END-- DOCUMENTS DATA
+if(@Type=1)
+BEGIN
+IF((SELECT COUNT(*) FROM ADM_CostCenterDef WITH(NOLOCK) WHERE CostCenterID=50051 and SysColumnName =''CCNID53'' and IsColumnInUse=1 and UserProbableValues=''H'')>0)
+BEGIN
+	SET @sQ=''SELECT C51.NodeID,C51.Code,C51.Name,CONVERT(DateTime,OPLeavesAsOn) OPLeavesAsOn,isnull(OpVacationDays,0) OpVacationDays,CONVERT(DateTime,DOJ) DOJ,VACATIONPERIOD,ISNULL(VACDAYSPERMONTH,0) VACDAYSPERMONTH,VACDAYSPERIOD,ISNULL(H.HistoryNodeID,0),CONVERT(DateTime,DOJ)  FROM COM_CC50051 C51 WITH(NOLOCK)
+	LEFT JOIN COM_HistoryDetails H WITH(NOLOCK) ON H.NodeID=C51.NodeID AND CostCenterID=50051 AND HistoryCCID=50053 AND (CONVERT(DATETIME,FromDate)<=CONVERT(DATETIME,''''''+ CONVERT(VARCHAR,@PayrollDate) +'''''')) AND (CONVERT(DATETIME,ToDate)>=CONVERT(DATETIME,''''''+ CONVERT(VARCHAR,@PayrollDate) +'''''') OR ToDate IS NULL)
+	WHERE C51.IsGroup=0 AND C51.NODEID>1 AND C51.NODEID IN (''+@EmpWhere+'')''
+END
+ELSE
+BEGIN
+	SET @sQ=''SELECT C51.NodeID,C51.Code,C51.Name,CONVERT(DateTime,OPLeavesAsOn) OPLeavesAsOn,isnull(OpVacationDays,0) OpVacationDays,CONVERT(DateTime,DOJ) DOJ,VACATIONPERIOD,ISNULL			(VACDAYSPERMONTH,0) VACDAYSPERMONTH,VACDAYSPERIOD,ISNULL(CC.CCNID53,0) ,CONVERT(DateTime,DOJ) FROM COM_CC50051 C51 WITH(NOLOCK)
+	JOIN COM_CCCCDATA CC WITH(NOLOCK) ON CC.NodeID=C51.NodeID AND CostCenterID=50051
+	WHERE C51.IsGroup=0 AND C51.NODEID>1 AND C51.NODEID IN (''+@EmpWhere+'')''
+END
+END
+ELSE IF(@Type=100)
+BEGIN
+	SET @sQ=''SELECT C51.NodeID,C51.Code,C51.Name,CONVERT(DateTime,OPLeavesAsOn) OPLeavesAsOn,isnull(OpVacationDays,0) OpVacationDays,CONVERT(DateTime,DOJ) DOJ,VACATIONPERIOD,ISNULL			(VACDAYSPERMONTH,0) VACDAYSPERMONTH,VACDAYSPERIOD,ISNULL(CC.CCNID53,0) CCNID53,DATEADD(YEAR,YEAR(CONVERT(DATETIME,''''''+CONVERT(VARCHAR,@DATE)+''''''))-YEAR(CONVERT(DATETIME,DOJ)),CONVERT(DATETIME,DOJ)) CDOJ   FROM COM_CC50051 C51 WITH(NOLOCK)
+	JOIN COM_CCCCDATA CC WITH(NOLOCK) ON CC.NodeID=C51.NodeID AND CostCenterID=50051
+	WHERE C51.IsGroup=0 AND C51.NODEID>1 AND DATEADD(YEAR,YEAR(CONVERT(DATETIME,''''''+CONVERT(VARCHAR,@DATE)+''''''))-YEAR(CONVERT(DATETIME,DOJ)),CONVERT(DATETIME,DOJ)) BETWEEN CONVERT(DATETIME,''''''+CONVERT(VARCHAR,@DATE)+'''''') AND CONVERT(DATETIME,''''''+CONVERT(VARCHAR,@ToDate)+'''''') AND C51.NODEID IN (''+@EmpWhere+'')''
+END
+
+print @sQ
+INSERT INTO @EMPDETAILS
+EXEC sp_executesql @sQ
+
+SELECT @CNT=COUNT(*) FROM @EMPDETAILS
+SET @I=1
+WHILE(@I<=@CNT)--START--EMPLOYEE LOOP
+BEGIN
+
+
+BEGIN
+SET @GRADE=0 SET @DimVacDays=0 SET @LeavesTakenEncashSUM=0.0 SET @LEAVESTAKEN=0 SET @LeavesTakenEncash=0 SET @PaidDays=0 SET @ExcessDays=0
+Create Table #VACDAYTAB (VACDAYS float)
+
+TRUNCATE TABLE #VMDD
+TRUNCATE TABLE #VacMonthWiseAllotedDays
+END  
+
+SELECT @EmpNode=NODEID,@Date=CASE WHEN @TYPE=100 THEN CDOJ ELSE @Date END FROM @EMPDETAILS WHERE ID=@I
+
+IF (@GRADEWISEVACATIONPREF=''True'')
+BEGIN
+SELECT @Grade=GRADE FROM @EMPDETAILS WHERE ID=@I
+END
+
+IF ISNULL(@GRADE,0)=0
+	SET @GRADE=1
+	
+SELECT @BelowSixMonthsDays=ISNULL(DCALPHA3,''0''), @BelowOneYearDays=ISNULL(DCALPHA4,''0''), @CalculateVacDayforVacationPeriod=ISNULL(DCALPHA9,''NO''), 
+	   @ConsiderLOPwhilecalculatingCreditdays=ISNULL(DCALPHA8,''NO''),@ConsiderExcessdaysasLOP=ISNULL(DCALPHA15,''NO''),@PERDAYSALARYCALCULATIONS=ISNULL(DCALPHA16,''(FIELD/30)'') ,@AssingedDimVacDays=ISNULL(dcAlpha5,0),@AssingedLeaveType=ISNULL(dcAlpha1,0),
+	   @CreditDaysCalculation=ISNULL(DCALPHA18,''1''),
+	   @VacMgmtDocID=DocID
+FROM   #TVM  WITH(NOLOCK) WHERE  DCCCNID53=@Grade	
+
+IF(@TYPE=100)
+BEGIN
+ SELECT @MaxCarryForwardDays=ISNULL(MaxCarryForwardDays,0) FROM COM_CC50054 WITH(NOLOCK) WHERE GRADEID=@Grade AND COMPONENTID=@AssingedLeaveType	AND PAYROLLDATE=(SELECT MAX(PAYROLLDATE) FROM COM_CC50054  WITH(NOLOCK) WHERE CONVERT(DATETIME,PAYROLLDATE)<=CONVERT(DATETIME,@Date) AND GradeID=@Grade)
+END
+
+--START :GET DOJ,VACATIONPERIOD AND VACATION DAYS,OPLeavesAsOn,OpVacationDays FROM EMPLOYEE
+SELECT @OPLeavesAsOn=CONVERT(DateTime,OPLeavesAsOn),@OPVACATIONDAYS=isnull(OpVacationDays,0),@DOJ=CONVERT(DateTime,DOJ),@VACDAYSPERMONTH=ISNULL(VACDAYSPERMONTH,0),@VACDAYSPERIOD=VACDAYSPERIOD FROM @EMPDETAILS WHERE NODEID=@EmpNode
+SET @ActDOJ=@Doj
+IF(CONVERT(DateTime,@OPLeavesAsOn)<>''Jan  1 1900 12:00AM'')
+	SET @DOJ=@OPLeavesAsOn
+--END :GET DOJ,VACATIONPERIOD AND VACATION DAYS,OPLeavesAsOn,OpVacationDays FROM EMPLOYEE
+
+--VMDD
+SET @IsDefineDaysExists=0
+IF EXISTS (SELECT SeqNo FROM PAY_VacManageDefineDays WITH(NOLOCK) WHERE VMDocID=@VacMgmtDocID)
+BEGIN
+	SET @IsDefineDaysExists=1
+	INSERT INTO #VMDD
+	SELECT FromMonth,ToMonth,DaysPerMonth,ApplyToPrevMonths,WEF 
+	FROM PAY_VacManageDefineDays WITH(NOLOCK) WHERE VMDocID=@VacMgmtDocID
+
+	DECLARE @VacationDefBasedOn INT
+	select @VacationDefBasedOn=ISNULL(PrefValue,1) from COM_DocumentPreferences WITH(NOLOCK) WHERE PrefName=''VacationDefBasedOn''
+
+	declare @dtt1 datetime,@dtt2 datetime,@TotMon INT,@AllotedDays FLOAT,@MNo INT,@APM NVARCHAR(50),@YearlyVD FLOAT
+	set @dtt1=dateadd(day,-datepart(day,@ActDOJ)+1,@ActDOJ)
+	set @dtt2=dateadd(day,-datepart(day,@Date)+1,@Date)
+	set @dtt2=DATEADD(year,1,@dtt2) -- adding extra 1 year to know the yearly vacation days
+	SET @MNo=0
+	WHILE(@dtt1<=@dtt2)
+	BEGIN
+		SET @MNo=@MNo+1
+
+		IF(ISNULL(@VacationDefBasedOn,1)=1)
+			SELECT @AllotedDays=DaysPerMonth,@APM=ApplyToPrevMonths FROM #VMDD WITH(NOLOCK) WHERE @MNo BETWEEN FromMonth AND ToMonth
+		ELSE
+			SELECT TOP 1 @AllotedDays=DaysPerMonth/12,@APM=ApplyToPrevMonths FROM #VMDD WITH(NOLOCK) WHERE WEF<=@dtt1 ORDER BY WEF DESC
+			
+		SELECT @AllotedDays=DaysPerMonth,@APM=ApplyToPrevMonths FROM #VMDD WITH(NOLOCK) WHERE @MNo BETWEEN FromMonth AND ToMonth
+		INSERT INTO #VacMonthWiseAllotedDays
+		SELECT @dtt1,@AllotedDays,-1
+
+		IF(@APM=''Yes'')
+			UPDATE #VacMonthWiseAllotedDays SET AllotedDays=@AllotedDays
+
+		IF(@MNo%12)=0
+		BEGIN
+			SELECT @YearlyVD=SUM(AllotedDays) FROM #VacMonthWiseAllotedDays WITH(NOLOCK) WHERE Yearly=-1
+				
+			IF(@APM=''Yes'')
+				UPDATE #VacMonthWiseAllotedDays SET Yearly=@YearlyVD
+			ELSE
+				UPDATE #VacMonthWiseAllotedDays SET Yearly=@YearlyVD WHERE Yearly=-1
+
+		END
+
+		SET @dtt1=DATEADD(month,1,@dtt1)
+	END
+
+END
+--SELECT * FROM #VacMonthWiseAllotedDays
+--VMDD
+
+SET @TMP=0
+--START : CHECKING THE PREVIOUS VACATION DETAILS OF EMPLOYEE IF NO RECORD FOUND THEN SELECT DOJ
+IF ((SELECT count(*)  FROM #TBL3 WITH(NOLOCK)
+	 WHERE  DCCCNID51=@EmpNode AND ISNULL(DCALPHA2,'''')<>'''' AND ISNULL(DCALPHA3,'''')<>'''' AND ISNULL(DCALPHA1,'''')<>'''')>0)
+BEGIN
+	--DATE OF REJOING
+	
+	SET   @VACATIONSTARTMONTH=@DOJ
+	SET @TMP=1
+	
+	IF (@CalcVacDaysuptoLastMonth=''False'')
+		SET @VacationStartMonth=CONVERT(DATETIME,@VacationStartMonth)
+	ELSE
+		SET @VacationStartMonth=CONVERT(DATETIME,DATEADD(MONTH,DATEDIFF(MONTH,-1,CONVERT(DATETIME,@VacationStartMonth))-2,0))	
+	
+	--VACATION MONTHS DIFFERENCE
+	SET @VacationMonthsDiff=DATEDIFF(MONTH,@VACATIONSTARTMONTH,DATEADD(DAY,0,@DATE))		
+	--select @VacationMonthsDiff
+	--GET VACDAYS COMPONENT FROM MONTHLY PAYROLL
+	select @COMPONENTIDSNO=SNO from COM_CC50054 WITH(NOLOCK) WHERE COMPONENTID=@AssingedDimVacDays AND GRADEID=@Grade 
+	SET @DCNUMFILED=''dcNum''+convert(Varchar,@COMPONENTIDSNO)
+	
+	SELECT @SYCOLNAME=SYSCOLUMNNAME FROM  adm_costcenterdef WITH(NOLOCK) where costcenterid=40054 AND USERCOLUMNNAME =@DCNUMFILED
+	SET @SYCOLNAME=REPLACE(@SYCOLNAME,''dcNum'',''dcCalcNum'')
+	
+	IF(ISNULL(@SYCOLNAME,'''')<>'''' AND ISNULL(@VACATIONSTARTMONTH,'''')<>'''' AND ISNULL(@DATE,'''')<>'''')
+	BEGIN
+		SET @STRQRY=''INSERT INTO #VACDAYTAB 
+		SELECT  SUM(''+ @SYCOLNAME +'')  FROM INV_DOCDETAILS ID WITH(NOLOCK) JOIN PAY_DOCNUMDATA DN WITH(NOLOCK) ON ID.INVDOCDETAILSID=DN.INVDOCDETAILSID JOIN							COM_DOCCCDATA CC  WITH(NOLOCK) ON ID.INVDOCDETAILSID=CC.INVDOCDETAILSID
+		WHERE   CC.DCCCNID51=''+ CONVERT(Varchar,@EmpNode) +'' AND ID.COSTCENTERID=40054 AND CONVERT(DateTime,ID.DOCDATE) BETWEEN ''''''+ convert											(Varchar,@VACATIONSTARTMONTH) +'''''' and ''''''+ convert(Varchar,@DATE)+''''''''
+		--	PRINT (@STRQRY)
+		EXEC (@STRQRY)
+	END
+	
+	SELECT @DimVacDays=ISNULL(VACDAYS,0) FROM #VACDAYTAB WITH(NOLOCK)
+	DROP TABLE #VACDAYTAB
+
+	declare @VMD FLOAT,@VSM DATETIME
+	SET @VSM=@ActDOJ
+	--VACATION MONTHS DIFFERENCE
+	SET @VMD=DATEDIFF(MONTH,@VSM,DATEADD(DAY,0,@DATE))
+
+	IF ISNULL(@DimVacDays,0)>0
+	BEGIN
+		SET @MonthlyNoofDays= ROUND((CAST(@DimVacDays AS FLOAT)/ CAST(12 AS FLOAT)),2,1)
+	END
+	ELSE IF ISNULL(@DimVacDays,0)=0 AND @VMD<=6
+	BEGIN
+		SET @MonthlyNoofDays=@BelowSixmonthsDays
+	END
+	ELSE IF ISNULL(@DimVacDays,0)=0 AND @VMD>6 And @VMD<=12 
+	BEGIN
+		SET @MonthlyNoofDays=@BelowOneyearDays
+	END
+	ELSE
+	BEGIN
+		IF @VACDAYSPERIOD=''Yearly''
+		BEGIN
+			SET @TMONTHS=12
+		END
+		ELSE
+		BEGIN
+			SET @TMONTHS=1
+		END
+		SET @MonthlyNoofDays= ROUND((CAST(@VACDAYSPERMONTH AS FLOAT)/CAST(@TMONTHS AS FLOAT)),2,1)
+	END							
+END
+ELSE
+BEGIN
+	--DATE OF JOINING
+	
+	print ''DOJ''
+	SET   @VACATIONSTARTMONTH=@ActDOJ
+	SET @TMP=0
+	--VACATION MONTHS DIFFERENCE
+	SET @VacationMonthsDiff=DATEDIFF(MONTH,@VACATIONSTARTMONTH,DATEADD(DAY,0,@DATE))
+	
+	--GET VACDAYS FROM MONTHLY PAYROLL
+	select @COMPONENTIDSNO=SNO from COM_CC50054 WITH(NOLOCK) WHERE COMPONENTID=@AssingedDimVacDays AND GRADEID=@Grade 
+	SET @DCNUMFILED=''dcNum''+convert(Varchar,@COMPONENTIDSNO)
+
+	SELECT @SYCOLNAME=SYSCOLUMNNAME FROM  adm_costcenterdef WITH(NOLOCK) where costcenterid=40054 AND USERCOLUMNNAME =@DCNUMFILED
+	SET @SYCOLNAME=REPLACE(@SYCOLNAME,''dcNum'',''dcCalcNum'')
+
+	IF(ISNULL(@SYCOLNAME,'''')<>'''' AND ISNULL(@VACATIONSTARTMONTH,'''')<>'''' AND ISNULL(@DATE,'''')<>'''')
+	BEGIN
+		SET @STRQRY=''INSERT INTO #VACDAYTAB 
+		SELECT  SUM(''+ @SYCOLNAME +'')  FROM INV_DOCDETAILS ID WITH(NOLOCK) JOIN PAY_DOCNUMDATA DN WITH(NOLOCK) ON ID.INVDOCDETAILSID=DN.INVDOCDETAILSID JOIN COM_DOCCCDATA CC  WITH		(NOLOCK) ON ID.INVDOCDETAILSID=CC.INVDOCDETAILSID
+		WHERE   CC.DCCCNID51=''+ CONVERT(Varchar,@EmpNode) +'' AND ID.COSTCENTERID=40054 AND CONVERT(DateTime,ID.DOCDATE) BETWEEN ''''''+ convert(Varchar,@VACATIONSTARTMONTH) +'''''' and		''''''+ convert(Varchar,@DATE)+''''''''
+		PRINT (@STRQRY)
+		EXEC (@STRQRY)
+	END
+	SELECT @DimVacDays=ISNULL(VACDAYS,0) FROM #VACDAYTAB WITH(NOLOCK)
+	DROP TABLE #VACDAYTAB
+
+	--PICKING THE PERMONTH VACDAYS FROM PREFERENCES
+	IF @DimVacDays>0
+	BEGIN
+		SET @MonthlyNoofDays= ROUND((CAST(@DimVacDays AS FLOAT)/CAST(12 AS FLOAT)),2,1)
+	END
+	ELSE IF @VacationMonthsDiff<=6
+	BEGIN
+		SET @MonthlyNoofDays=@BelowSixMonthsDays
+	END
+	ELSE IF @VacationMonthsDiff>6 And @VacationMonthsDiff<=12 
+	BEGIN
+		SET @MonthlyNoofDays=@BelowOneYearDays
+	END
+	ELSE
+	BEGIN
+		IF @VACDAYSPERIOD=''Yearly''
+		BEGIN
+			SET @TMONTHS=12
+		END
+		ELSE
+		BEGIN
+			SET @TMONTHS=1
+		END
+		SET @MonthlyNoofDays=@VACDAYSPERMONTH/@TMONTHS
+	END
+END							
+--END : CHECKING THE PREVIOUS VACATION DETAILS OF EMPLOYEE IF NO RECORD FOUND THEN SELECT DOJ
+
+	IF(CONVERT(DateTime,@OPLeavesAsOn)<>''Jan  1 1900 12:00AM'' AND @TMP=0 )
+		SET @VacationStartMonth=@DOJ
+
+	SET @VacationMonthsDiff=DATEDIFF(MONTH,@VACATIONSTARTMONTH,DATEADD(DAY,0,@DATE))
+
+--IF (ISNULL(@ActualVacDate,'''')='''')
+	SET @ActualVacDate=DATEADD(D,-1,@DATE)--CONVERT(DATETIME,@DATE)
+
+
+PRINT ''AD''
+PRINT @ActualVacDate
+PRINT @VACATIONSTARTMONTH
+PRINT @VacationMonthsDiff
+SET @LOPDAYS =0
+SET @RC1=0
+WHILE(@RC1<=@VacationMonthsDiff)
+BEGIN
+	IF (@RC1=0)
+	BEGIN
+		SET @MONT1=DATEADD(MONTH,@RC1,@VACATIONSTARTMONTH)
+		IF (@AccrueVacationDaysPref=''False'')
+		BEGIN
+			IF (@VacationMonthsDiff=0)
+			BEGIN
+				SET @MONT2=DATEADD(D,-1,@VACATIONSTARTMONTH)
+				IF(@MONT2<@MONT1)
+					SET @MONT2=DATEADD(D,0,DATEADD(D,-1,DATEADD(MM,DATEDIFF(M,0,@VacationStartMonth)+1,0)))
+			END
+			ELSE
+				SET @MONT2=DATEADD(D,0,DATEADD(D,-1,DATEADD(MM,DATEDIFF(M,0,@VacationStartMonth)+1,0)))
+		END					
+		ELSE
+		BEGIN
+			SET @MONT2=DATEADD(D,0,DATEADD(D,-1,DATEADD(MM,DATEDIFF(M,0,@MONT1)+1,0)))
+		END
+
+		--select @VACATIONSTARTMONTH,@MONT1,@MONT2
+
+	END
+	ELSE IF (@RC1=@VacationMonthsDiff)
+	BEGIN
+		SET @MONT1=DATEADD(MONTH,@RC1,DATEADD(M,DATEDIFF(M,0,@VACATIONSTARTMONTH),0))
+		IF (@AccrueVacationDaysPref=''False'')
+		BEGIN
+			IF(CONVERT(DATETIME,@ActualVacDate)<CONVERT(DATETIME,@DATE))
+			BEGIN
+				IF(@Flag=1 OR @Flag=2)
+				SET @MONT2=@DATE
+				ELSE
+				SET @MONT2=DATEADD(D,-1,@DATE)
+			END
+			ELSE
+			BEGIN
+			SET @MONT2=DATEADD(D,-1,@ActualVacDate)
+			END
+		END
+		ELSE
+		BEGIN
+			SET @MONT2=DATEADD(D,0,DATEADD(D,-1,DATEADD(MM,DATEDIFF(M,0,@ActualVacDate)+1,0)))
+
+		END
+		
+	END
+	ELSE
+	BEGIN
+
+		SET @MONT1=DATEADD(MONTH,@RC1,DATEADD(M,DATEDIFF(M,0,@VACATIONSTARTMONTH),0))
+		IF (@AccrueVacationDaysPref=''False'')
+			SET @MONT2=DATEADD(D,-1,DATEADD(MM,DATEDIFF(M,0,@MONT1)+1,0))
+		ELSE
+			SET @MONT2=DATEADD(D,0,DATEADD(D,-1,DATEADD(MM,DATEDIFF(M,0,@MONT1)+1,0)))
+			
+
+	END
+
+	
+---------------------------------------------------
+
+	IF EXISTS ( 
+				SELECT InvDocDetailsID
+				FROM #TBL3 WITH(NOLOCK)
+				WHERE  dcCCNID51=@Empnode 
+				AND ( @MONT1 BETWEEN CONVERT(DATETIME,dcAlpha2) AND CONVERT(DATETIME,dcAlpha3) OR 
+						@MONT2 BETWEEN CONVERT(DATETIME,dcAlpha2) AND CONVERT(DATETIME,dcAlpha3) OR 
+						CONVERT(DATETIME,dcAlpha2) BETWEEN  @MONT1 AND  @MONT2 OR 
+						CONVERT(DATETIME,dcAlpha3) BETWEEN  @MONT1 AND  @MONT2 
+					)
+				)
+				BEGIN
+					EXEC spPAY_GetVacationLeavesInfoNew @MONT1,@MONT2,@Empnode,1,1,0,@LEAVESTAKEN OUTPUT,@LeavesTakenEncash OUTPUT
+				END
+				ELSE
+				BEGIN
+					SET @LEAVESTAKEN=0 SET @LeavesTakenEncash=0
+				END
+				
+				SET @LeavesTakenEncashSUM=@LeavesTakenEncashSUM+@LeavesTakenEncash
+				
+---------------------------------------------------
+	SET @LOPDAYS=0
+	IF(@ConsiderLOPwhilecalculatingCreditdays=''Yes'')
+	BEGIN
+		SELECT @LOPDAYS=ISNULL(TD.DCALPHA9,''0'')  FROM INV_DOCDETAILS ID WITH(NOLOCK) 
+		JOIN COM_DOCTEXTDATA TD WITH(NOLOCK) ON ID.INVDOCDETAILSID=TD.INVDOCDETAILSID
+			JOIN COM_DOCCCDATA CC WITH(NOLOCK) ON ID.INVDOCDETAILSID=CC.INVDOCDETAILSID
+			WHERE TD.tCOSTCENTERID=40054 AND ID.VOUCHERTYPE=11 AND CC.DCCCNID51=@Empnode AND ISDATE(DCALPHA17)=1 AND CONVERT(DATETIME,DCALPHA17)=CONVERT(DATETIME,@MONT1) AND ISDATE(DCALPHA18)=1 AND CONVERT(DATETIME,DCALPHA18)=CONVERT(DATETIME,@MONT2) 
+	END
+ 
+	IF(@CalculateVacDayforVacationPeriod=''Yes'')
+		INSERT INTO @MonthDays VALUES(@Empnode,@MONT1,@MONT2,DATEDIFF(D,DATEADD(MONTH,0,DATEADD(M,DATEDIFF(M,0,@MONT1),0)),DATEADD(D,-1,DATEADD(MM,DATEDIFF(M,0,@MONT2)+1,0)))+1,((DATEDIFF(D,@MONT1,@MONT2)+1)-ISNULL(@LOPDAYS,0)),0,ISNULL(@LEAVESTAKEN,0),ISNULL(@LOPDAYS,0),isnull(@LeavesTakenEncash,0),0,0)
+	ELSE
+		INSERT INTO @MonthDays VALUES(@Empnode,@MONT1,@MONT2,DATEDIFF(D,DATEADD(MONTH,0,DATEADD(M,DATEDIFF(M,0,@MONT1),0)),DATEADD(D,-1,DATEADD(MM,DATEDIFF(M,0,@MONT2)+1,0)))+1,(((DATEDIFF(D,@MONT1,@MONT2)+1)-ISNULL(@LOPDAYS,0))-ISNULL(@LEAVESTAKEN,0)),0,ISNULL(@LEAVESTAKEN,0),ISNULL(@LOPDAYS,0),isnull(@LeavesTakenEncash,0),0,0)
+	
+	IF(@CreditDaysCalculation=1)
+BEGIN
+	--((VacDaysPerMonth*MonthDaysToConsider)/TotalMonthDays)
+	IF(@IsDefineDaysExists=1)
+	BEGIN
+		UPDATE @MonthDays 
+		SET Days= ROUND((( CAST((Select ISNULL(AllotedDays,0) From #VacMonthWiseAllotedDays WITH(NOLOCK) WHERE MONTH(VacMonth)=MONTH(FDATE) AND YEAR(VacMonth)=YEAR(FDATE)) AS FLOAT) * CAST(ACTUALDAYS AS FLOAT) )/ CAST(TOTALDAYS AS FLOAT) ),2,1)		
+		WHERE EMPNODE=@Empnode AND TOTALDAYS>0 
+	END
+	ELSE
+	BEGIN		
+		UPDATE @MonthDays SET Days= (( CAST(ACTUALDAYS AS FLOAT) * CAST(@MonthlyNoofDays AS FLOAT) )/ CAST(TOTALDAYS AS FLOAT) ) where EMPNODE=@Empnode AND TOTALDAYS>0
+	END
+END
+ELSE
+BEGIN
+	--((VacDaysPerYear/365)*MonthDaysToConsider)
+	IF(@IsDefineDaysExists=1)
+	BEGIN
+		UPDATE @MonthDays SET Days=(( CAST((Select ISNULL(Yearly,0) From #VacMonthWiseAllotedDays WITH(NOLOCK) WHERE MONTH(VacMonth)=MONTH(FDATE) AND YEAR(VacMonth)=YEAR(FDATE)) AS FLOAT) / CAST(365 AS FLOAT) )* CAST(ACTUALDAYS AS FLOAT) ) WHERE EMPNODE=@Empnode
+	END
+	ELSE
+	BEGIN
+		UPDATE @MonthDays SET Days=(( CAST(@VacDaysPerMonth AS FLOAT) / CAST(365 AS FLOAT) )* CAST(ACTUALDAYS AS FLOAT) ) WHERE EMPNODE=@Empnode
+	END
+END
+
+	-- START DonotshownegitiveOPvacationdays ****************************
+
+SET @K=0
+SET @ACVDAYS=0
+SET @BDays=0
+select @k=id from @MonthDays where EMPNODE=@Empnode AND FDATE=@MONT1 and TDATE=@MONT2
+declare @kmin int
+select @kmin=min(id) from @MonthDays where EMPNODE=@Empnode
+
+SELECT @ACVDAYS = BALANCE
+	FROM @MonthDays
+	WHERE EMPNODE=@Empnode AND ID = @K - 1
+
+IF(@K=@kmin)
+	UPDATE @MonthDays SET BALANCE = ISNULL(@ACVDAYS,0)+Days+ISNULL(@OPVACATIONDAYS,0) WHERE EMPNODE=@Empnode AND ID=@K
+ELSE
+	UPDATE @MonthDays SET BALANCE = ISNULL(@ACVDAYS,0)+Days WHERE EMPNODE=@Empnode AND ID=@K
+
+
+	select @FDate=FDate,@TDate=TDate,@BDays=(BALANCE - LEAVESTAKEN) FROM @MonthDays WHERE EMPNODE=@Empnode AND ID = @K
+	
+	IF( @DonotshownegitiveOPvacationdays=''True'' AND EXISTS (
+	Select ExcessDays FROM #TBL3 WITH (NOLOCK) WHERE DCCCNID51=@Empnode and convert(datetime,dcAlpha3) BETWEEN @FDate AND @TDate AND ExcessDays>0 AND @BDays<0 ) )
+
+	BEGIN
+		declare @RDays FLOAT
+		SET @RDays=1
+		
+		Select @VTD=convert(datetime,dcAlpha3) FROM #TBL3 WITH (NOLOCK) WHERE DCCCNID51=@Empnode and convert(datetime,dcAlpha3) BETWEEN @FDate AND @TDate AND ExcessDays>0
+
+		IF(@VTD<@TDate)
+			SELECT @RDays= ROUND((( ((CAST(TOTALDAYS AS FLOAT)-CAST(DATEPART(d,@VTD) AS FLOAT))) * CAST(DAYS AS FLOAT) ) / CAST(TOTALDAYS AS FLOAT)),2,1) FROM @MonthDays  WHERE EMPNODE=@Empnode AND ID = @K
+			
+			
+			
+		UPDATE @MonthDays
+		SET BALANCE = @RDays
+		WHERE EMPNODE=@Empnode AND ID = @K
+	END
+	else IF( @DonotshownegitiveOPvacationdays=''True'' AND EXISTS (
+	Select ExcessDays FROM #TBL3 WITH (NOLOCK) WHERE DCCCNID51=@Empnode AND ((convert(datetime,dcAlpha2) BETWEEN @FDate AND @TDate) or (convert(datetime,dcAlpha2)<@FDate and convert(datetime,dcAlpha3)>@TDate)) AND ExcessDays>0 AND @BDays<0 ) )
+	begin
+	UPDATE @MonthDays
+		SET BALANCE = 0
+		WHERE ID = @K
+		AND EMPNODE = @Empnode
+	end
+	ELSE
+	BEGIN
+		UPDATE @MonthDays
+		SET BALANCE = (BALANCE - LEAVESTAKEN-@LeavesTakenEncash)
+		WHERE EMPNODE=@Empnode AND ID = @K
+	END
+
+
+-- END DonotshownegitiveOPvacationdays ****************************	
+SET @RC1=@RC1+1
+END
+
+select @PaidDays=SUM(a.PaidDays),@ExcessDays=SUM(a.ExcessDays) from (
+SELECT  PaidDays,ExcessDays
+		FROM #TBL3 WITH(NOLOCK)
+		WHERE dcCCNID51=@Empnode   
+		AND CONVERT(DATETIME,dcAlpha2) <= CONVERT(DATETIME,@DATE)	
+		group by voucherno,PaidDays,ExcessDays ) as a
+
+--select * from @MonthDays
+--CHECKING PREFERENCE VACATION DAYS UPTO LAST MONTH
+IF (@CALCVACDAYSUPTOLASTMONTH=''False'')
+	SELECT  @TotalDays=SUM(Days-LeavesTaken) FROM @MonthDays WHERE EMPNODE=@Empnode
+ELSE
+	SELECT  @TotalDays=SUM(Days-LeavesTaken) FROM @MonthDays WHERE EMPNODE=@Empnode AND CONVERT(DateTime,FDATE)<DATEADD(MONTH,DATEDIFF(MONTH,0,CONVERT(DateTime,@DATE)),0)
+--END : CALCULATING PER MONTH DAYS
+set @BAL=0
+SELECT @BAL=BALANCE FROM @MonthDays WHERE EMPNODE=@Empnode and TDATE=@Date
+
+
+INSERT INTO @VACTABLE
+SELECT @Empnode,@OPVACATIONDAYS,SUM(DAYS),sum(LEAVESTAKEN),@LeavesTakenEncashSUM,
+CASE WHEN @DonotshownegitiveOPvacationdays=''TRUE'' THEN ROUND(ISNULL(@BAL,0),2) ELSE Round(ISNULL(@OPVACATIONDAYS,0)+isnull(@TotalDays,0)-isnull(@LeavesTakenEncashSUM,0),2) END
+,@PaidDays,@ExcessDays,ISNULL(@MAXCarryForwarddays,0)
+--@OPVACATIONDAYS+SUM(DAYS)-sum(LEAVESTAKEN)-@LeavesTakenEncashSUM 
+FROM @MonthDays WHERE EMPNODE=@EmpNode
+
+SET @I=@I+1
+END--END--EMPLOYEE LOOP
+ 
+ if(@TYPE=100)
+SELECT a.*,CASE WHEN @TYPE=100 AND MAXCarryForwarddays>0 AND BALANCE>MAXCarryForwarddays then BALANCE-MAXCarryForwarddays ELSE 0 END ElapseDays,''Yes'' IsVacationElapse,@Date VacFromDate,@Date VacToDate,c51.Code,c51.Name,A.EmployeeID Code_ID FROM @VACTABLE a
+join com_cc50051 c51 with(nolock) on  a.EmployeeID=c51.nodeid
+else
+SELECT * FROM @VACTABLE
+
+DROP TABLE #VMDD
+DROP TABLE #VacMonthWiseAllotedDays
+DROP TABLE #TBL3
+DROP TABLE #TVM
+
+SET NOCOUNT OFF;
+END
+
+' 
+END
+GO

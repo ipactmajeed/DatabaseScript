@@ -1,0 +1,42 @@
+-- SHASHANK
+
+declare @CCColID BIGINT,@RId BIGINT
+SELECT @CCColID=MAX([CostCenterColID])+1 FROM ADM_CostCenterDef WITH(NOLOCK)
+SELECT @RId=MAX([ResourceID])+1 FROM [Com_LanguageResources]  WITH(NOLOCK)
+
+
+IF NOT EXISTS(SELECT Name From Sys.columns WHERE object_id=OBJECT_ID(N'COM_DocTextData') AND Name='dcAlpha30')
+		ALTER TABLE COM_DocTextData add dcAlpha30 NVARCHAR(MAX)
+IF NOT EXISTS(SELECT Name From Sys.columns WHERE object_id=OBJECT_ID(N'COM_DocTextData_History') AND Name='dcAlpha30')
+		ALTER TABLE COM_DocTextData_History add dcAlpha30 NVARCHAR(MAX)
+
+IF NOT EXISTS(SELECT * FROM ADM_CostCenterDef WITH(NOLOCK) WHERE CostCenterID=40072 AND SysColumnName='dcAlpha30')
+BEGIN	
+		
+	INSERT INTO [com_languageresources] ([ResourceID],[ResourceName],[LanguageID],[LanguageName],[ResourceData],[GUID],[Description],[CreatedBy],[CreatedDate],[ModifiedBy],[ModifiedDate],[FEATURE])
+VALUES(@RId,'dcAlpha30',1,'English','Is Vacation Elapse','A18AA097-DF5D-41CD-9AFF-22C66D20097A',NULL,'ADMIN',4.072966253163580e+004,NULL,NULL,'')
+
+INSERT INTO [com_languageresources] ([ResourceID],[ResourceName],[LanguageID],[LanguageName],[ResourceData],[GUID],[Description],[CreatedBy],[CreatedDate],[ModifiedBy],[ModifiedDate],[FEATURE])
+VALUES(@RId,'dcAlpha30',2,'Arabic','Is Vacation Elapse','A18AA097-DF5D-41CD-9AFF-22C66D20097A',NULL,'ADMIN',4.072966253163580e+004,NULL,NULL,'')
+
+	SET IDENTITY_INSERT [dbo].[ADM_CostCenterDef] ON
+	INSERT INTO [ADM_CostCenterDef] ([CostCenterID],[CostCenterColID],[ResourceID],[CostCenterName],[SysTableName],[UserColumnName],[SysColumnName],[ColumnTypeSeqNumber],[UserColumnType],[ColumnDataType],[UserDefaultValue],[UserProbableValues],[ColumnOrder],[IsMandatory],[IsEditable],[IsVisible],[IsCostCenterUserDefined],[IsColumnUserDefined],[IsCCDeleted],[IsColumnDeleted],[ColumnCostCenterID],[ColumnCCListViewTypeID],[FetchMaxRows],[IsColumnGroup],[ColumnGroupNumber],[SectionSeqNumber],[SectionID],[SectionName],[RowNo],[ColumnNo],[ColumnSpan],[IsColumnInUse],[UIWidth],[CompanyGUID],[GUID],[Description],[CreatedBy],[CreatedDate],[ModifiedBy],[ModifiedDate],[IsUnique],[IsForeignKey],[ParentCostCenterID],[ParentCostCenterColID],[IsValidReportBuilderCol],[ParentCostCenterSysName],[ParentCostCenterColSysName],[ParentCCDefaultColID],[LinkData],[LocalReference],[Decimal],[TextFormat],[Filter],[IsRepeat],[LastValueVouchers],[IsnoTab],[dependancy],[dependanton],[IsTransfer],[DbFilter],[CrFilter],[ShowInQuickAdd],[QuickAddOrder],[Calculate],[Cformula],[IsReEvaluate],[IgnoreChar],[WaterMark])
+	VALUES(40072,@CCColID,@RId,'Apply Vacation','COM_DocTextData','Is Vacation Elapse','dcAlpha30',NULL,'Combobox','TEXT','No','Yes;No',0,0,0,1,1,1,0,0,0,0,NULL,0,NULL,129,2,'General',6,3,1,1,NULL,'CompanyGUID','1A3E50AD-D67A-4A90-A308-2A35693E2068',NULL,'ADMIN',4.076467853962191e+004,NULL,NULL,NULL,0,NULL,NULL,1,NULL,NULL,NULL,NULL,NULL,NULL,0,NULL,0,NULL,0,NULL,NULL,NULL,NULL,NULL,0,NULL,NULL,NULL,NULL,NULL,'')
+	SET IDENTITY_INSERT [dbo].[ADM_CostCenterDef] OFF
+
+END
+ELSE
+BEGIN
+	UPDATE ADM_CostCenterDef 
+	SET UserColumnName='Is Vacation Elapse',UserColumnType='Combobox',UserDefaultValue='No',UserProbableValues='Yes;No',
+	SectionID=2,SectionSeqNumber=129,SectionName='General',RowNo=6,ColumnNo=3,IsColumnInUse=1,IsEditable=0
+	WHERE CostCenterID=40072 AND SysColumnName='dcAlpha30'
+
+
+	update com_languageResources
+	set resourcedata=b.UserColumnName
+	from com_languageResources a
+	join ADM_CostCenterDef b on b.resourceid=a.resourceid and b.costcenterid=40072
+	where b.costcenterid=40072 and b.SysColumnName in ('dcAlpha30')
+
+END

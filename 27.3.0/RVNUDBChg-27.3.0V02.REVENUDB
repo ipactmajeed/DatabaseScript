@@ -1,0 +1,93 @@
+--CHARY
+
+
+IF NOT EXISTS(SELECT NodeID From ADM_DashBoard WITH(NOLOCK) WHERE NodeID=-2)
+BEGIN
+
+	DECLARE @lft bigint,@rgt bigint,@Selectedlft bigint,@Selectedrgt bigint,@Depth int,@ParentID bigint, @SelectedIsGroup bit
+	DECLARE @NoOfReports INT, @SelectedNodeID int
+	SET @NoOfReports=12
+	set @SelectedNodeID=-1
+
+	--To Set Left,Right And Depth of Record
+	SELECT @SelectedIsGroup=IsGroup,@Selectedlft =lft,@Selectedrgt=rgt,@ParentID=ParentID,@Depth=Depth
+	from ADM_DashBoard with(NOLOCK) where NodeID=@SelectedNodeID
+
+	--IF No Record Selected or Record Doesn't Exist
+	IF(@SelectedIsGroup is null or @SelectedIsGroup=0)
+		select @SelectedNodeID=NodeID,@SelectedIsGroup=IsGroup,@Selectedlft =lft,@Selectedrgt=rgt,@ParentID=ParentID,@Depth=Depth
+		from ADM_DashBoard with(NOLOCK) where ParentID =0
+	
+	IF(@SelectedIsGroup = 1)--Adding Node Under the Group
+	BEGIN
+		UPDATE ADM_DashBoard SET rgt = rgt + @NoOfReports*2 WHERE rgt > @Selectedlft
+		UPDATE ADM_DashBoard SET lft = lft + @NoOfReports*2 WHERE lft > @Selectedlft
+		SET @lft =  @Selectedlft + 1
+		SET @ParentID = @SelectedNodeID
+		SET @Depth = @Depth + 1
+	END
+
+	SET IDENTITY_INSERT [dbo].ADM_DashBoard ON
+	INSERT INTO [ADM_DashBoard] ([NodeID],[DashBoardID],[DashBoardName],[DashBoardType],[ReportName],[ReportID],[AutoRefresh],[RefreshRate],[Filter],[CompanyGUID],[GUID],[Description],[CreatedBy],[CreatedDate],[ModifiedBy],[ModifiedDate],[Type],[TypeID],[GraphType],[TextField],[NumericField],[ShowGrid],[TopRecords],
+	[Depth],[ParentID],[lft],[rgt],[IsGroup],[RowNo],[ColNo],[RowSpan],[ColSpan],[ShowPoint],[NumSeriesColor],[Options],[WidgetXML])
+	VALUES(-2,-2,'PR_Main Group','','PR_Main Group',0,0,0,0,'CGUID','GUID',NULL,'1',4.462552886304013e+004,NULL,NULL,'1',1,1,'','',0,0,
+	@Depth,@SelectedNodeID,@lft,@lft+1,1,0,0,1,1,NULL,NULL,'','')
+
+	INSERT INTO [ADM_DashBoard] ([NodeID],[DashBoardID],[DashBoardName],[DashBoardType],[ReportName],[ReportID],[AutoRefresh],[RefreshRate],[Filter],[CompanyGUID],[GUID],[Description],[CreatedBy],[CreatedDate],[ModifiedBy],[ModifiedDate],[Type],[TypeID],[GraphType],[TextField],[NumericField],[ShowGrid],[TopRecords],
+	[Depth],[ParentID],[lft],[rgt],[IsGroup],[RowNo],[ColNo],[RowSpan],[ColSpan],[ShowPoint],[NumSeriesColor],[Options],[WidgetXML])
+	VALUES(-3,-3,'PR_Finance Group','','PR_Finance Group',0,0,0,0,'CGUID','GUID',NULL,'1',4.462552886304013e+004,NULL,NULL,'1',1,1,'','',0,0,
+	@Depth,@SelectedNodeID,@lft+2,@lft+3,1,0,0,1,1,NULL,NULL,'','')
+
+	INSERT INTO [ADM_DashBoard] ([NodeID],[DashBoardID],[DashBoardName],[DashBoardType],[ReportName],[ReportID],[AutoRefresh],[RefreshRate],[Filter],[CompanyGUID],[GUID],[Description],[CreatedBy],[CreatedDate],[ModifiedBy],[ModifiedDate],[Type],[TypeID],[GraphType],[TextField],[NumericField],[ShowGrid],[TopRecords],
+	[Depth],[ParentID],[lft],[rgt],[IsGroup],[RowNo],[ColNo],[RowSpan],[ColSpan],[ShowPoint],[NumSeriesColor],[Options],[WidgetXML])
+	VALUES(-4,-4,'PR_Purchase Group','','PR_Purchase Group',0,0,0,0,'CGUID','GUID',NULL,'1',4.462552886304013e+004,NULL,NULL,'1',1,1,'','',0,0,
+	@Depth,@SelectedNodeID,@lft+4,@lft+5,1,0,0,1,1,NULL,NULL,'','')
+
+	INSERT INTO [ADM_DashBoard] ([NodeID],[DashBoardID],[DashBoardName],[DashBoardType],[ReportName],[ReportID],[AutoRefresh],[RefreshRate],[Filter],[CompanyGUID],[GUID],[Description],[CreatedBy],[CreatedDate],[ModifiedBy],[ModifiedDate],[Type],[TypeID],[GraphType],[TextField],[NumericField],[ShowGrid],[TopRecords],
+	[Depth],[ParentID],[lft],[rgt],[IsGroup],[RowNo],[ColNo],[RowSpan],[ColSpan],[ShowPoint],[NumSeriesColor],[Options],[WidgetXML])
+	VALUES(-5,-5,'PR_Sales Group','','PR_Sales Group',0,0,0,0,'CGUID','GUID',NULL,'1',4.462552886304013e+004,NULL,NULL,'1',1,1,'','',0,0,
+	@Depth,@SelectedNodeID,@lft+6,@lft+7,1,0,0,1,1,NULL,NULL,'','')
+
+	INSERT INTO [ADM_DashBoard] ([NodeID],[DashBoardID],[DashBoardName],[DashBoardType],[ReportName],[ReportID],[AutoRefresh],[RefreshRate],[Filter],[CompanyGUID],[GUID],[Description],[CreatedBy],[CreatedDate],[ModifiedBy],[ModifiedDate],[Type],[TypeID],[GraphType],[TextField],[NumericField],[ShowGrid],[TopRecords],
+	[Depth],[ParentID],[lft],[rgt],[IsGroup],[RowNo],[ColNo],[RowSpan],[ColSpan],[ShowPoint],[NumSeriesColor],[Options],[WidgetXML])
+	VALUES(-6,-6,'PR_Inventory Group','','PR_Inventory Group',0,0,0,0,'CGUID','GUID',NULL,'1',4.462552886304013e+004,NULL,NULL,'1',1,1,'','',0,0,
+	@Depth,@SelectedNodeID,@lft+8,@lft+9,1,0,0,1,1,NULL,NULL,'','')
+
+	INSERT INTO [ADM_DashBoard] ([NodeID],[DashBoardID],[DashBoardName],[DashBoardType],[ReportName],[ReportID],[AutoRefresh],[RefreshRate],[Filter],[CompanyGUID],[GUID],[Description],[CreatedBy],[CreatedDate],[ModifiedBy],[ModifiedDate],[Type],[TypeID],[GraphType],[TextField],[NumericField],[ShowGrid],[TopRecords],
+	[Depth],[ParentID],[lft],[rgt],[IsGroup],[RowNo],[ColNo],[RowSpan],[ColSpan],[ShowPoint],[NumSeriesColor],[Options],[WidgetXML])
+	VALUES(-7,-7,'PR_Warehouse Group','','PR_Warehouse Group',0,0,0,0,'CGUID','GUID',NULL,'1',4.462552886304013e+004,NULL,NULL,'1',1,1,'','',0,0,
+	@Depth,@SelectedNodeID,@lft+10,@lft+11,1,0,0,1,1,NULL,NULL,'','')
+
+	INSERT INTO [ADM_DashBoard] ([NodeID],[DashBoardID],[DashBoardName],[DashBoardType],[ReportName],[ReportID],[AutoRefresh],[RefreshRate],[Filter],[CompanyGUID],[GUID],[Description],[CreatedBy],[CreatedDate],[ModifiedBy],[ModifiedDate],[Type],[TypeID],[GraphType],[TextField],[NumericField],[ShowGrid],[TopRecords],
+	[Depth],[ParentID],[lft],[rgt],[IsGroup],[RowNo],[ColNo],[RowSpan],[ColSpan],[ShowPoint],[NumSeriesColor],[Options],[WidgetXML])
+	VALUES(-8,-8,'PR_CRM Group','','PR_CRM Group',0,0,0,0,'CGUID','GUID',NULL,'1',4.462552886304013e+004,NULL,NULL,'1',1,1,'','',0,0,
+	@Depth,@SelectedNodeID,@lft+12,@lft+13,1,0,0,1,1,NULL,NULL,'','')
+	----
+	INSERT INTO [ADM_DashBoard] ([NodeID],[DashBoardID],[DashBoardName],[DashBoardType],[ReportName],[ReportID],[AutoRefresh],[RefreshRate],[Filter],[CompanyGUID],[GUID],[Description],[CreatedBy],[CreatedDate],[ModifiedBy],[ModifiedDate],[Type],[TypeID],[GraphType],[TextField],[NumericField],[ShowGrid],[TopRecords],
+	[Depth],[ParentID],[lft],[rgt],[IsGroup],[RowNo],[ColNo],[RowSpan],[ColSpan],[ShowPoint],[NumSeriesColor],[Options],[WidgetXML])
+	VALUES(-9,-9,'PR_Property Group','','PR_Property Group',0,0,0,0,'CGUID','GUID',NULL,'1',4.462552886304013e+004,NULL,NULL,'1',1,1,'','',0,0,
+	@Depth,@SelectedNodeID,@lft+14,@lft+15,1,0,0,1,1,NULL,NULL,'','')
+
+	INSERT INTO [ADM_DashBoard] ([NodeID],[DashBoardID],[DashBoardName],[DashBoardType],[ReportName],[ReportID],[AutoRefresh],[RefreshRate],[Filter],[CompanyGUID],[GUID],[Description],[CreatedBy],[CreatedDate],[ModifiedBy],[ModifiedDate],[Type],[TypeID],[GraphType],[TextField],[NumericField],[ShowGrid],[TopRecords],
+	[Depth],[ParentID],[lft],[rgt],[IsGroup],[RowNo],[ColNo],[RowSpan],[ColSpan],[ShowPoint],[NumSeriesColor],[Options],[WidgetXML])
+	VALUES(-10,-10,'PR_Facility Management Group','','PR_Facility Management Group',0,0,0,0,'CGUID','GUID',NULL,'1',4.462552886304013e+004,NULL,NULL,'1',1,1,'','',0,0,
+	@Depth,@SelectedNodeID,@lft+16,@lft+17,1,0,0,1,1,NULL,NULL,'','')
+
+	INSERT INTO [ADM_DashBoard] ([NodeID],[DashBoardID],[DashBoardName],[DashBoardType],[ReportName],[ReportID],[AutoRefresh],[RefreshRate],[Filter],[CompanyGUID],[GUID],[Description],[CreatedBy],[CreatedDate],[ModifiedBy],[ModifiedDate],[Type],[TypeID],[GraphType],[TextField],[NumericField],[ShowGrid],[TopRecords],
+	[Depth],[ParentID],[lft],[rgt],[IsGroup],[RowNo],[ColNo],[RowSpan],[ColSpan],[ShowPoint],[NumSeriesColor],[Options],[WidgetXML])
+	VALUES(-11,-11,'PR_HRM & Payroll Group','','PR_HRM & Payroll Group',0,0,0,0,'CGUID','GUID',NULL,'1',4.462552886304013e+004,NULL,NULL,'1',1,1,'','',0,0,
+	@Depth,@SelectedNodeID,@lft+18,@lft+19,1,0,0,1,1,NULL,NULL,'','')
+
+	INSERT INTO [ADM_DashBoard] ([NodeID],[DashBoardID],[DashBoardName],[DashBoardType],[ReportName],[ReportID],[AutoRefresh],[RefreshRate],[Filter],[CompanyGUID],[GUID],[Description],[CreatedBy],[CreatedDate],[ModifiedBy],[ModifiedDate],[Type],[TypeID],[GraphType],[TextField],[NumericField],[ShowGrid],[TopRecords],
+	[Depth],[ParentID],[lft],[rgt],[IsGroup],[RowNo],[ColNo],[RowSpan],[ColSpan],[ShowPoint],[NumSeriesColor],[Options],[WidgetXML])
+	VALUES(-12,-12,'PR_Projects Group','','PR_Projects Group',0,0,0,0,'CGUID','GUID',NULL,'1',4.462552886304013e+004,NULL,NULL,'1',1,1,'','',0,0,
+	@Depth,@SelectedNodeID,@lft+20,@lft+21,1,0,0,1,1,NULL,NULL,'','')
+
+	INSERT INTO [ADM_DashBoard] ([NodeID],[DashBoardID],[DashBoardName],[DashBoardType],[ReportName],[ReportID],[AutoRefresh],[RefreshRate],[Filter],[CompanyGUID],[GUID],[Description],[CreatedBy],[CreatedDate],[ModifiedBy],[ModifiedDate],[Type],[TypeID],[GraphType],[TextField],[NumericField],[ShowGrid],[TopRecords],
+	[Depth],[ParentID],[lft],[rgt],[IsGroup],[RowNo],[ColNo],[RowSpan],[ColSpan],[ShowPoint],[NumSeriesColor],[Options],[WidgetXML])
+	VALUES(-13,-13,'PR_Resource Group','','PR_Resource Group',0,0,0,0,'CGUID','GUID',NULL,'1',4.462552886304013e+004,NULL,NULL,'1',1,1,'','',0,0,
+	@Depth,@SelectedNodeID,@lft+22,@lft+23,1,0,0,1,1,NULL,NULL,'','')
+
+SET IDENTITY_INSERT [dbo].ADM_DashBoard ON
+
+END

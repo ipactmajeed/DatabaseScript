@@ -1,0 +1,88 @@
+-- Wajid
+
+if not exists( select [Name] from [ADM_Features] with(nolock) where FeatureID = 510)
+Begin
+	DECLARE @FeatureActionID bigint,@Rid bigint,@RibbonViewID bigint 
+	-- FeatureID = 510
+	-- FeatureActionTypeID = 953
+
+	SELECT @RibbonViewID=MAX(RibbonViewID)+1 FROM [ADM_RibbonView] WITH(NOLOCK)  
+	SELECT @FeatureActionID=MAX(FeatureActionID)+1 FROM [ADM_FeatureAction] WITH(NOLOCK)   
+	SELECT @Rid=MAX([ResourceID])+1 FROM [Com_LanguageResources] WITH(NOLOCK)  
+
+	INSERT INTO [Com_LanguageResources] ([ResourceID],[ResourceName],[LanguageID],[LanguageName],[ResourceData],[GUID],[Description],[CreatedBy],[CreatedDate],[ModifiedBy],[ModifiedDate],[FEATURE])
+	VALUES(@Rid,'OrganizationChart',1,'English','Organization Chart',NEWID(),NULL,'Admin',convert(float,getdate()),NULL,NULL,'Admin') 
+
+	INSERT INTO [Com_LanguageResources] ([ResourceID],[ResourceName],[LanguageID],[LanguageName],[ResourceData],[GUID],[Description],[CreatedBy],[CreatedDate],[ModifiedBy],[ModifiedDate],[FEATURE])
+	VALUES(@Rid,'OrganizationChart',2,'Arabic','Organization Chart',NEWID(),NULL,'Admin',convert(float,getdate()),NULL,NULL,'Admin') 
+	INSERT INTO [Com_LanguageResources] ([ResourceID],[ResourceName],[LanguageID],[LanguageName],[ResourceData],[GUID],[Description],[CreatedBy],[CreatedDate],[ModifiedBy],[ModifiedDate],[FEATURE])
+	VALUES(@Rid,'OrganizationChart',3,'Italian','Organization Chart',NEWID(),NULL,'Admin',convert(float,getdate()),NULL,NULL,'Admin') 
+
+	INSERT [dbo].[ADM_Features] ([FeatureID], [ParentFeatureID], [Name], [SysName], [ResourceID], [FeatureTypeID], [FeatureTypeName], [IsEnabled], [IsUserDefined], [FeatureTypeResourceID], [Description], [ApplicationID], [StatusID], [CreatedDate], [CreatedBy], [TableName], [AllowCustomization], [PrimaryKey]) VALUES
+	(510, 1, N'OrganizationChart', NULL, @Rid, 1, N'OrganizationChart', 1, 0, NULL, N'OrganizationChart', 1, 1, 4, N'Admin', NULL, 1, NULL)
+
+
+	SET IDENTITY_INSERT [ADM_FeatureAction] ON
+		INSERT INTO [ADM_FeatureAction] ([FeatureActionID],[Name],[ResourceID],[FeatureID],[FeatureActionTypeID],[ApplicationID],[GridShortCut],[Description],[Status],[CreatedDate],[CreatedBy])
+		VALUES(@FeatureActionID,'OrganizationChart',@Rid,510,953,1,NULL,NULL,1,4.004000000000000e+003,'ADMIN')
+	SET IDENTITY_INSERT [ADM_FeatureAction] OFF
+
+	INSERT INTO [ADM_FeatureActionRoleMap]([RoleID],[FeatureActionID],[Description],[Status],[CreatedBy],[CreatedDate],[ModifiedBy],[ModifiedDate])
+	SELECT 1,[FeatureActionID],'OrganizationChart',1,'Admin',CONVERT(FLOAT,GETDATE()),NULL,NULL
+	FROM [ADM_FeatureAction] WITH(NOLOCK) WHERE FeatureID=510
+
+	--RIBBON
+	INSERT INTO [Com_LanguageResources] ([ResourceID],[ResourceName],[LanguageID],[LanguageName],[ResourceData],[GUID],[Description],[CreatedBy],[CreatedDate],[ModifiedBy],[ModifiedDate],[FEATURE])
+	VALUES(@Rid+1,'OrganizationChart',1,'English','Organization Chart','GUID',NULL,'Admin',convert(float,getdate()),NULL,NULL,'ADMIN') 
+	INSERT INTO [Com_LanguageResources] ([ResourceID],[ResourceName],[LanguageID],[LanguageName],[ResourceData],[GUID],[Description],[CreatedBy],[CreatedDate],[ModifiedBy],[ModifiedDate],[FEATURE])
+	VALUES(@Rid+1,'OrganizationChart',2,'Arabic','Organization Chart','GUID',NULL,'Admin',convert(float,getdate()),NULL,NULL,'ADMIN') 
+	INSERT INTO [Com_LanguageResources] ([ResourceID],[ResourceName],[LanguageID],[LanguageName],[ResourceData],[GUID],[Description],[CreatedBy],[CreatedDate],[ModifiedBy],[ModifiedDate],[FEATURE])
+	VALUES(@Rid+1,'OrganizationChart',3,'Italian','Organization Chart','GUID',NULL,'Admin',convert(float,getdate()),NULL,NULL,'ADMIN') 
+
+
+	INSERT INTO [Com_LanguageResources] ([ResourceID],[ResourceName],[LanguageID],[LanguageName],[ResourceData],[GUID],[Description],[CreatedBy],[CreatedDate],[ModifiedBy],[ModifiedDate],[FEATURE])
+	VALUES(@Rid+2,'OrganizationChart',1,'English','Organization Chart','GUID',NULL,'Admin',convert(float,getdate()),NULL,NULL,'ADMIN') 
+	INSERT INTO [Com_LanguageResources] ([ResourceID],[ResourceName],[LanguageID],[LanguageName],[ResourceData],[GUID],[Description],[CreatedBy],[CreatedDate],[ModifiedBy],[ModifiedDate],[FEATURE])
+	VALUES(@Rid+2,'OrganizationChart',2,'Arabic','Organization Chart','GUID',NULL,'Admin',convert(float,getdate()),NULL,NULL,'ADMIN') 
+	INSERT INTO [Com_LanguageResources] ([ResourceID],[ResourceName],[LanguageID],[LanguageName],[ResourceData],[GUID],[Description],[CreatedBy],[CreatedDate],[ModifiedBy],[ModifiedDate],[FEATURE])
+	VALUES(@Rid+2,'OrganizationChart',3,'Italian','Organization Chart','GUID',NULL,'Admin',convert(float,getdate()),NULL,NULL,'ADMIN') 
+
+	INSERT INTO [Com_LanguageResources] ([ResourceID],[ResourceName],[LanguageID],[LanguageName],[ResourceData],[GUID],[Description],[CreatedBy],[CreatedDate],[ModifiedBy],[ModifiedDate],[FEATURE])
+	VALUES(@Rid+3,'OrganizationChart',1,'English','Organization Chart','GUID',NULL,'Admin',convert(float,getdate()),NULL,NULL,'ADMIN') 
+	INSERT INTO [Com_LanguageResources] ([ResourceID],[ResourceName],[LanguageID],[LanguageName],[ResourceData],[GUID],[Description],[CreatedBy],[CreatedDate],[ModifiedBy],[ModifiedDate],[FEATURE])
+	VALUES(@Rid+3,'OrganizationChart',2,'Arabic','Organization Chart','GUID',NULL,'Admin',convert(float,getdate()),NULL,NULL,'ADMIN') 
+	INSERT INTO [Com_LanguageResources] ([ResourceID],[ResourceName],[LanguageID],[LanguageName],[ResourceData],[GUID],[Description],[CreatedBy],[CreatedDate],[ModifiedBy],[ModifiedDate],[FEATURE])
+	VALUES(@Rid+3,'OrganizationChart',3,'Italian','Organization Chart','GUID',NULL,'Admin',convert(float,getdate()),NULL,NULL,'ADMIN') 
+
+	INSERT INTO [Com_LanguageResources] ([ResourceID],[ResourceName],[LanguageID],[LanguageName],[ResourceData],[GUID],[Description],[CreatedBy],[CreatedDate],[ModifiedBy],[ModifiedDate],[FEATURE])
+	VALUES(@Rid+4,'OrganizationChart',1,'English','Organization Chart','GUID',NULL,'Admin',convert(float,getdate()),NULL,NULL,'ADMIN') 
+	INSERT INTO [Com_LanguageResources] ([ResourceID],[ResourceName],[LanguageID],[LanguageName],[ResourceData],[GUID],[Description],[CreatedBy],[CreatedDate],[ModifiedBy],[ModifiedDate],[FEATURE])
+	VALUES(@Rid+4,'OrganizationChart',2,'Arabic','Organization Chart','GUID',NULL,'Admin',convert(float,getdate()),NULL,NULL,'ADMIN') 
+	INSERT INTO [Com_LanguageResources] ([ResourceID],[ResourceName],[LanguageID],[LanguageName],[ResourceData],[GUID],[Description],[CreatedBy],[CreatedDate],[ModifiedBy],[ModifiedDate],[FEATURE])
+	VALUES(@Rid+4,'OrganizationChart',3,'Italian','Organization Chart','GUID',NULL,'Admin',convert(float,getdate()),NULL,NULL,'ADMIN') 
+
+	INSERT INTO [Com_LanguageResources] ([ResourceID],[ResourceName],[LanguageID],[LanguageName],[ResourceData],[GUID],[Description],[CreatedBy],[CreatedDate],[ModifiedBy],[ModifiedDate],[FEATURE])
+	VALUES(@Rid+5,'OrganizationChart',1,'English','Organization Chart','GUID',NULL,'Admin',convert(float,getdate()),NULL,NULL,'ADMIN') 
+	INSERT INTO [Com_LanguageResources] ([ResourceID],[ResourceName],[LanguageID],[LanguageName],[ResourceData],[GUID],[Description],[CreatedBy],[CreatedDate],[ModifiedBy],[ModifiedDate],[FEATURE])
+	VALUES(@Rid+5,'OrganizationChart',2,'Arabic','Organization Chart','GUID',NULL,'Admin',convert(float,getdate()),NULL,NULL,'ADMIN') 
+	INSERT INTO [Com_LanguageResources] ([ResourceID],[ResourceName],[LanguageID],[LanguageName],[ResourceData],[GUID],[Description],[CreatedBy],[CreatedDate],[ModifiedBy],[ModifiedDate],[FEATURE])
+	VALUES(@Rid+5,'OrganizationChart',3,'Italian','Organization Chart','GUID',NULL,'Admin',convert(float,getdate()),NULL,NULL,'ADMIN') 
+
+
+
+
+	INSERT INTO [ADM_RibbonView]([RibbonViewID],[TabID],[GroupID],[DrpID],[TabName],[GroupName],[DrpName],[TabResourceID],[GroupResourceID],[DrpResourceID],[TabOrder],[GroupOrder],[FeatureID],
+	[FeatureActionID],[FeatureActionResourceID],[FeatureActionName],[TabKeyTip],[GroupKeyTip],[DrpKeyTip],[ButtonKeyTip],[IsEnabled],[ScreenName],[ScreenResourceID],
+	[ImageType],[ImagePath],[DrpImage],[ToolTipTitleResourceID],[ToolTipTitle],[ToolTipImg],[ToolTipDescResourceID],[ToolTipDesc],[RoleID],[UserID],[UserName],[CompanyGUID],
+	[GUID],[Description],[CreatedBy],[CreatedDate],[ModifiedBy],[ModifiedDate],[DisplayName],[DisplayNameResourceID],[ColumnOrder],[ShowInWeb],[IsMobile])
+
+	VALUES(@RibbonViewID,13,101,null,'HRM','HR-Master',null,
+	(select Tabresourceid from [ADM_RibbonView] with(nolock) where ribbonviewid=750),
+	(select GROUPresourceid from [ADM_RibbonView] with(nolock) where ribbonviewid=750),
+	(select Drpresourceid from [ADM_RibbonView] with(nolock) where ribbonviewid=750),
+	13,1,510,@FeatureActionID,@Rid+1,
+	'OrganizationChart','Y',NULL,NULL,'P',1,'OrganizationChart',@Rid+2,0,'DIM_Branch.png','DIM_Branch.png',@Rid+3,
+	'OrganizationChart','DIM_Branch.png',@Rid+4,'OrganizationChart',1,1,'Admin','CompanyGUID',
+	NEWID(),'Organization Chart','Admin',CONVERT(FLOAT,GETDATE()),NULL,NULL,'Organization Chart',@Rid+5,0,1,0)
+
+End

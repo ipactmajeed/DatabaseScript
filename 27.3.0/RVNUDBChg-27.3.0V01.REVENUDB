@@ -1,0 +1,35 @@
+--CHARY
+
+IF NOT EXISTS(SELECT NodeID From ADM_DashBoard WITH(NOLOCK) WHERE NodeID=-1)
+BEGIN
+	DECLARE @lft bigint,@rgt bigint,@Selectedlft bigint,@Selectedrgt bigint,@Depth int,@ParentID bigint, @SelectedIsGroup bit
+	DECLARE @NoOfReports INT, @SelectedNodeID int
+	SET @NoOfReports=1
+	set @SelectedNodeID=1
+
+	--To Set Left,Right And Depth of Record
+	SELECT @SelectedIsGroup=IsGroup,@Selectedlft =lft,@Selectedrgt=rgt,@ParentID=ParentID,@Depth=Depth
+	from ADM_DashBoard with(NOLOCK) where NodeID=@SelectedNodeID
+
+	--IF No Record Selected or Record Doesn't Exist
+	IF(@SelectedIsGroup is null or @SelectedIsGroup=0)
+		select @SelectedNodeID=NodeID,@SelectedIsGroup=IsGroup,@Selectedlft =lft,@Selectedrgt=rgt,@ParentID=ParentID,@Depth=Depth
+		from ADM_DashBoard with(NOLOCK) where ParentID =0
+	
+	IF(@SelectedIsGroup = 1)--Adding Node Under the Group
+	BEGIN
+		UPDATE ADM_DashBoard SET rgt = rgt + @NoOfReports*2 WHERE rgt > @Selectedlft
+		UPDATE ADM_DashBoard SET lft = lft + @NoOfReports*2 WHERE lft > @Selectedlft
+		SET @lft =  @Selectedlft + 1
+		SET @ParentID = @SelectedNodeID
+		SET @Depth = @Depth + 1
+	END
+
+	SET IDENTITY_INSERT [dbo].ADM_DashBoard ON
+	INSERT INTO [ADM_DashBoard] ([NodeID],[DashBoardID],[DashBoardName],[DashBoardType],[ReportName],[ReportID],[AutoRefresh],[RefreshRate],[Filter],[CompanyGUID],[GUID],[Description],[CreatedBy],[CreatedDate],[ModifiedBy],[ModifiedDate],[Type],[TypeID],[GraphType],[TextField],[NumericField],[ShowGrid],[TopRecords],
+	[Depth],[ParentID],[lft],[rgt],[IsGroup],[RowNo],[ColNo],[RowSpan],[ColSpan],[ShowPoint],[NumSeriesColor],[Options],[WidgetXML])
+	VALUES(-1,-1,'PR_Dashboards','','PR_Dashboards',0,0,0,0,'PR_Dashboards','PR_Dashboards',NULL,'1',4.462552886304013e+004,NULL,NULL,'1',1,1,'','',0,0,
+	@Depth,@SelectedNodeID,@lft,@lft+1,1,0,0,1,1,NULL,NULL,'','')
+	SET IDENTITY_INSERT [dbo].ADM_DashBoard ON
+
+END

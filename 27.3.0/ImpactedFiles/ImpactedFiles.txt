@@ -1,0 +1,39 @@
+
+
+
+
+
+M	PactRevenUWebapi2.0/.vs/PactRevenUWebapi2.0/v15/.suo
+M	PactRevenUWebapi2.0/PactRevenUWebapi2.0/PactRevenUWebapi2.0.csproj
+M	PactRevenUWebapi2.0/PactRevenUWebapi2.0/bin/PACT.COMMON.dll
+M	PactRevenUWebapi2.0/PactRevenUWebapi2.0/bin/PACT.DBHandler.dll
+M	PactRevenUWebapi2.0/PactRevenUWebapi2.0/bin/PACT.MODEL.dll
+M	PactRevenUWebapi2.0/PactRevenUWebapi2.0/bin/PACT.Service.dll
+M	PactRevenUWebapi2.0/PactRevenUWebapi2.0/bin/PACT.VIEWMODEL.Base.dll
+M	PactRevenUWebapi2.0/PactRevenUWebapi2.0/bin/PACT.VIEWMODEL.Crm.dll
+M	PactRevenUWebapi2.0/PactRevenUWebapi2.0/bin/PACT.VIEWMODEL.Payroll.dll
+M	PactRevenUWebapi2.0/PactRevenUWebapi2.0/bin/PACT.VIEWMODEL.Prd.dll
+M	PactRevenUWebapi2.0/PactRevenUWebapi2.0/bin/PACT.VIEWMODEL.Rental.dll
+M	PactRevenUWebapi2.0/PactRevenUWebapi2.0/bin/PACT.VIEWMODEL.Reports.dll
+M	PactRevenUWebapi2.0/PactRevenUWebapi2.0/bin/PACT.VIEWMODEL.dll
+M	PactRevenUWebapi2.0/PactRevenUWebapi2.0/obj/Release/Package/PackageTmp/Views/Shared/_Layout.cshtml
+M	PactRevenUWebapi2.0/PactRevenUWebapi2.0/obj/Release/Package/PackageTmp/bin/PACT.COMMON.dll
+M	PactRevenUWebapi2.0/PactRevenUWebapi2.0/obj/Release/Package/PackageTmp/bin/PACT.DBHandler.dll
+M	PactRevenUWebapi2.0/PactRevenUWebapi2.0/obj/Release/Package/PackageTmp/bin/PACT.MODEL.dll
+M	PactRevenUWebapi2.0/PactRevenUWebapi2.0/obj/Release/Package/PackageTmp/bin/PACT.Service.dll
+M	PactRevenUWebapi2.0/PactRevenUWebapi2.0/obj/Release/Package/PackageTmp/bin/PACT.VIEWMODEL.Base.dll
+M	PactRevenUWebapi2.0/PactRevenUWebapi2.0/obj/Release/Package/PackageTmp/bin/PACT.VIEWMODEL.Crm.dll
+M	PactRevenUWebapi2.0/PactRevenUWebapi2.0/obj/Release/Package/PackageTmp/bin/PACT.VIEWMODEL.Payroll.dll
+M	PactRevenUWebapi2.0/PactRevenUWebapi2.0/obj/Release/Package/PackageTmp/bin/PACT.VIEWMODEL.Prd.dll
+M	PactRevenUWebapi2.0/PactRevenUWebapi2.0/obj/Release/Package/PackageTmp/bin/PACT.VIEWMODEL.Rental.dll
+M	PactRevenUWebapi2.0/PactRevenUWebapi2.0/obj/Release/Package/PackageTmp/bin/PACT.VIEWMODEL.Reports.dll
+M	PactRevenUWebapi2.0/PactRevenUWebapi2.0/obj/Release/Package/PackageTmp/bin/PACT.VIEWMODEL.dll
+M	PactRevenUWebapi2.0/PactRevenUWebapi2.0/obj/Release/Package/PackageTmp/bin/PactRevenUWebapi2.0.dll
+M	PactRevenUWebapi2.0/PactRevenUWebapi2.0/obj/Release/Package/PackageTmp/bin/PactRevenUWebapi2.0.pdb
+M	PactRevenUWebapi2.0/PactRevenUWebapi2.0/obj/Release/Package/PackageTmp/bin/WPFToolkit.Extended.dll
+M	PactRevenUWebapi2.0/PactRevenUWebapi2.0/obj/Release/Package/PackageTmp/bin/WPFToolkit.dll
+M	PactRevenUWebapi2.0/PactRevenUWebapi2.0/obj/Release/PactRevenUWebapi2.0.csproj.CoreCompileInputs.cache
+M	PactRevenUWebapi2.0/PactRevenUWebapi2.0/obj/Release/PactRevenUWebapi2.0.csproj.FileListAbsolute.txt
+M	PactRevenUWebapi2.0/PactRevenUWebapi2.0/obj/Release/PactRevenUWebapi2.0.dll
+M	PactRevenUWebapi2.0/PactRevenUWebapi2.0/obj/Release/PactRevenUWebapi2.0.pdb
+M	RevenUWeb/src/app/services/session-manager.service.ts
