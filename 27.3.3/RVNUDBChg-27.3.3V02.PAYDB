@@ -1,0 +1,49 @@
+-- SHASHANK
+
+CREATE TABLE #t(id int identity(1,1),FeatureActionTypeID bigint)
+CREATE TABLE #T2(RoleID BIGINT)
+
+declare @I int,@Cnt int,@FeatureActionTypeID bigint,@MinFeatureActionID bigint
+
+INSERT INTO #t
+SELECT distinct FeatureActionTypeID FROM ADM_FeatureAction WITH(NOLOCK) WHERE FeatureID=40095 
+and FeatureActionTypeID in(SELECT FeatureActionTypeID FROM ADM_FeatureAction WITH(NOLOCK) WHERE FeatureID=40095 
+GROUP BY FeatureActionTypeID HAVING COUNT(FeatureActionTypeID)>1)
+
+SET @I=1
+SELECT @Cnt=COUNT(*) FROM #t WITH(NOLOCK)
+
+WHILE(@I<=@Cnt)
+BEGIN
+
+SET @MinFeatureActionID=0
+
+SELECT @FeatureActionTypeID=FeatureActionTypeID FROM #T WITH(NOLOCK) WHERE ID=@I
+
+INSERT INTO #T2
+select distinct roleid from ADM_FeatureActionRoleMap WITH(NOLOCK) where FeatureActionID in (SELECT FeatureActionID FROM ADM_FeatureAction WITH(NOLOCK) WHERE FeatureID=40095  AND FeatureActionTypeID=@FeatureActionTypeID)
+
+	delete from ADM_FeatureActionRoleMap where FeatureActionID in (SELECT FeatureActionID FROM ADM_FeatureAction WITH(NOLOCK) WHERE FeatureID=40095  AND FeatureActionTypeID=@FeatureActionTypeID) -- DELETE
+
+	set @MinFeatureActionID=0
+	SELECT @MinFeatureActionID=min(FeatureActionID) FROM ADM_FeatureAction WITH(NOLOCK) WHERE FeatureID=40095  AND FeatureActionTypeID=@FeatureActionTypeID
+	
+	delete FROM ADM_FeatureAction  WHERE FeatureID=40095  AND FeatureActionTypeID=@FeatureActionTypeID AND FeatureActionID!=@MinFeatureActionID --DELETE
+
+	if exists(select * from #T2 WITH(NOLOCK))
+	begin
+		if(@MinFeatureActionID>0)
+		begin
+			insert into ADM_FeatureActionRoleMap
+			select RoleID,@MinFeatureActionID,null,null,'admin',1,null,null from #T2
+		end
+	end
+
+truncate table #T2
+
+SET @I=@I+1
+END
+
+
+drop table #t
+drop table #T2

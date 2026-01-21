@@ -1,0 +1,18 @@
+
+
+
+
+
+M	PactRevenUWebapi2.0/PactRevenUWebapi2.0/Controllers/CommonController.cs
+M	PactRevenUWebapi2.0/PactRevenUWebapi2.0/Controllers/ReportController.cs
+M	RevenUWeb/src/app/document/enquiries/EnquiriesViewModel.ts
+M	RevenUWeb/src/app/document/enquiries/enquiries.component.html
+M	RevenUWeb/src/app/document/product-search-catalog/ProductSearchCatalogViewModel.ts
+M	RevenUWeb/src/app/services/session-manager.service.ts
+M	RevenUWeb/src/app/shared/controls/master-tabs/activity/ActivitiesViewModel.ts
+M	RevenUWeb/src/app/shared/controls/org-chart/org-chart.component.html
+M	RevenUWeb/src/app/shared/controls/org-chart/org-chart.component.scss
+M	RevenUWebWhiteTheme/src/app/document/bill-wise/BillWiseViewModel.ts
+M	RevenUWebWhiteTheme/src/app/document/bill-wise/bill-wise.component.html
+M	RevenUWebWhiteTheme/src/app/shared/controls/PactGridView/PactGridView.component.html
+M	RevenUWebWhiteTheme/src/scss/PACTUI/@theme/_page.scss

@@ -1,0 +1,59 @@
+-- Wajid
+
+if exists (select screenname from [ADM_RibbonView] with(nolock) where ScreenName='WebConfig')
+begin
+	DECLARE @FeatureActionID bigint, @Rid bigint, @RibbonViewID bigint, @FeatureActionResourceID bigint
+	SELECT @Rid=MAX([ResourceID])+1 FROM [Com_LanguageResources] WITH(NOLOCK)  
+	SELECT @RibbonViewID=MAX(RibbonViewID)+1 FROM [ADM_RibbonView] WITH(NOLOCK)  
+	SELECT @FeatureActionID = FeatureActionID FROM [ADM_FeatureAction] WITH(NOLOCK)  where FeatureID = 506 and FeatureActionTypeID = 919
+	select @FeatureActionResourceID = FeatureActionResourceID from [ADM_RibbonView] with(nolock) where ScreenName='WebConfig'
+
+	INSERT INTO [Com_LanguageResources] ([ResourceID],[ResourceName],[LanguageID],[LanguageName],[ResourceData],[GUID],[Description],[CreatedBy],[CreatedDate],[ModifiedBy],[ModifiedDate],[FEATURE])
+	VALUES(@Rid+1,'WebConfig',1,'English','WebConfig','GUID',NULL,'Admin',convert(float,getdate()),NULL,NULL,'ADMIN') 
+	INSERT INTO [Com_LanguageResources] ([ResourceID],[ResourceName],[LanguageID],[LanguageName],[ResourceData],[GUID],[Description],[CreatedBy],[CreatedDate],[ModifiedBy],[ModifiedDate],[FEATURE])
+	VALUES(@Rid+1,'WebConfig',2,'Arabic','WebConfig','GUID',NULL,'Admin',convert(float,getdate()),NULL,NULL,'ADMIN') 
+	INSERT INTO [Com_LanguageResources] ([ResourceID],[ResourceName],[LanguageID],[LanguageName],[ResourceData],[GUID],[Description],[CreatedBy],[CreatedDate],[ModifiedBy],[ModifiedDate],[FEATURE])
+	VALUES(@Rid+1,'WebConfig',3,'Italian','WebConfig','GUID',NULL,'Admin',convert(float,getdate()),NULL,NULL,'ADMIN') 
+
+
+	INSERT INTO [Com_LanguageResources] ([ResourceID],[ResourceName],[LanguageID],[LanguageName],[ResourceData],[GUID],[Description],[CreatedBy],[CreatedDate],[ModifiedBy],[ModifiedDate],[FEATURE])
+	VALUES(@Rid+2,'WebConfig',1,'English','WebConfig','GUID',NULL,'Admin',convert(float,getdate()),NULL,NULL,'ADMIN') 
+	INSERT INTO [Com_LanguageResources] ([ResourceID],[ResourceName],[LanguageID],[LanguageName],[ResourceData],[GUID],[Description],[CreatedBy],[CreatedDate],[ModifiedBy],[ModifiedDate],[FEATURE])
+	VALUES(@Rid+2,'WebConfig',2,'Arabic','WebConfig','GUID',NULL,'Admin',convert(float,getdate()),NULL,NULL,'ADMIN') 
+	INSERT INTO [Com_LanguageResources] ([ResourceID],[ResourceName],[LanguageID],[LanguageName],[ResourceData],[GUID],[Description],[CreatedBy],[CreatedDate],[ModifiedBy],[ModifiedDate],[FEATURE])
+	VALUES(@Rid+2,'WebConfig',3,'Italian','WebConfig','GUID',NULL,'Admin',convert(float,getdate()),NULL,NULL,'ADMIN') 
+
+	INSERT INTO [Com_LanguageResources] ([ResourceID],[ResourceName],[LanguageID],[LanguageName],[ResourceData],[GUID],[Description],[CreatedBy],[CreatedDate],[ModifiedBy],[ModifiedDate],[FEATURE])
+	VALUES(@Rid+3,'WebConfig',1,'English','WebConfig','GUID',NULL,'Admin',convert(float,getdate()),NULL,NULL,'ADMIN') 
+	INSERT INTO [Com_LanguageResources] ([ResourceID],[ResourceName],[LanguageID],[LanguageName],[ResourceData],[GUID],[Description],[CreatedBy],[CreatedDate],[ModifiedBy],[ModifiedDate],[FEATURE])
+	VALUES(@Rid+3,'WebConfig',2,'Arabic','WebConfig','GUID',NULL,'Admin',convert(float,getdate()),NULL,NULL,'ADMIN') 
+	INSERT INTO [Com_LanguageResources] ([ResourceID],[ResourceName],[LanguageID],[LanguageName],[ResourceData],[GUID],[Description],[CreatedBy],[CreatedDate],[ModifiedBy],[ModifiedDate],[FEATURE])
+	VALUES(@Rid+3,'WebConfig',3,'Italian','WebConfig','GUID',NULL,'Admin',convert(float,getdate()),NULL,NULL,'ADMIN') 
+
+	INSERT INTO [Com_LanguageResources] ([ResourceID],[ResourceName],[LanguageID],[LanguageName],[ResourceData],[GUID],[Description],[CreatedBy],[CreatedDate],[ModifiedBy],[ModifiedDate],[FEATURE])
+	VALUES(@Rid+4,'WebConfig',1,'English','WebConfig','GUID',NULL,'Admin',convert(float,getdate()),NULL,NULL,'ADMIN') 
+	INSERT INTO [Com_LanguageResources] ([ResourceID],[ResourceName],[LanguageID],[LanguageName],[ResourceData],[GUID],[Description],[CreatedBy],[CreatedDate],[ModifiedBy],[ModifiedDate],[FEATURE])
+	VALUES(@Rid+4,'WebConfig',2,'Arabic','WebConfig','GUID',NULL,'Admin',convert(float,getdate()),NULL,NULL,'ADMIN') 
+	INSERT INTO [Com_LanguageResources] ([ResourceID],[ResourceName],[LanguageID],[LanguageName],[ResourceData],[GUID],[Description],[CreatedBy],[CreatedDate],[ModifiedBy],[ModifiedDate],[FEATURE])
+	VALUES(@Rid+4,'WebConfig',3,'Italian','WebConfig','GUID',NULL,'Admin',convert(float,getdate()),NULL,NULL,'ADMIN') 
+
+	INSERT INTO [Com_LanguageResources] ([ResourceID],[ResourceName],[LanguageID],[LanguageName],[ResourceData],[GUID],[Description],[CreatedBy],[CreatedDate],[ModifiedBy],[ModifiedDate],[FEATURE])
+	VALUES(@Rid+5,'WebConfig',1,'English','WebConfig','GUID',NULL,'Admin',convert(float,getdate()),NULL,NULL,'ADMIN') 
+	INSERT INTO [Com_LanguageResources] ([ResourceID],[ResourceName],[LanguageID],[LanguageName],[ResourceData],[GUID],[Description],[CreatedBy],[CreatedDate],[ModifiedBy],[ModifiedDate],[FEATURE])
+	VALUES(@Rid+5,'WebConfig',2,'Arabic','WebConfig','GUID',NULL,'Admin',convert(float,getdate()),NULL,NULL,'ADMIN') 
+	INSERT INTO [Com_LanguageResources] ([ResourceID],[ResourceName],[LanguageID],[LanguageName],[ResourceData],[GUID],[Description],[CreatedBy],[CreatedDate],[ModifiedBy],[ModifiedDate],[FEATURE])
+	VALUES(@Rid+5,'WebConfig',3,'Italian','WebConfig','GUID',NULL,'Admin',convert(float,getdate()),NULL,NULL,'ADMIN') 
+
+
+	delete from [ADM_RibbonView] where RibbonViewID=(select RibbonViewID from ADM_RibbonView with(nolock) where ScreenName='WebConfig')
+
+	INSERT INTO [ADM_RibbonView]([RibbonViewID],[TabID],[GroupID],[DrpID],[TabName],[GroupName],[DrpName],[TabResourceID],[GroupResourceID],[DrpResourceID],[TabOrder],[GroupOrder],[FeatureID],[FeatureActionID],[FeatureActionResourceID],[FeatureActionName],[TabKeyTip],[GroupKeyTip],[DrpKeyTip],[ButtonKeyTip],[IsEnabled],[ScreenName],[ScreenResourceID],[ImageType],[ImagePath],[DrpImage],[ToolTipTitleResourceID],[ToolTipTitle],[ToolTipImg],[ToolTipDescResourceID],[ToolTipDesc],[RoleID],[UserID],[UserName],[CompanyGUID],[GUID],[Description],[CreatedBy],[CreatedDate],[ModifiedBy],[ModifiedDate],[DisplayName],[DisplayNameResourceID],[ColumnOrder],[ShowInWeb],[IsMobile])
+	VALUES(@RibbonViewID,9,49,null,'ADMIN','Define',null,
+	(select Tabresourceid from [ADM_RibbonView] with(nolock) where ribbonviewid=224),
+	(select GROUPresourceid from [ADM_RibbonView] with(nolock) where ribbonviewid=224),
+	(select Drpresourceid from [ADM_RibbonView] with(nolock) where ribbonviewid=224),
+	9,2,506,@FeatureActionID, @FeatureActionResourceID,
+	'WebConfig','Y',NULL,NULL,'P',1,'WebConfig',@Rid+2,0,'ACC_PDC.png','ADM_Def_Bat.png',@Rid+3,
+	'WebConfig','ADM_Def_Bat.png',@Rid+4,'WebConfig',1,1,'Admin','CompanyGUID',NEWID(),
+	'WebConfig','Admin',CONVERT(FLOAT,GETDATE()),NULL,NULL,'WebConfig',@Rid+5,0,1,0)
+end

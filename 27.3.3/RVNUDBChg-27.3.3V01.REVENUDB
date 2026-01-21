@@ -1,0 +1,26 @@
+--CHARY
+
+DECLARE @lft bigint,@rgt bigint,@Selectedlft bigint,@Selectedrgt bigint,@Depth int,@ParentID bigint, @SelectedIsGroup bit
+DECLARE @NoOfReports INT, @SelectedNodeID int
+
+SET @NoOfReports=1
+set @SelectedNodeID=1
+--To Set Left,Right And Depth of Record
+SELECT @SelectedIsGroup=IsGroup,@Selectedlft =lft,@Selectedrgt=rgt,@ParentID=ParentID,@Depth=Depth
+from [ADM_Widgets] with(NOLOCK) where ID=@SelectedNodeID
+
+IF(@SelectedIsGroup = 1)--Adding Node Under the Group
+BEGIN
+    UPDATE [ADM_Widgets] SET rgt = rgt + @NoOfReports*2 WHERE rgt > @Selectedlft;
+    UPDATE [ADM_Widgets] SET lft = lft + @NoOfReports*2 WHERE lft > @Selectedlft;
+    SET @lft =  @Selectedlft + 1
+    SET @ParentID = @SelectedNodeID
+    SET @Depth = @Depth + 1
+END
+
+SET IDENTITY_INSERT [ADM_Widgets] ON
+
+INSERT INTO [ADM_Widgets] ([ID],[Name],[OptionsXML],[AccountsXML],[CreatedBy],[CreatedDate],[WType],[Depth],[ParentID],[lft],[rgt],[IsGroup])
+VALUES(110,'Documents Status-Wise Gross','<Options></Options>','','SYS',0,110,@Depth,@ParentID,@lft,@lft+1,0)
+SET IDENTITY_INSERT [ADM_Widgets] OFF
+
