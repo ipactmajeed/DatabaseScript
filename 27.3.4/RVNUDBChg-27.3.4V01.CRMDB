@@ -1,0 +1,188 @@
+--Ibrahim
+
+IF NOT EXISTS(SELECT * FROM COM_CostCenterPreferences WITH(NOLOCK) WHERE CostCenterID=86 and Name='AuditTrial')
+BEGIN
+	INSERT INTO COM_CostCenterPreferences
+	SELECT 86,86,ResourceID,Name,'False','',NULL,'guid',NULL,'admin',CONVERT(FLOAT,GETDATE()),'admin',CONVERT(FLOAT,GETDATE())
+	FROM COM_CostCenterPreferences WITH(NOLOCK) where CostCenterID=50001 and Name='AuditTrial'
+END
+
+IF NOT EXISTS(SELECT * FROM COM_CostCenterPreferences WITH(NOLOCK) WHERE CostCenterID=89 and Name='AuditTrial')
+BEGIN
+	INSERT INTO COM_CostCenterPreferences
+	SELECT 89,89,ResourceID,Name,'False','',NULL,'guid',NULL,'admin',CONVERT(FLOAT,GETDATE()),'admin',CONVERT(FLOAT,GETDATE())
+	FROM COM_CostCenterPreferences WITH(NOLOCK) where CostCenterID=50001 and Name='AuditTrial'
+END
+
+
+
+
+
+/****** Object:  Table [dbo].[CRM_OpportunitiesHistory]    Script Date: 20-01-2026 16:41:11 ******/
+SET ANSI_NULLS ON
+GO
+
+SET QUOTED_IDENTIFIER ON
+GO
+
+SET ANSI_PADDING ON
+GO
+
+CREATE TABLE [dbo].[CRM_OpportunitiesHistory](
+	[OpportunityHistoryID] [bigint] IDENTITY(1,1) NOT NULL,
+	[OpportunityID] [bigint],
+	[DetailsContactID] [bigint] NULL,
+	[Code] [nvarchar](50) NOT NULL,
+	[Date] [float] NULL,
+	[StatusID] [bigint] NOT NULL,
+	[LeadID] [bigint] NULL,
+	[CampaignID] [int] NULL,
+	[Subject] [nvarchar](500) NULL,
+	[Company] [nvarchar](50) NULL,
+	[EstimatedRevenue] [nvarchar](50) NULL,
+	[CurrencyID] [bigint] NULL,
+	[EstimatedCloseDate] [float] NULL,
+	[ProbabilityLookUpID] [int] NULL,
+	[RatingLookUpID] [int] NULL,
+	[CloseDate] [float] NULL,
+	[ReasonLookUpID] [int] NULL,
+	[Description] [nvarchar](max) NULL,
+	[Depth] [int] NULL,
+	[ParentID] [int] NULL,
+	[lft] [int] NULL,
+	[rgt] [int] NULL,
+	[IsGroup] [bit] NULL,
+	[CompanyGUID] [nvarchar](50) NULL,
+	[GUID] [varchar](50) NOT NULL,
+	[CreatedBy] [nvarchar](50) NOT NULL,
+	[CreatedDate] [float] NOT NULL,
+	[ModifiedBy] [nvarchar](50) NULL,
+	[ModifiedDate] [float] NULL,
+	[CCOpportunityID] [bigint] NULL,
+	[ConvertFromLeadID] [bigint] NULL,
+	[Mode] [int] NULL,
+	[SelectedModeID] [int] NULL,
+	[ContactID] [bigint] NULL,
+	[ConvertFromCampaignID] [bigint] NULL,
+	[Remarks] [nvarchar](500) NULL,
+	[CodePrefix] [nvarchar](200) NULL,
+	[CodeNumber] [bigint] NULL,
+	[WorkFlowID] [int] NULL,
+	[WorkFlowLevel] [int] NULL,
+	[HistoryStatus] [nvarchar](50) NULL,
+ CONSTRAINT [PK_CRM_OpportunitiesHistory] PRIMARY KEY CLUSTERED 
+(
+	[OpportunityHistoryID] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, FILLFACTOR = 90) ON [PRIMARY]
+) ON [PRIMARY]
+
+GO
+
+SET ANSI_PADDING OFF
+GO
+
+ALTER TABLE [dbo].[CRM_OpportunitiesHistory] ADD  DEFAULT ((0)) FOR [ConvertFromLeadID]
+GO
+
+ALTER TABLE [dbo].[CRM_OpportunitiesHistory] ADD  DEFAULT ((0)) FOR [Mode]
+GO
+
+ALTER TABLE [dbo].[CRM_OpportunitiesHistory] ADD  DEFAULT ((0)) FOR [SelectedModeID]
+GO
+
+ALTER TABLE [dbo].[CRM_OpportunitiesHistory] ADD  DEFAULT ((0)) FOR [ContactID]
+GO
+
+ALTER TABLE [dbo].[CRM_OpportunitiesHistory] ADD  DEFAULT ((0)) FOR [CodeNumber]
+GO
+
+
+
+
+
+
+
+/****** Object:  Table [dbo].[CRM_LeadsHistory]    Script Date: 20-01-2026 17:06:57 ******/
+SET ANSI_NULLS ON
+GO
+
+SET QUOTED_IDENTIFIER ON
+GO
+
+SET ANSI_PADDING ON
+GO
+
+CREATE TABLE [dbo].[CRM_LeadsHistory](
+	[LeadIDHistoryID] [bigint] IDENTITY(1,1) NOT NULL,
+	[LeadID] [bigint],
+	[Code] [nvarchar](50) NOT NULL,
+	[Subject] [nvarchar](500) NULL,
+	[Date] [float] NULL,
+	[StatusID] [int] NULL,
+	[Company] [nvarchar](500) NULL,
+	[SourceLookUpID] [int] NULL,
+	[RatinglookupID] [int] NULL,
+	[IndustryLookUpID] [int] NULL,
+	[CampaignID] [bigint] NULL,
+	[CampaignResponseID] [bigint] NULL,
+	[CampaignActivityID] [bigint] NULL,
+	[Description] [nvarchar](max) NULL,
+	[Depth] [int] NULL,
+	[ParentID] [int] NULL,
+	[lft] [int] NULL,
+	[rgt] [int] NULL,
+	[IsGroup] [bit] NULL,
+	[CompanyGUID] [nvarchar](50) NULL,
+	[GUID] [varchar](50) NOT NULL,
+	[CreatedBy] [nvarchar](50) NOT NULL,
+	[CreatedDate] [float] NOT NULL,
+	[ModifiedBy] [nvarchar](50) NULL,
+	[ModifiedDate] [float] NULL,
+	[CCLeadID] [bigint] NULL,
+	[Mode] [int] NULL,
+	[SelectedModeID] [int] NULL,
+	[ApprovedDate] [float] NULL,
+	[ApprovedBy] [nvarchar](50) NULL,
+	[ContactID] [bigint] NULL,
+	[IsApproved] [bit] NULL,
+	[ConvertFromCampaignID] [bigint] NULL,
+	[CodePrefix] [nvarchar](200) NULL,
+	[CodeNumber] [bigint] NULL,
+	[CloseDate] [float] NULL,
+	[WorkFlowID] [int] NULL,
+	[WorkFlowLevel] [int] NULL,
+	[HistoryStatus] [nvarchar](50) NULL,
+ CONSTRAINT [PK_CRM_LeadsHistory] PRIMARY KEY CLUSTERED 
+(
+	[LeadIDHistoryID] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, FILLFACTOR = 90) ON [PRIMARY]
+) ON [PRIMARY]
+
+GO
+
+SET ANSI_PADDING OFF
+GO
+
+ALTER TABLE [dbo].[CRM_LeadsHistory] ADD  DEFAULT ((0)) FOR [CCLeadID]
+GO
+
+ALTER TABLE [dbo].[CRM_LeadsHistory] ADD  DEFAULT ((0)) FOR [Mode]
+GO
+
+ALTER TABLE [dbo].[CRM_LeadsHistory] ADD  DEFAULT ((0)) FOR [SelectedModeID]
+GO
+
+ALTER TABLE [dbo].[CRM_LeadsHistory] ADD  DEFAULT ((0)) FOR [ContactID]
+GO
+
+ALTER TABLE [dbo].[CRM_LeadsHistory] ADD  DEFAULT ((0)) FOR [IsApproved]
+GO
+
+ALTER TABLE [dbo].[CRM_LeadsHistory] ADD  DEFAULT ((0)) FOR [CodeNumber]
+GO
+
+
+
+
+
+
